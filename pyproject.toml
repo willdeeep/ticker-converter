@@ -38,6 +38,9 @@ dependencies = [
     "black>=23.7.0",
     "ruff>=0.0.280",
     "mypy>=1.5.0",
+    # Type stubs for mypy
+    "pandas-stubs>=2.0.0",
+    "types-requests>=2.31.0",
     # Utility Libraries
     "click>=8.1.0",
     "python-dateutil>=2.8.0",
