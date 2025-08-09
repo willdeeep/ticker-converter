@@ -7,19 +7,19 @@ from .api_client import AlphaVantageClient, AlphaVantageAPIError
 
 class FinancialDataPipeline:
     """Main pipeline class for financial data processing."""
-    
+
     def __init__(self, api_key: Optional[str] = None) -> None:
         """Initialize the pipeline.
-        
+
         Args:
             api_key: Optional API key for financial data services.
         """
         self.api_key = api_key
         self.alpha_vantage = AlphaVantageClient(api_key)
-    
+
     def fetch_stock_data(self, symbol: str, period: str = "1mo") -> pd.DataFrame:
         """Fetch stock data for a given symbol.
-        
+
         Args:
             symbol: Stock symbol (e.g., 'AAPL').
             period: Time period for data retrieval ('1mo', '3mo', '1y', 'max').
@@ -39,10 +39,10 @@ class FinancialDataPipeline:
         except AlphaVantageAPIError as e:
             print(f"Error fetching data for {symbol}: {e}")
             return pd.DataFrame()
-    
+
     def fetch_intraday_data(self, symbol: str, interval: str = "5min") -> pd.DataFrame:
         """Fetch intraday stock data for a given symbol.
-        
+
         Args:
             symbol: Stock symbol (e.g., 'AAPL').
             interval: Time interval ('1min', '5min', '15min', '30min', '60min').
@@ -55,10 +55,10 @@ class FinancialDataPipeline:
         except AlphaVantageAPIError as e:
             print(f"Error fetching intraday data for {symbol}: {e}")
             return pd.DataFrame()
-    
+
     def get_company_info(self, symbol: str) -> dict:
         """Get company overview information.
-        
+
         Args:
             symbol: Stock symbol (e.g., 'AAPL').
             
@@ -70,10 +70,10 @@ class FinancialDataPipeline:
         except AlphaVantageAPIError as e:
             print(f"Error fetching company info for {symbol}: {e}")
             return {}
-    
+
     def transform(self, data: pd.DataFrame) -> pd.DataFrame:
         """Transform raw financial data.
-        
+
         Args:
             data: Raw financial data.
             
