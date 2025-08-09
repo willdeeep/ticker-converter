@@ -1,6 +1,7 @@
 """Command-line interface for the ticker converter."""
 
 import click
+
 from ticker_converter import __version__
 
 

@@ -1,9 +1,11 @@
 """Alpha Vantage API client for financial data."""
 
 import time
-from typing import Dict, Any, Optional
-import requests
+from typing import Any, Optional
+
 import pandas as pd
+import requests
+
 from .config import config
 
 
@@ -31,15 +33,15 @@ class AlphaVantageClient:
 
         self.session = requests.Session()
 
-    def _make_request(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def _make_request(self, params: dict[str, Any]) -> dict[str, Any]:
         """Make a request to the Alpha Vantage API with retry logic.
 
         Args:
             params: API request parameters.
-            
+
         Returns:
             JSON response from the API.
-            
+
         Raises:
             AlphaVantageAPIError: If the API request fails.
         """
@@ -48,32 +50,34 @@ class AlphaVantageClient:
         for attempt in range(self.max_retries):
             try:
                 response = self.session.get(
-                    self.base_url,
-                    params=params,
-                    timeout=self.timeout
+                    self.base_url, params=params, timeout=self.timeout
                 )
                 response.raise_for_status()
-                
+
                 data = response.json()
-                
+
                 # Check for API errors
                 if "Error Message" in data:
                     raise AlphaVantageAPIError(f"API Error: {data['Error Message']}")
-                
+
                 if "Note" in data:
                     # Rate limit hit, wait and retry
                     if attempt < self.max_retries - 1:
-                        wait_time = self.rate_limit_delay * (2 ** attempt)
+                        wait_time = self.rate_limit_delay * (2**attempt)
                         time.sleep(wait_time)
                         continue
                     else:
-                        raise AlphaVantageAPIError(f"Rate limit exceeded: {data['Note']}")
-                
+                        raise AlphaVantageAPIError(
+                            f"Rate limit exceeded: {data['Note']}"
+                        )
+
+                # Apply rate limiting and return data
+                time.sleep(self.rate_limit_delay)
                 return data
-                
+
             except requests.RequestException as e:
                 if attempt < self.max_retries - 1:
-                    wait_time = self.rate_limit_delay * (2 ** attempt)
+                    wait_time = self.rate_limit_delay * (2**attempt)
                     time.sleep(wait_time)
                     continue
                 else:
@@ -81,23 +85,25 @@ class AlphaVantageClient:
                         f"Request failed after {self.max_retries} attempts: {e}"
                     ) from e
 
-        # Apply rate limiting
-        time.sleep(self.rate_limit_delay)
+        # This should never be reached, but needed for mypy
+        raise AlphaVantageAPIError("Unexpected error: max retries exceeded")
 
-    def get_daily_stock_data(self, symbol: str, outputsize: str = "compact") -> pd.DataFrame:
+    def get_daily_stock_data(
+        self, symbol: str, outputsize: str = "compact"
+    ) -> pd.DataFrame:
         """Get daily stock data for a given symbol.
 
         Args:
             symbol: Stock symbol (e.g., 'AAPL').
             outputsize: 'compact' for last 100 data points, 'full' for all data.
-            
+
         Returns:
             DataFrame with daily stock data (Date, Open, High, Low, Close, Volume).
         """
         params = {
             "function": "TIME_SERIES_DAILY",
             "symbol": symbol.upper(),
-            "outputsize": outputsize
+            "outputsize": outputsize,
         }
 
         data = self._make_request(params)
@@ -105,7 +111,9 @@ class AlphaVantageClient:
         # Extract time series data
         time_series_key = "Time Series (Daily)"
         if time_series_key not in data:
-            raise AlphaVantageAPIError(f"Unexpected response format: {list(data.keys())}")
+            raise AlphaVantageAPIError(
+                f"Unexpected response format: {list(data.keys())}"
+            )
 
         time_series = data[time_series_key]
 
@@ -118,7 +126,7 @@ class AlphaVantageClient:
                 "High": float(values["2. high"]),
                 "Low": float(values["3. low"]),
                 "Close": float(values["4. close"]),
-                "Volume": int(values["5. volume"])
+                "Volume": int(values["5. volume"]),
             }
             df_data.append(row)
 
@@ -128,20 +136,22 @@ class AlphaVantageClient:
 
         return df
 
-    def get_intraday_stock_data(self, symbol: str, interval: str = "5min") -> pd.DataFrame:
+    def get_intraday_stock_data(
+        self, symbol: str, interval: str = "5min"
+    ) -> pd.DataFrame:
         """Get intraday stock data for a given symbol.
 
         Args:
             symbol: Stock symbol (e.g., 'AAPL').
             interval: Time interval ('1min', '5min', '15min', '30min', '60min').
-            
+
         Returns:
             DataFrame with intraday stock data.
         """
         params = {
             "function": "TIME_SERIES_INTRADAY",
             "symbol": symbol.upper(),
-            "interval": interval
+            "interval": interval,
         }
 
         data = self._make_request(params)
@@ -149,7 +159,9 @@ class AlphaVantageClient:
         # Extract time series data
         time_series_key = f"Time Series ({interval})"
         if time_series_key not in data:
-            raise AlphaVantageAPIError(f"Unexpected response format: {list(data.keys())}")
+            raise AlphaVantageAPIError(
+                f"Unexpected response format: {list(data.keys())}"
+            )
 
         time_series = data[time_series_key]
 
@@ -162,7 +174,7 @@ class AlphaVantageClient:
                 "High": float(values["2. high"]),
                 "Low": float(values["3. low"]),
                 "Close": float(values["4. close"]),
-                "Volume": int(values["5. volume"])
+                "Volume": int(values["5. volume"]),
             }
             df_data.append(row)
 
@@ -172,18 +184,15 @@ class AlphaVantageClient:
 
         return df
 
-    def get_company_overview(self, symbol: str) -> Dict[str, Any]:
+    def get_company_overview(self, symbol: str) -> dict[str, Any]:
         """Get company overview data for a given symbol.
 
         Args:
             symbol: Stock symbol (e.g., 'AAPL').
-            
+
         Returns:
             Dictionary with company overview data.
         """
-        params = {
-            "function": "OVERVIEW",
-            "symbol": symbol.upper()
-        }
+        params = {"function": "OVERVIEW", "symbol": symbol.upper()}
 
         return self._make_request(params)

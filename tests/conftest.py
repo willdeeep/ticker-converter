@@ -1,11 +1,11 @@
 """Pytest configuration and shared fixtures."""
 
-import pytest
-import pandas as pd
+from typing import Any
 from unittest.mock import Mock, patch
-from typing import Dict, Any
 
-from src.ticker_converter.config import Config
+import pandas as pd
+import pytest
+
 from src.ticker_converter.api_client import AlphaVantageClient
 from src.ticker_converter.core import FinancialDataPipeline
 
@@ -13,7 +13,7 @@ from src.ticker_converter.core import FinancialDataPipeline
 @pytest.fixture
 def mock_config():
     """Mock configuration for testing."""
-    with patch('src.ticker_converter.config.config') as mock_cfg:
+    with patch("src.ticker_converter.api_client.config") as mock_cfg:
         mock_cfg.ALPHA_VANTAGE_API_KEY = "test_api_key"
         mock_cfg.ALPHA_VANTAGE_BASE_URL = "https://www.alphavantage.co/query"
         mock_cfg.API_TIMEOUT = 30
@@ -23,7 +23,7 @@ def mock_config():
 
 
 @pytest.fixture
-def sample_daily_response() -> Dict[str, Any]:
+def sample_daily_response() -> dict[str, Any]:
     """Sample Alpha Vantage daily response data."""
     return {
         "Meta Data": {
@@ -31,7 +31,7 @@ def sample_daily_response() -> Dict[str, Any]:
             "2. Symbol": "AAPL",
             "3. Last Refreshed": "2025-08-08",
             "4. Output Size": "Compact",
-            "5. Time Zone": "US/Eastern"
+            "5. Time Zone": "US/Eastern",
         },
         "Time Series (Daily)": {
             "2025-08-08": {
@@ -39,21 +39,21 @@ def sample_daily_response() -> Dict[str, Any]:
                 "2. high": "231.00",
                 "3. low": "219.25",
                 "4. close": "229.35",
-                "5. volume": "113853967"
+                "5. volume": "113853967",
             },
             "2025-08-07": {
                 "1. open": "218.875",
                 "2. high": "220.85",
                 "3. low": "216.58",
                 "4. close": "220.03",
-                "5. volume": "90224834"
-            }
-        }
+                "5. volume": "90224834",
+            },
+        },
     }
 
 
 @pytest.fixture
-def sample_intraday_response() -> Dict[str, Any]:
+def sample_intraday_response() -> dict[str, Any]:
     """Sample Alpha Vantage intraday response data."""
     return {
         "Meta Data": {
@@ -62,7 +62,7 @@ def sample_intraday_response() -> Dict[str, Any]:
             "3. Last Refreshed": "2025-08-08 16:00:00",
             "4. Interval": "5min",
             "5. Output Size": "Compact",
-            "6. Time Zone": "US/Eastern"
+            "6. Time Zone": "US/Eastern",
         },
         "Time Series (5min)": {
             "2025-08-08 16:00:00": {
@@ -70,21 +70,21 @@ def sample_intraday_response() -> Dict[str, Any]:
                 "2. high": "229.40",
                 "3. low": "229.20",
                 "4. close": "229.35",
-                "5. volume": "1234567"
+                "5. volume": "1234567",
             },
             "2025-08-08 15:55:00": {
                 "1. open": "229.10",
                 "2. high": "229.35",
                 "3. low": "229.05",
                 "4. close": "229.30",
-                "5. volume": "987654"
-            }
-        }
+                "5. volume": "987654",
+            },
+        },
     }
 
 
 @pytest.fixture
-def sample_company_overview() -> Dict[str, Any]:
+def sample_company_overview() -> dict[str, Any]:
     """Sample Alpha Vantage company overview response."""
     return {
         "Symbol": "AAPL",
@@ -101,14 +101,14 @@ def sample_company_overview() -> Dict[str, Any]:
         "EBITDA": "131000000000",
         "PERatio": "29.1",
         "PEGRatio": "2.97",
-        "BookValue": "4.382"
+        "BookValue": "4.382",
     }
 
 
 @pytest.fixture
 def mock_requests_session():
     """Mock requests session for API testing."""
-    with patch('requests.Session') as mock_session_class:
+    with patch("requests.Session") as mock_session_class:
         mock_session = Mock()
         mock_session_class.return_value = mock_session
         yield mock_session
@@ -129,12 +129,14 @@ def financial_pipeline(mock_config):
 @pytest.fixture
 def sample_dataframe() -> pd.DataFrame:
     """Sample DataFrame for testing."""
-    return pd.DataFrame({
-        'Date': pd.to_datetime(['2025-08-07', '2025-08-08']),
-        'Open': [218.875, 220.83],
-        'High': [220.85, 231.00],
-        'Low': [216.58, 219.25],
-        'Close': [220.03, 229.35],
-        'Volume': [90224834, 113853967],
-        'Symbol': ['AAPL', 'AAPL']
-    })
+    return pd.DataFrame(
+        {
+            "Date": pd.to_datetime(["2025-08-07", "2025-08-08"]),
+            "Open": [218.875, 220.83],
+            "High": [220.85, 231.00],
+            "Low": [216.58, 219.25],
+            "Close": [220.03, 229.35],
+            "Volume": [90224834, 113853967],
+            "Symbol": ["AAPL", "AAPL"],
+        }
+    )
