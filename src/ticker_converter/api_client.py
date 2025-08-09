@@ -185,14 +185,140 @@ class AlphaVantageClient:
         return df
 
     def get_company_overview(self, symbol: str) -> dict[str, Any]:
-        """Get company overview data for a given symbol.
+        """Get company overview information for a stock symbol.
 
         Args:
             symbol: Stock symbol (e.g., 'AAPL').
 
         Returns:
-            Dictionary with company overview data.
-        """
-        params = {"function": "OVERVIEW", "symbol": symbol.upper()}
+            Dictionary containing company overview data.
 
+        Raises:
+            AlphaVantageAPIError: If the API request fails.
+        """
+        params = {"function": "OVERVIEW", "symbol": symbol}
         return self._make_request(params)
+
+    def get_currency_exchange_rate(
+        self, from_currency: str, to_currency: str
+    ) -> dict[str, Any]:
+        """Get real-time exchange rate for currency pair.
+
+        Args:
+            from_currency: Source currency code (e.g., 'USD', 'BTC').
+            to_currency: Target currency code (e.g., 'EUR', 'USD').
+
+        Returns:
+            Dictionary containing exchange rate data.
+
+        Raises:
+            AlphaVantageAPIError: If the API request fails.
+        """
+        params = {
+            "function": "CURRENCY_EXCHANGE_RATE",
+            "from_currency": from_currency,
+            "to_currency": to_currency,
+        }
+        return self._make_request(params)
+
+    def get_forex_daily(
+        self, from_symbol: str, to_symbol: str, outputsize: str = "compact"
+    ) -> pd.DataFrame:
+        """Get daily forex time series data.
+
+        Args:
+            from_symbol: Source currency (e.g., 'EUR').
+            to_symbol: Target currency (e.g., 'USD').
+            outputsize: 'compact' (100 points) or 'full' (all data).
+
+        Returns:
+            DataFrame with forex time series data.
+
+        Raises:
+            AlphaVantageAPIError: If the API request fails.
+        """
+        params = {
+            "function": "FX_DAILY",
+            "from_symbol": from_symbol,
+            "to_symbol": to_symbol,
+            "outputsize": outputsize,
+        }
+        
+        data = self._make_request(params)
+        
+        # Parse forex time series data
+        time_series_key = f"Time Series FX (Daily)"
+        if time_series_key not in data:
+            raise AlphaVantageAPIError(f"Unexpected forex data format: {list(data.keys())}")
+        
+        time_series = data[time_series_key]
+        
+        # Convert to DataFrame
+        df_data = []
+        for date_str, values in time_series.items():
+            df_data.append({
+                "Date": pd.to_datetime(date_str),
+                "Open": float(values["1. open"]),
+                "High": float(values["2. high"]),
+                "Low": float(values["3. low"]),
+                "Close": float(values["4. close"]),
+                "From_Symbol": from_symbol,
+                "To_Symbol": to_symbol,
+            })
+        
+        df = pd.DataFrame(df_data)
+        df = df.sort_values("Date")
+        return df.reset_index(drop=True)
+
+    def get_digital_currency_daily(
+        self, symbol: str, market: str = "USD"
+    ) -> pd.DataFrame:
+        """Get daily digital currency time series data.
+
+        Args:
+            symbol: Digital currency symbol (e.g., 'BTC', 'ETH').
+            market: Market currency (e.g., 'USD', 'EUR').
+
+        Returns:
+            DataFrame with digital currency time series data.
+
+        Raises:
+            AlphaVantageAPIError: If the API request fails.
+        """
+        params = {
+            "function": "DIGITAL_CURRENCY_DAILY",
+            "symbol": symbol,
+            "market": market,
+        }
+        
+        data = self._make_request(params)
+        
+        # Parse digital currency time series data
+        time_series_key = f"Time Series (Digital Currency Daily)"
+        if time_series_key not in data:
+            raise AlphaVantageAPIError(f"Unexpected crypto data format: {list(data.keys())}")
+        
+        time_series = data[time_series_key]
+        
+        # Convert to DataFrame
+        df_data = []
+        for date_str, values in time_series.items():
+            df_data.append({
+                "Date": pd.to_datetime(date_str),
+                "Open_Market": float(values[f"1a. open ({market})"]),
+                "High_Market": float(values[f"2a. high ({market})"]),
+                "Low_Market": float(values[f"3a. low ({market})"]),
+                "Close_Market": float(values[f"4a. close ({market})"]),
+                "Open_USD": float(values["1b. open (USD)"]),
+                "High_USD": float(values["2b. high (USD)"]),
+                "Low_USD": float(values["3b. low (USD)"]),
+                "Close_USD": float(values["4b. close (USD)"]),
+                "Volume": float(values["5. volume"]),
+                "Market_Cap_USD": float(values["6. market cap (USD)"]),
+                "Symbol": symbol,
+                "Market": market,
+            })
+        
+        df = pd.DataFrame(df_data)
+        df = df.sort_values("Date")
+        return df.reset_index(drop=True)
