@@ -243,16 +243,16 @@ class AlphaVantageClient:
             "to_symbol": to_symbol,
             "outputsize": outputsize,
         }
-        
+
         data = self._make_request(params)
-        
+
         # Parse forex time series data
-        time_series_key = f"Time Series FX (Daily)"
+        time_series_key = "Time Series FX (Daily)"
         if time_series_key not in data:
             raise AlphaVantageAPIError(f"Unexpected forex data format: {list(data.keys())}")
-        
+
         time_series = data[time_series_key]
-        
+
         # Convert to DataFrame
         df_data = []
         for date_str, values in time_series.items():
@@ -265,7 +265,7 @@ class AlphaVantageClient:
                 "From_Symbol": from_symbol,
                 "To_Symbol": to_symbol,
             })
-        
+
         df = pd.DataFrame(df_data)
         df = df.sort_values("Date")
         return df.reset_index(drop=True)
@@ -290,16 +290,16 @@ class AlphaVantageClient:
             "symbol": symbol,
             "market": market,
         }
-        
+
         data = self._make_request(params)
-        
+
         # Parse digital currency time series data
-        time_series_key = f"Time Series (Digital Currency Daily)"
+        time_series_key = "Time Series (Digital Currency Daily)"
         if time_series_key not in data:
             raise AlphaVantageAPIError(f"Unexpected crypto data format: {list(data.keys())}")
-        
+
         time_series = data[time_series_key]
-        
+
         # Convert to DataFrame
         df_data = []
         for date_str, values in time_series.items():
@@ -318,7 +318,7 @@ class AlphaVantageClient:
                 "Symbol": symbol,
                 "Market": market,
             })
-        
+
         df = pd.DataFrame(df_data)
         df = df.sort_values("Date")
         return df.reset_index(drop=True)

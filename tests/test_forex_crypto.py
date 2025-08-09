@@ -23,20 +23,20 @@ def test_get_currency_exchange_rate_success():
             "9. Ask Price": "0.85126800"
         }
     }
-    
+
     responses.add(
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
         status=200
     )
-    
+
     client = AlphaVantageClient("test_key")
     result = client.get_currency_exchange_rate("USD", "EUR")
-    
+
     assert result == mock_response
     assert len(responses.calls) == 1
-    
+
     # Check request parameters
     request = responses.calls[0].request
     assert "function=CURRENCY_EXCHANGE_RATE" in request.url
@@ -60,17 +60,17 @@ def test_get_currency_exchange_rate_crypto():
             "9. Ask Price": "42350.00000000"
         }
     }
-    
+
     responses.add(
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
         status=200
     )
-    
+
     client = AlphaVantageClient("test_key")
     result = client.get_currency_exchange_rate("BTC", "USD")
-    
+
     assert result == mock_response
 
 
@@ -101,27 +101,27 @@ def test_get_forex_daily_success():
             }
         }
     }
-    
+
     responses.add(
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
         status=200
     )
-    
+
     client = AlphaVantageClient("test_key")
     result = client.get_forex_daily("EUR", "USD")
-    
+
     assert isinstance(result, pd.DataFrame)
     assert len(result) == 2
     assert list(result.columns) == [
         "Date", "Open", "High", "Low", "Close", "From_Symbol", "To_Symbol"
     ]
-    
+
     # Check data ordering (should be chronological)
     assert result.iloc[0]["Date"] == pd.to_datetime("2023-11-30")
     assert result.iloc[1]["Date"] == pd.to_datetime("2023-12-01")
-    
+
     # Check specific values
     assert result.iloc[1]["Open"] == 1.0850
     assert result.iloc[1]["High"] == 1.0890
@@ -152,20 +152,20 @@ def test_get_forex_daily_full_output():
             }
         }
     }
-    
+
     responses.add(
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
         status=200
     )
-    
+
     client = AlphaVantageClient("test_key")
     result = client.get_forex_daily("GBP", "JPY", outputsize="full")
-    
+
     assert isinstance(result, pd.DataFrame)
     assert len(result) == 1
-    
+
     # Check request parameters
     request = responses.calls[0].request
     assert "outputsize=full" in request.url
@@ -177,16 +177,16 @@ def test_get_forex_daily_invalid_response():
     mock_response = {
         "Error Message": "Invalid API call. Please retry or visit the documentation."
     }
-    
+
     responses.add(
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
         status=200
     )
-    
+
     client = AlphaVantageClient("test_key")
-    
+
     with pytest.raises(AlphaVantageAPIError, match="API Error: Invalid API call"):
         client.get_forex_daily("INVALID", "USD")
 
@@ -231,29 +231,29 @@ def test_get_digital_currency_daily_success():
             }
         }
     }
-    
+
     responses.add(
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
         status=200
     )
-    
+
     client = AlphaVantageClient("test_key")
     result = client.get_digital_currency_daily("BTC", "USD")
-    
+
     assert isinstance(result, pd.DataFrame)
     assert len(result) == 2
     assert list(result.columns) == [
         "Date", "Open_Market", "High_Market", "Low_Market", "Close_Market",
-        "Open_USD", "High_USD", "Low_USD", "Close_USD", "Volume", 
+        "Open_USD", "High_USD", "Low_USD", "Close_USD", "Volume",
         "Market_Cap_USD", "Symbol", "Market"
     ]
-    
+
     # Check data ordering (should be chronological)
     assert result.iloc[0]["Date"] == pd.to_datetime("2023-11-30")
     assert result.iloc[1]["Date"] == pd.to_datetime("2023-12-01")
-    
+
     # Check specific values for latest date
     latest = result.iloc[1]
     assert latest["Open_Market"] == 42000.0
@@ -298,20 +298,20 @@ def test_get_digital_currency_daily_eur_market():
             }
         }
     }
-    
+
     responses.add(
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
         status=200
     )
-    
+
     client = AlphaVantageClient("test_key")
     result = client.get_digital_currency_daily("ETH", "EUR")
-    
+
     assert isinstance(result, pd.DataFrame)
     assert len(result) == 1
-    
+
     # Check EUR market values
     row = result.iloc[0]
     assert row["Open_Market"] == 1900.0
@@ -320,7 +320,7 @@ def test_get_digital_currency_daily_eur_market():
     assert row["Close_Market"] == 1925.0
     assert row["Symbol"] == "ETH"
     assert row["Market"] == "EUR"
-    
+
     # USD values should still be available
     assert row["Open_USD"] == 2090.0
     assert row["High_USD"] == 2145.0
@@ -334,16 +334,16 @@ def test_get_digital_currency_daily_invalid_response():
     mock_response = {
         "Note": "Thank you for using Alpha Vantage! Our standard API call frequency is 5 calls per minute."
     }
-    
+
     responses.add(
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
         status=200
     )
-    
+
     client = AlphaVantageClient("test_key")
-    
+
     with pytest.raises(AlphaVantageAPIError, match="Rate limit exceeded"):
         client.get_digital_currency_daily("INVALID", "USD")
 
@@ -365,19 +365,19 @@ def test_forex_and_crypto_integration():
             "9. Ask Price": "0.85005000"
         }
     }
-    
+
     responses.add(
         responses.GET,
         "https://www.alphavantage.co/query",
         json=exchange_response,
         status=200
     )
-    
+
     client = AlphaVantageClient("test_key")
-    
+
     # Get exchange rate
     exchange_data = client.get_currency_exchange_rate("USD", "EUR")
     exchange_rate = float(exchange_data["Realtime Currency Exchange Rate"]["5. Exchange Rate"])
-    
+
     assert exchange_rate == 0.85
     assert len(responses.calls) == 1
