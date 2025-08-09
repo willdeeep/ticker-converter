@@ -1,8 +1,10 @@
 """Core functionality for the Financial Market Data Analytics Pipeline."""
 
-from typing import Optional
+from typing import Any, Optional
+
 import pandas as pd
-from .api_client import AlphaVantageClient, AlphaVantageAPIError
+
+from .api_client import AlphaVantageAPIError, AlphaVantageClient
 
 
 class FinancialDataPipeline:
@@ -23,7 +25,7 @@ class FinancialDataPipeline:
         Args:
             symbol: Stock symbol (e.g., 'AAPL').
             period: Time period for data retrieval ('1mo', '3mo', '1y', 'max').
-            
+
         Returns:
             DataFrame containing stock data.
         """
@@ -32,10 +34,10 @@ class FinancialDataPipeline:
             if period in ["1mo", "3mo"]:
                 outputsize = "compact"  # Last 100 data points
             else:
-                outputsize = "full"     # All available data
-            
+                outputsize = "full"  # All available data
+
             return self.alpha_vantage.get_daily_stock_data(symbol, outputsize)
-            
+
         except AlphaVantageAPIError as e:
             print(f"Error fetching data for {symbol}: {e}")
             return pd.DataFrame()
@@ -46,7 +48,7 @@ class FinancialDataPipeline:
         Args:
             symbol: Stock symbol (e.g., 'AAPL').
             interval: Time interval ('1min', '5min', '15min', '30min', '60min').
-            
+
         Returns:
             DataFrame containing intraday stock data.
         """
@@ -56,12 +58,12 @@ class FinancialDataPipeline:
             print(f"Error fetching intraday data for {symbol}: {e}")
             return pd.DataFrame()
 
-    def get_company_info(self, symbol: str) -> dict:
+    def get_company_info(self, symbol: str) -> dict[str, Any]:
         """Get company overview information.
 
         Args:
             symbol: Stock symbol (e.g., 'AAPL').
-            
+
         Returns:
             Dictionary with company information.
         """
@@ -76,7 +78,7 @@ class FinancialDataPipeline:
 
         Args:
             data: Raw financial data.
-            
+
         Returns:
             Transformed data.
         """
