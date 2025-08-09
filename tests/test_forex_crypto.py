@@ -20,7 +20,7 @@ def test_get_currency_exchange_rate_success():
             "6. Last Refreshed": "2023-12-01 10:00:00",
             "7. Time Zone": "UTC",
             "8. Bid Price": "0.85120000",
-            "9. Ask Price": "0.85126800"
+            "9. Ask Price": "0.85126800",
         }
     }
 
@@ -28,7 +28,7 @@ def test_get_currency_exchange_rate_success():
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
-        status=200
+        status=200,
     )
 
     client = AlphaVantageClient("test_key")
@@ -57,7 +57,7 @@ def test_get_currency_exchange_rate_crypto():
             "6. Last Refreshed": "2023-12-01 10:00:00",
             "7. Time Zone": "UTC",
             "8. Bid Price": "42340.00000000",
-            "9. Ask Price": "42350.00000000"
+            "9. Ask Price": "42350.00000000",
         }
     }
 
@@ -65,7 +65,7 @@ def test_get_currency_exchange_rate_crypto():
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
-        status=200
+        status=200,
     )
 
     client = AlphaVantageClient("test_key")
@@ -84,29 +84,29 @@ def test_get_forex_daily_success():
             "3. To Symbol": "USD",
             "4. Output Size": "Compact",
             "5. Last Refreshed": "2023-12-01 21:00:00",
-            "6. Time Zone": "UTC"
+            "6. Time Zone": "UTC",
         },
         "Time Series FX (Daily)": {
             "2023-12-01": {
                 "1. open": "1.0850",
                 "2. high": "1.0890",
                 "3. low": "1.0840",
-                "4. close": "1.0875"
+                "4. close": "1.0875",
             },
             "2023-11-30": {
                 "1. open": "1.0820",
                 "2. high": "1.0860",
                 "3. low": "1.0810",
-                "4. close": "1.0850"
-            }
-        }
+                "4. close": "1.0850",
+            },
+        },
     }
 
     responses.add(
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
-        status=200
+        status=200,
     )
 
     client = AlphaVantageClient("test_key")
@@ -115,7 +115,13 @@ def test_get_forex_daily_success():
     assert isinstance(result, pd.DataFrame)
     assert len(result) == 2
     assert list(result.columns) == [
-        "Date", "Open", "High", "Low", "Close", "From_Symbol", "To_Symbol"
+        "Date",
+        "Open",
+        "High",
+        "Low",
+        "Close",
+        "From_Symbol",
+        "To_Symbol",
     ]
 
     # Check data ordering (should be chronological)
@@ -141,23 +147,23 @@ def test_get_forex_daily_full_output():
             "3. To Symbol": "JPY",
             "4. Output Size": "Full",
             "5. Last Refreshed": "2023-12-01 21:00:00",
-            "6. Time Zone": "UTC"
+            "6. Time Zone": "UTC",
         },
         "Time Series FX (Daily)": {
             "2023-12-01": {
                 "1. open": "181.50",
                 "2. high": "182.00",
                 "3. low": "181.00",
-                "4. close": "181.75"
+                "4. close": "181.75",
             }
-        }
+        },
     }
 
     responses.add(
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
-        status=200
+        status=200,
     )
 
     client = AlphaVantageClient("test_key")
@@ -182,7 +188,7 @@ def test_get_forex_daily_invalid_response():
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
-        status=200
+        status=200,
     )
 
     client = AlphaVantageClient("test_key")
@@ -202,7 +208,7 @@ def test_get_digital_currency_daily_success():
             "4. Market Code": "USD",
             "5. Market Name": "United States Dollar",
             "6. Last Refreshed": "2023-12-01 00:00:00",
-            "7. Time Zone": "UTC"
+            "7. Time Zone": "UTC",
         },
         "Time Series (Digital Currency Daily)": {
             "2023-12-01": {
@@ -215,7 +221,7 @@ def test_get_digital_currency_daily_success():
                 "4a. close (USD)": "42300.00000000",
                 "4b. close (USD)": "42300.00000000",
                 "5. volume": "12345.67890000",
-                "6. market cap (USD)": "827000000000.00000000"
+                "6. market cap (USD)": "827000000000.00000000",
             },
             "2023-11-30": {
                 "1a. open (USD)": "41500.00000000",
@@ -227,16 +233,16 @@ def test_get_digital_currency_daily_success():
                 "4a. close (USD)": "42000.00000000",
                 "4b. close (USD)": "42000.00000000",
                 "5. volume": "15678.90123000",
-                "6. market cap (USD)": "821000000000.00000000"
-            }
-        }
+                "6. market cap (USD)": "821000000000.00000000",
+            },
+        },
     }
 
     responses.add(
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
-        status=200
+        status=200,
     )
 
     client = AlphaVantageClient("test_key")
@@ -245,9 +251,19 @@ def test_get_digital_currency_daily_success():
     assert isinstance(result, pd.DataFrame)
     assert len(result) == 2
     assert list(result.columns) == [
-        "Date", "Open_Market", "High_Market", "Low_Market", "Close_Market",
-        "Open_USD", "High_USD", "Low_USD", "Close_USD", "Volume",
-        "Market_Cap_USD", "Symbol", "Market"
+        "Date",
+        "Open_Market",
+        "High_Market",
+        "Low_Market",
+        "Close_Market",
+        "Open_USD",
+        "High_USD",
+        "Low_USD",
+        "Close_USD",
+        "Volume",
+        "Market_Cap_USD",
+        "Symbol",
+        "Market",
     ]
 
     # Check data ordering (should be chronological)
@@ -281,7 +297,7 @@ def test_get_digital_currency_daily_eur_market():
             "4. Market Code": "EUR",
             "5. Market Name": "Euro",
             "6. Last Refreshed": "2023-12-01 00:00:00",
-            "7. Time Zone": "UTC"
+            "7. Time Zone": "UTC",
         },
         "Time Series (Digital Currency Daily)": {
             "2023-12-01": {
@@ -294,16 +310,16 @@ def test_get_digital_currency_daily_eur_market():
                 "4a. close (EUR)": "1925.00000000",
                 "4b. close (USD)": "2117.50000000",
                 "5. volume": "45678.90123000",
-                "6. market cap (USD)": "254000000000.00000000"
+                "6. market cap (USD)": "254000000000.00000000",
             }
-        }
+        },
     }
 
     responses.add(
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
-        status=200
+        status=200,
     )
 
     client = AlphaVantageClient("test_key")
@@ -339,7 +355,7 @@ def test_get_digital_currency_daily_invalid_response():
         responses.GET,
         "https://www.alphavantage.co/query",
         json=mock_response,
-        status=200
+        status=200,
     )
 
     client = AlphaVantageClient("test_key")
@@ -362,7 +378,7 @@ def test_forex_and_crypto_integration():
             "6. Last Refreshed": "2023-12-01 10:00:00",
             "7. Time Zone": "UTC",
             "8. Bid Price": "0.84995000",
-            "9. Ask Price": "0.85005000"
+            "9. Ask Price": "0.85005000",
         }
     }
 
@@ -370,14 +386,16 @@ def test_forex_and_crypto_integration():
         responses.GET,
         "https://www.alphavantage.co/query",
         json=exchange_response,
-        status=200
+        status=200,
     )
 
     client = AlphaVantageClient("test_key")
 
     # Get exchange rate
     exchange_data = client.get_currency_exchange_rate("USD", "EUR")
-    exchange_rate = float(exchange_data["Realtime Currency Exchange Rate"]["5. Exchange Rate"])
+    exchange_rate = float(
+        exchange_data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
+    )
 
     assert exchange_rate == 0.85
     assert len(responses.calls) == 1
