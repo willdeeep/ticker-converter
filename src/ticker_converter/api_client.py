@@ -249,22 +249,26 @@ class AlphaVantageClient:
         # Parse forex time series data
         time_series_key = "Time Series FX (Daily)"
         if time_series_key not in data:
-            raise AlphaVantageAPIError(f"Unexpected forex data format: {list(data.keys())}")
+            raise AlphaVantageAPIError(
+                f"Unexpected forex data format: {list(data.keys())}"
+            )
 
         time_series = data[time_series_key]
 
         # Convert to DataFrame
         df_data = []
         for date_str, values in time_series.items():
-            df_data.append({
-                "Date": pd.to_datetime(date_str),
-                "Open": float(values["1. open"]),
-                "High": float(values["2. high"]),
-                "Low": float(values["3. low"]),
-                "Close": float(values["4. close"]),
-                "From_Symbol": from_symbol,
-                "To_Symbol": to_symbol,
-            })
+            df_data.append(
+                {
+                    "Date": pd.to_datetime(date_str),
+                    "Open": float(values["1. open"]),
+                    "High": float(values["2. high"]),
+                    "Low": float(values["3. low"]),
+                    "Close": float(values["4. close"]),
+                    "From_Symbol": from_symbol,
+                    "To_Symbol": to_symbol,
+                }
+            )
 
         df = pd.DataFrame(df_data)
         df = df.sort_values("Date")
@@ -296,28 +300,32 @@ class AlphaVantageClient:
         # Parse digital currency time series data
         time_series_key = "Time Series (Digital Currency Daily)"
         if time_series_key not in data:
-            raise AlphaVantageAPIError(f"Unexpected crypto data format: {list(data.keys())}")
+            raise AlphaVantageAPIError(
+                f"Unexpected crypto data format: {list(data.keys())}"
+            )
 
         time_series = data[time_series_key]
 
         # Convert to DataFrame
         df_data = []
         for date_str, values in time_series.items():
-            df_data.append({
-                "Date": pd.to_datetime(date_str),
-                "Open_Market": float(values[f"1a. open ({market})"]),
-                "High_Market": float(values[f"2a. high ({market})"]),
-                "Low_Market": float(values[f"3a. low ({market})"]),
-                "Close_Market": float(values[f"4a. close ({market})"]),
-                "Open_USD": float(values["1b. open (USD)"]),
-                "High_USD": float(values["2b. high (USD)"]),
-                "Low_USD": float(values["3b. low (USD)"]),
-                "Close_USD": float(values["4b. close (USD)"]),
-                "Volume": float(values["5. volume"]),
-                "Market_Cap_USD": float(values["6. market cap (USD)"]),
-                "Symbol": symbol,
-                "Market": market,
-            })
+            df_data.append(
+                {
+                    "Date": pd.to_datetime(date_str),
+                    "Open_Market": float(values[f"1a. open ({market})"]),
+                    "High_Market": float(values[f"2a. high ({market})"]),
+                    "Low_Market": float(values[f"3a. low ({market})"]),
+                    "Close_Market": float(values[f"4a. close ({market})"]),
+                    "Open_USD": float(values["1b. open (USD)"]),
+                    "High_USD": float(values["2b. high (USD)"]),
+                    "Low_USD": float(values["3b. low (USD)"]),
+                    "Close_USD": float(values["4b. close (USD)"]),
+                    "Volume": float(values["5. volume"]),
+                    "Market_Cap_USD": float(values["6. market cap (USD)"]),
+                    "Symbol": symbol,
+                    "Market": market,
+                }
+            )
 
         df = pd.DataFrame(df_data)
         df = df.sort_values("Date")
