@@ -31,7 +31,6 @@ dependencies = [
     "numpy>=1.24.0",
     # API Clients for Financial Data
     "requests>=2.31.0",
-    "alpha-vantage>=2.3.1",
     "python-dotenv>=1.0.0",
     # Testing Framework (basic)
     "pytest>=7.4.0",
@@ -72,6 +71,7 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.11.0",
+    "responses>=0.24.0",
     "faker>=19.0.0",
     # Development tools
     "ipython>=8.14.0",
@@ -156,6 +156,8 @@ extend-exclude = '''
 [tool.ruff]
 target-version = "py39"
 line-length = 88
+
+[tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
@@ -171,7 +173,7 @@ ignore = [
     "C901",  # too complex
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "tests/*" = ["B011"]
 

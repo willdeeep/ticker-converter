@@ -6,7 +6,7 @@ A Python-based ETL pipeline for financial market data analysis, built with Apach
 
 This project implements a comprehensive financial data analytics pipeline that:
 
-- **Ingests** real-time and historical market data from Alpha Vantage and CoinGecko APIs
+- **Ingests** real-time and historical market data from Alpha Vantage API
 - **Transforms** data through cleaning, normalization, and feature engineering
 - **Stores** processed data in PostgreSQL with optimized schemas
 - **Orchestrates** workflows using Apache Airflow
@@ -77,7 +77,7 @@ processed_data = pipeline.transform(data)
 
 The project is organized into specific GitHub issues:
 
-1. **Issue #1**: API Integration (Alpha Vantage/CoinGecko)
+1. **Issue #1**: API Integration (Alpha Vantage)
 2. **Issue #2**: Raw Data Storage (JSON/Parquet)
 3. **Issue #3**: Data Transformation Pipeline
 4. **Issue #4**: Database Schema & Storage
