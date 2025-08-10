@@ -115,15 +115,15 @@ def mock_requests_session():
 
 
 @pytest.fixture
-def alpha_vantage_client(mock_config):
+def alpha_vantage_client(mock_config):  # pylint: disable=redefined-outer-name
     """Alpha Vantage client instance for testing."""
-    return AlphaVantageClient("test_api_key")
+    return AlphaVantageClient(mock_config.ALPHA_VANTAGE_API_KEY)
 
 
 @pytest.fixture
-def financial_pipeline(mock_config):
+def financial_pipeline(mock_config):  # pylint: disable=redefined-outer-name
     """Financial data pipeline instance for testing."""
-    return FinancialDataPipeline("test_api_key")
+    return FinancialDataPipeline(mock_config.ALPHA_VANTAGE_API_KEY)
 
 
 @pytest.fixture
