@@ -1,9 +1,11 @@
 """Storage factory for creating storage instances."""
 
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
+from typing import Union
 
-from .base import BaseStorage, StorageConfig
+from .base import BaseStorage
+from .base import StorageConfig
 from .json_storage import JSONStorage
 from .parquet_storage import ParquetStorage
 

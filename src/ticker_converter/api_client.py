@@ -1,18 +1,17 @@
 """Alpha Vantage API client for financial data."""
 
 import time
-from typing import Any, Optional
+from typing import Any
+from typing import Optional
 
 import pandas as pd
 import requests
 
 from .config import config
-from .constants import (
-    AlphaVantageFunction,
-    AlphaVantageResponseKey,
-    AlphaVantageValueKey,
-    OutputSize,
-)
+from .constants import AlphaVantageFunction
+from .constants import AlphaVantageResponseKey
+from .constants import AlphaVantageValueKey
+from .constants import OutputSize
 
 
 class AlphaVantageAPIError(Exception):

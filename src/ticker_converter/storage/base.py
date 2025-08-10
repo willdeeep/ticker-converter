@@ -1,12 +1,16 @@
 """Base storage interface for market data."""
 
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
+from typing import Optional
+from typing import Union
 
 import pandas as pd
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+from pydantic import Field
 
 from ..constants import FILENAME_TIMESTAMP_FORMAT
 

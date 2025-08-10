@@ -2,13 +2,16 @@
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
+from typing import Optional
+from typing import Union
 
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from .base import BaseStorage, StorageMetadata
+from .base import BaseStorage
+from .base import StorageMetadata
 
 
 class ParquetStorage(BaseStorage):
