@@ -74,7 +74,7 @@ class FinancialDataPipeline:
             return self.alpha_vantage.get_company_overview(symbol)
         except AlphaVantageAPIError as e:
             if self.config.log_errors:
-                logger.error(f"Error fetching company info for {symbol}: {e}")
+                logger.error("Error fetching company info for %s: %s", symbol, e)
             if not self.config.suppress_api_errors:
                 print(f"Error fetching company info for {symbol}: {e}")
             return {}

@@ -160,8 +160,12 @@ class AlphaVantageClient:
         # Extract time series data
         time_series_key = AlphaVantageResponseKey.TIME_SERIES_DAILY
         if time_series_key not in data:
+            # Handle common API response variations
+            available_keys = list(data.keys())
+            if "Information" in available_keys:
+                raise AlphaVantageAPIError(f"API Information message: {data.get('Information', 'Rate limit or service issue')}")
             raise AlphaVantageAPIError(
-                f"Unexpected response format: {list(data.keys())}"
+                f"Unexpected response format: {available_keys}"
             )
 
         time_series = data[time_series_key]
@@ -278,8 +282,12 @@ class AlphaVantageClient:
         # Parse forex time series data
         time_series_key = "Time Series FX (Daily)"
         if time_series_key not in data:
+            # Handle common API response variations
+            available_keys = list(data.keys())
+            if "Information" in available_keys:
+                raise AlphaVantageAPIError(f"API Information message: {data.get('Information', 'Rate limit or service issue')}")
             raise AlphaVantageAPIError(
-                f"Unexpected forex data format: {list(data.keys())}"
+                f"Unexpected forex data format: {available_keys}"
             )
 
         time_series = data[time_series_key]
@@ -329,8 +337,12 @@ class AlphaVantageClient:
         # Parse digital currency time series data
         time_series_key = "Time Series (Digital Currency Daily)"
         if time_series_key not in data:
+            # Handle common API response variations
+            available_keys = list(data.keys())
+            if "Information" in available_keys:
+                raise AlphaVantageAPIError(f"API Information message: {data.get('Information', 'Rate limit or service issue')}")
             raise AlphaVantageAPIError(
-                f"Unexpected crypto data format: {list(data.keys())}"
+                f"Unexpected crypto data format: {available_keys}"
             )
 
         time_series = data[time_series_key]
@@ -344,10 +356,14 @@ class AlphaVantageClient:
                 df_data.append(
                     {
                         "Date": pd.to_datetime(date_str),
-                        "Open": float(values["1. open"]),
-                        "High": float(values["2. high"]),
-                        "Low": float(values["3. low"]),
-                        "Close": float(values["4. close"]),
+                        "Open_Market": float(values["1. open"]),
+                        "High_Market": float(values["2. high"]),
+                        "Low_Market": float(values["3. low"]),
+                        "Close_Market": float(values["4. close"]),
+                        "Open_USD": float(values["1. open"]),  # For compatibility
+                        "High_USD": float(values["2. high"]),
+                        "Low_USD": float(values["3. low"]),
+                        "Close_USD": float(values["4. close"]),
                         "Volume": float(values["5. volume"]),
                         "Symbol": symbol,
                         "Market": market,
@@ -358,10 +374,10 @@ class AlphaVantageClient:
                 df_data.append(
                     {
                         "Date": pd.to_datetime(date_str),
-                        "Open": float(values[f"1a. open ({market})"]),
-                        "High": float(values[f"2a. high ({market})"]),
-                        "Low": float(values[f"3a. low ({market})"]),
-                        "Close": float(values[f"4a. close ({market})"]),
+                        "Open_Market": float(values[f"1a. open ({market})"]),
+                        "High_Market": float(values[f"2a. high ({market})"]),
+                        "Low_Market": float(values[f"3a. low ({market})"]),
+                        "Close_Market": float(values[f"4a. close ({market})"]),
                         "Open_USD": float(values["1b. open (USD)"]),
                         "High_USD": float(values["2b. high (USD)"]),
                         "Low_USD": float(values["3b. low (USD)"]),

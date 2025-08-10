@@ -74,7 +74,7 @@ class TestJSONStorage:
         metadata = json_storage.save(sample_data, "AAPL", "daily")
 
         # Load and check JSON structure
-        with open(metadata.file_path) as f:
+        with open(metadata.file_path, encoding="utf-8") as f:
             json_data = json.load(f)
 
         assert "metadata" in json_data
@@ -100,7 +100,7 @@ class TestJSONStorage:
         metadata = storage.save(sample_data, "AAPL", "daily")
 
         # Load and check JSON structure
-        with open(metadata.file_path) as f:
+        with open(metadata.file_path, encoding="utf-8") as f:
             json_data = json.load(f)
 
         # Should be just the data, no metadata wrapper
@@ -138,7 +138,7 @@ class TestJSONStorage:
         """Test load with invalid JSON file."""
         # Create invalid JSON file
         invalid_file = tmp_path / "invalid.json"
-        with open(invalid_file, "w") as f:
+        with open(invalid_file, "w", encoding="utf-8") as f:
             f.write("{ invalid json content")
 
         with pytest.raises(ValueError, match="Invalid JSON format"):
@@ -153,7 +153,7 @@ class TestJSONStorage:
         ]
 
         json_file = tmp_path / "test.json"
-        with open(json_file, "w") as f:
+        with open(json_file, "w", encoding="utf-8") as f:
             json.dump(data, f)
 
         # Load data
@@ -163,7 +163,7 @@ class TestJSONStorage:
         assert "Date" in loaded_df.columns
         assert "Close" in loaded_df.columns
 
-    def test_datetime_restoration(self, json_storage, tmp_path):
+    def test_datetime_restoration(self, json_storage, tmp_path):  # pylint: disable=unused-argument
         """Test that datetime columns are properly restored."""
         # Create DataFrame with datetime
         df = pd.DataFrame(
@@ -188,7 +188,7 @@ class TestJSONStorage:
         metadata = json_storage.save(sample_data, "AAPL", "daily", orient="index")
 
         # Load and verify structure
-        with open(metadata.file_path) as f:
+        with open(metadata.file_path, encoding="utf-8") as f:
             json_data = json.load(f)
 
         # With orient="index", data should be dict with numeric keys
@@ -196,13 +196,11 @@ class TestJSONStorage:
         assert isinstance(data, dict)
         assert "0" in data  # First row index as string key
 
-    def test_file_path_generation(self, json_storage):
-        """Test that file paths are generated correctly."""
+    def test_file_path_generation_through_save(self, json_storage, sample_data):
+        """Test that file paths are generated correctly through save method."""
         timestamp = datetime(2023, 5, 15, 9, 30, 0)
-        file_path = json_storage._generate_file_path(
-            "MSFT", "intraday", "json", timestamp
-        )
+        metadata = json_storage.save(sample_data, "MSFT", "intraday", timestamp)
 
-        assert file_path.suffix == ".json"
-        assert "MSFT_intraday_20230515_093000.json" in str(file_path)
-        assert "intraday" in str(file_path.parent)
+        assert metadata.file_path.endswith(".json")
+        assert "MSFT_intraday_20230515_093000.json" in str(metadata.file_path)
+        assert "intraday" in str(metadata.file_path)

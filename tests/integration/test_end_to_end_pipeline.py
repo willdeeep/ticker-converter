@@ -142,9 +142,10 @@ class TestEndToEndPipeline:
             data = api_client.get_daily_stock_data("MSFT")
             assert len(data) > 0, "Should retrieve data successfully"
         except AlphaVantageAPIError as e:
-            # If we hit a rate limit, that's actually expected behavior
-            if "rate limit" in str(e).lower():
-                pytest.skip("Hit rate limit - this is expected behavior")
+            # If we hit a rate limit or API information message, that's expected
+            error_msg = str(e).lower()
+            if any(phrase in error_msg for phrase in ["rate limit", "information", "api call frequency"]):
+                pytest.skip(f"Hit API limit or restriction - this is expected: {e}")
             else:
                 raise  # Re-raise if it's a different API error
 
