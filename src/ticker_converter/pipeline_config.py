@@ -48,4 +48,5 @@ class PipelineConfig:
             'compact' or 'full' depending on period
         """
         from .constants import OutputSize
+
         return OutputSize.COMPACT if period in self.compact_periods else OutputSize.FULL

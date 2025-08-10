@@ -72,7 +72,11 @@ class BaseStorage(ABC):
             Path(self.config.base_path).mkdir(parents=True, exist_ok=True)
 
     def _generate_filename(
-        self, symbol: str, data_type: str, extension: str, timestamp: Optional[datetime] = None
+        self,
+        symbol: str,
+        data_type: str,
+        extension: str,
+        timestamp: Optional[datetime] = None,
     ) -> str:
         """Generate filename for storage.
 

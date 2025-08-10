@@ -163,7 +163,9 @@ class TestJSONStorage:
         assert "Date" in loaded_df.columns
         assert "Close" in loaded_df.columns
 
-    def test_datetime_restoration(self, json_storage, tmp_path):  # pylint: disable=unused-argument
+    def test_datetime_restoration(
+        self, json_storage, tmp_path
+    ):  # pylint: disable=unused-argument
         """Test that datetime columns are properly restored."""
         # Create DataFrame with datetime
         df = pd.DataFrame(

@@ -27,7 +27,13 @@ class TestStorageIntegration:
         """Get real stock data from Alpha Vantage."""
         try:
             return api_client.get_daily_stock_data("AAPL")
-        except (AlphaVantageAPIError, ConnectionError, TimeoutError, ValueError, KeyError) as e:
+        except (
+            AlphaVantageAPIError,
+            ConnectionError,
+            TimeoutError,
+            ValueError,
+            KeyError,
+        ) as e:
             pytest.skip(f"Failed to fetch real data: {e}")
 
     @pytest.fixture(scope="class")
@@ -35,7 +41,13 @@ class TestStorageIntegration:
         """Get real forex data from Alpha Vantage."""
         try:
             return api_client.get_forex_daily("USD", "EUR")
-        except (AlphaVantageAPIError, ConnectionError, TimeoutError, ValueError, KeyError) as e:
+        except (
+            AlphaVantageAPIError,
+            ConnectionError,
+            TimeoutError,
+            ValueError,
+            KeyError,
+        ) as e:
             pytest.skip(f"Failed to fetch real forex data: {e}")
 
     @pytest.fixture(params=["json", "parquet"])

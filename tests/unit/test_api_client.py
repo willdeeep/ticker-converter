@@ -52,15 +52,19 @@ class TestAlphaVantageClient:
         with patch.object(
             alpha_vantage_client.session, "get", return_value=mock_response
         ):
-            result = alpha_vantage_client._make_request(  # pylint: disable=protected-access
-                {"function": "TIME_SERIES_DAILY"}
+            result = (
+                alpha_vantage_client._make_request(  # pylint: disable=protected-access
+                    {"function": "TIME_SERIES_DAILY"}
+                )
             )
 
         assert result == sample_daily_response
         mock_sleep.assert_called_once_with(1.0)  # Rate limiting
 
     @patch("time.sleep")
-    def test_make_request_api_error(self, mock_sleep, alpha_vantage_client):  # pylint: disable=unused-argument
+    def test_make_request_api_error(
+        self, mock_sleep, alpha_vantage_client
+    ):  # pylint: disable=unused-argument
         """Test API error handling."""
         error_response = {"Error Message": "Invalid API call"}
         mock_response = Mock()
@@ -73,7 +77,9 @@ class TestAlphaVantageClient:
             with pytest.raises(
                 AlphaVantageAPIError, match="API Error: Invalid API call"
             ):
-                alpha_vantage_client._make_request({"function": "TIME_SERIES_DAILY"})  # pylint: disable=protected-access
+                alpha_vantage_client._make_request(
+                    {"function": "TIME_SERIES_DAILY"}
+                )  # pylint: disable=protected-access
 
     @patch("time.sleep")
     def test_make_request_rate_limit_retry(
@@ -95,8 +101,10 @@ class TestAlphaVantageClient:
             "get",
             side_effect=[mock_response_rate_limit, mock_response_success],
         ):
-            result = alpha_vantage_client._make_request(  # pylint: disable=protected-access
-                {"function": "TIME_SERIES_DAILY"}
+            result = (
+                alpha_vantage_client._make_request(  # pylint: disable=protected-access
+                    {"function": "TIME_SERIES_DAILY"}
+                )
             )
 
         assert result == sample_daily_response
@@ -104,7 +112,9 @@ class TestAlphaVantageClient:
         assert mock_sleep.call_count == 2
 
     @patch("time.sleep")
-    def test_make_request_max_retries_exceeded(self, mock_sleep, alpha_vantage_client):  # pylint: disable=unused-argument
+    def test_make_request_max_retries_exceeded(
+        self, mock_sleep, alpha_vantage_client
+    ):  # pylint: disable=unused-argument
         """Test max retries exceeded."""
         with patch.object(
             alpha_vantage_client.session,
@@ -114,7 +124,9 @@ class TestAlphaVantageClient:
             with pytest.raises(
                 AlphaVantageAPIError, match="Request failed after 3 attempts"
             ):
-                alpha_vantage_client._make_request({"function": "TIME_SERIES_DAILY"})  # pylint: disable=protected-access
+                alpha_vantage_client._make_request(
+                    {"function": "TIME_SERIES_DAILY"}
+                )  # pylint: disable=protected-access
 
     def test_get_daily_stock_data_success(
         self, alpha_vantage_client, sample_daily_response
