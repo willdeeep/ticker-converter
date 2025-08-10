@@ -2,16 +2,17 @@
 
 from datetime import datetime
 
-import pandas as pd
 import pytest
 
 from src.ticker_converter.data_models.market_data import (
     CleanedMarketData,
     MarketDataPoint,
     RawMarketData,
-    VolatilityFlag,
 )
-from src.ticker_converter.etl_modules.feature_engineer import FeatureConfig, FeatureEngineer
+from src.ticker_converter.etl_modules.feature_engineer import (
+    FeatureConfig,
+    FeatureEngineer,
+)
 
 
 class TestFeatureEngineer:
@@ -69,7 +70,6 @@ class TestFeatureEngineer:
         feature_data = engineer.engineer_features(sample_cleaned_data)
 
         # Check that MA features were created
-        ma_features = [f for f in feature_data.features_created if "MA_" in f]
         assert "MA_5" in feature_data.features_created
         assert "MA_10" in feature_data.features_created
         assert "Price_to_MA_5_Ratio" in feature_data.features_created
@@ -88,10 +88,7 @@ class TestFeatureEngineer:
 
     def test_volatility_metrics(self, sample_cleaned_data):
         """Test volatility metric calculations."""
-        config = FeatureConfig(
-            calculate_volatility=True,
-            volatility_window=10
-        )
+        config = FeatureConfig(calculate_volatility=True, volatility_window=10)
         engineer = FeatureEngineer(config)
         feature_data = engineer.engineer_features(sample_cleaned_data)
 
@@ -121,10 +118,7 @@ class TestFeatureEngineer:
 
     def test_rsi_calculation(self, sample_cleaned_data):
         """Test RSI indicator calculation."""
-        config = FeatureConfig(
-            calculate_rsi=True,
-            rsi_period=14
-        )
+        config = FeatureConfig(calculate_rsi=True, rsi_period=14)
         engineer = FeatureEngineer(config)
         feature_data = engineer.engineer_features(sample_cleaned_data)
 
@@ -136,9 +130,7 @@ class TestFeatureEngineer:
     def test_bollinger_bands(self, sample_cleaned_data):
         """Test Bollinger Bands calculation."""
         config = FeatureConfig(
-            calculate_bollinger_bands=True,
-            bollinger_period=20,
-            bollinger_std=2.0
+            calculate_bollinger_bands=True, bollinger_period=20, bollinger_std=2.0
         )
         engineer = FeatureEngineer(config)
         feature_data = engineer.engineer_features(sample_cleaned_data)

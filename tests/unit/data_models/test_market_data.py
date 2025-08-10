@@ -49,8 +49,10 @@ class TestMarketDataPoint:
             )
 
         error_str = str(exc_info.value)
-        assert ("High price cannot be less than low price" in error_str or 
-                "Close price must be between low and high prices" in error_str)
+        assert (
+            "High price cannot be less than low price" in error_str
+            or "Close price must be between low and high prices" in error_str
+        )
 
     def test_invalid_close_outside_range(self):
         """Test validation of close outside high/low range."""
@@ -154,7 +156,7 @@ class TestRawMarketData:
         )
         assert valid_data.symbol == "AAPL"
 
-        # Note: The validation logic for inconsistent symbols would need to be 
+        # Note: The validation logic for inconsistent symbols would need to be
         # implemented in a model_validator rather than field_validator
         # For now, we'll test the successful case
 

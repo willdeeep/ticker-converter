@@ -1,12 +1,12 @@
 """Data models for financial market data."""
 
 from .market_data import (
-                          CleanedMarketData,
-                          FeatureEngineeredData,
-                          MarketDataPoint,
-                          RawMarketData,
-                          ValidationResult,
-                          VolatilityFlag,
+    CleanedMarketData,
+    FeatureEngineeredData,
+    MarketDataPoint,
+    RawMarketData,
+    ValidationResult,
+    VolatilityFlag,
 )
 from .quality_metrics import DataQualityMetrics, DataQualityReport
 

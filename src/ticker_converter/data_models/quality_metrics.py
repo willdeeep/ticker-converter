@@ -1,15 +1,15 @@
 """Data quality metrics and reporting models."""
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DataQualityMetrics(BaseModel):
     """Metrics for assessing data quality."""
 
-    model_config = {'frozen': False}  # Allow field mutation
+    model_config = ConfigDict(frozen=False)  # Allow field mutation
 
     total_records: int = Field(..., ge=0, description="Total number of records")
     complete_records: int = Field(
@@ -127,10 +127,9 @@ class DataQualityReport(BaseModel):
         default_factory=dict, description="Volume statistics"
     )
 
-    class Config:
-        """Pydantic configuration."""
-
-        json_encoders = {datetime: lambda v: v.isoformat()}
+    model_config = ConfigDict(
+        frozen=False, json_encoders={datetime: lambda v: v.isoformat()}
+    )
 
     def add_issue(self, issue: str) -> None:
         """Add a data quality issue."""
@@ -144,7 +143,7 @@ class DataQualityReport(BaseModel):
         """Check if data meets high quality threshold."""
         return self.metrics.overall_quality_score >= threshold
 
-    def get_summary(self) -> dict[str, any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get a summary of the quality report."""
         return {
             "symbol": self.symbol,

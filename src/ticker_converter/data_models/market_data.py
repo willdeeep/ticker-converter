@@ -5,7 +5,14 @@ from enum import Enum
 from typing import Optional
 
 import pandas as pd
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 
 
 class VolatilityFlag(str, Enum):
@@ -30,7 +37,7 @@ class MarketDataPoint(BaseModel):
 
     @field_validator("high")
     @classmethod
-    def validate_high_price(cls, v, info):
+    def validate_high_price(cls, v: float, info: ValidationInfo) -> float:
         """Validate that high price is reasonable compared to other prices."""
         if info.data:
             low = info.data.get("low")
@@ -39,14 +46,14 @@ class MarketDataPoint(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_price_relationships(self):
+    def validate_price_relationships(self) -> "MarketDataPoint":
         """Validate price relationships after all fields are set."""
         # Check high >= low
         if self.high < self.low:
             raise ValueError("High price cannot be less than low price")
 
         # Check close is within high/low range
-        if not (self.low <= self.close <= self.high):
+        if not self.low <= self.close <= self.high:
             raise ValueError("Close price must be between low and high prices")
 
         return self
@@ -68,7 +75,9 @@ class RawMarketData(BaseModel):
 
     @field_validator("data_points")
     @classmethod
-    def validate_consistent_symbol(cls, v, info):
+    def validate_consistent_symbol(
+        cls, v: list[MarketDataPoint], info: ValidationInfo
+    ) -> list[MarketDataPoint]:
         """Ensure all data points have the same symbol."""
         if info.data and "symbol" in info.data:
             expected_symbol = info.data["symbol"]
@@ -156,6 +165,8 @@ class FeatureEngineeredData(BaseModel):
 
 class ValidationResult(BaseModel):
     """Result of data validation checks."""
+
+    model_config = ConfigDict(frozen=False)  # Allow field mutation
 
     is_valid: bool = Field(..., description="Whether data passed validation")
     errors: list[str] = Field(default_factory=list, description="Validation errors")

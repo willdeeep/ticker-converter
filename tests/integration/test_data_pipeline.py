@@ -7,7 +7,11 @@ import pytest
 
 from src.ticker_converter.core import FinancialDataPipeline
 from src.ticker_converter.data_models.market_data import MarketDataPoint, RawMarketData
-from src.ticker_converter.etl_modules import DataCleaner, FeatureEngineer, QualityValidator
+from src.ticker_converter.etl_modules import (
+    DataCleaner,
+    FeatureEngineer,
+    QualityValidator,
+)
 
 
 class TestDataPipelineIntegration:
@@ -113,14 +117,19 @@ class TestDataPipelineIntegration:
         engineer = FeatureEngineer()
 
         cleaned_data = cleaner.clean(sample_market_data)
-        feature_data = engineer.engineer_features(cleaned_data)
+        engineer.engineer_features(cleaned_data)
 
         # Final quality assessment
-        final_df = sample_market_data.to_dataframe()  # In real implementation, this would be the processed DF
+        final_df = (
+            sample_market_data.to_dataframe()
+        )  # In real implementation, this would be the processed DF
         final_report = validator.generate_quality_report(final_df, "AAPL")
 
         # Quality should be maintained or improved
-        assert final_report.metrics.overall_quality_score >= initial_report.metrics.overall_quality_score
+        assert (
+            final_report.metrics.overall_quality_score
+            >= initial_report.metrics.overall_quality_score
+        )
         assert final_report.is_high_quality()
 
     def test_feature_engineering_completeness(self, sample_market_data):
@@ -132,19 +141,45 @@ class TestDataPipelineIntegration:
         feature_data = engineer.engineer_features(cleaned_data)
 
         expected_features = [
-            "Daily_Return", "Log_Return", "Cumulative_Return",
-            "MA_7", "MA_30", "Price_to_MA_7_Ratio", "Price_to_MA_30_Ratio",
-            "Volatility", "True_Range", "ATR", "HL_Range_Pct",
-            "Volatility_Flag", "Is_Low_Volatility", "Is_Moderate_Volatility",
-            "Is_High_Volatility", "Is_Extreme_Volatility",
-            "RSI", "RSI_Oversold", "RSI_Overbought",
-            "BB_Middle", "BB_Upper", "BB_Lower", "BB_Width", "BB_Position", "BB_Squeeze",
-            "Gap_Up", "Gap_Down", "Is_Doji", "Price_Momentum_5", "Price_Momentum_10",
-            "Volume_MA_20", "Volume_Ratio", "High_Volume"
+            "Daily_Return",
+            "Log_Return",
+            "Cumulative_Return",
+            "MA_7",
+            "MA_30",
+            "Price_to_MA_7_Ratio",
+            "Price_to_MA_30_Ratio",
+            "Volatility",
+            "True_Range",
+            "ATR",
+            "HL_Range_Pct",
+            "Volatility_Flag",
+            "Is_Low_Volatility",
+            "Is_Moderate_Volatility",
+            "Is_High_Volatility",
+            "Is_Extreme_Volatility",
+            "RSI",
+            "RSI_Oversold",
+            "RSI_Overbought",
+            "BB_Middle",
+            "BB_Upper",
+            "BB_Lower",
+            "BB_Width",
+            "BB_Position",
+            "BB_Squeeze",
+            "Gap_Up",
+            "Gap_Down",
+            "Is_Doji",
+            "Price_Momentum_5",
+            "Price_Momentum_10",
+            "Volume_MA_20",
+            "Volume_Ratio",
+            "High_Volume",
         ]
 
         for feature in expected_features:
-            assert feature in feature_data.features_created, f"Feature {feature} not created"
+            assert (
+                feature in feature_data.features_created
+            ), f"Feature {feature} not created"
 
     def test_error_handling_in_pipeline(self):
         """Test error handling in the pipeline."""

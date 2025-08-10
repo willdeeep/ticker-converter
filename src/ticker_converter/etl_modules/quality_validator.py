@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime
+from typing import Optional
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -51,7 +52,7 @@ class ValidationConfig(BaseModel):
 class QualityValidator:
     """Validates data quality for market data."""
 
-    def __init__(self, config: ValidationConfig = None):
+    def __init__(self, config: Optional[ValidationConfig] = None):
         """Initialize the quality validator.
 
         Args:
@@ -87,7 +88,9 @@ class QualityValidator:
             if self.config.check_timeliness:
                 self._check_timeliness(df, result)
 
-            logger.info("Validation completed for %s. Valid: %s", symbol, result.is_valid)
+            logger.info(
+                "Validation completed for %s. Valid: %s", symbol, result.is_valid
+            )
             if result.errors:
                 logger.warning("Validation errors: %s", result.errors)
             if result.warnings:
@@ -132,7 +135,9 @@ class QualityValidator:
         self._generate_recommendations(metrics, report)
 
         logger.info(
-            "Quality report generated for %s. Overall score: %.3f", symbol, metrics.overall_quality_score
+            "Quality report generated for %s. Overall score: %.3f",
+            symbol,
+            metrics.overall_quality_score,
         )
 
         return report
@@ -290,7 +295,9 @@ class QualityValidator:
         total_records = len(df)
 
         if total_records == 0:
-            return DataQualityMetrics(total_records=0)
+            return DataQualityMetrics(
+                total_records=0, date_range_start=None, date_range_end=None
+            )
 
         # Basic counts
         missing_values = df.isnull().sum().sum()
