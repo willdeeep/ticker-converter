@@ -133,7 +133,7 @@ def demo_comprehensive_analysis(client: AlphaVantageClient) -> None:
         try:
             btc_usd = client.get_currency_exchange_rate("BTC", "USD")
             btc_price = float(btc_usd["Realtime Currency Exchange Rate"]["5. Exchange Rate"])
-            
+
             if "USD/EUR" in rates:
                 btc_eur_equivalent = btc_price * rates["USD/EUR"]
                 print("\nCross-currency calculation:")
@@ -141,7 +141,7 @@ def demo_comprehensive_analysis(client: AlphaVantageClient) -> None:
 
         except AlphaVantageAPIError as e:
             print(f"[ERROR] Cross-currency calculation error: {e}")
-            
+
     except AlphaVantageAPIError as e:
         print(f"[ERROR] Comprehensive analysis error: {e}")
 
