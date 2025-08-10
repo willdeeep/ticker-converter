@@ -1,4 +1,7 @@
-[build-system]
+[bui[project]
+name = "ticker-converter"
+version = "0.1.2"
+description = "Financial Market Data Analytics Pipeline"ystem]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
