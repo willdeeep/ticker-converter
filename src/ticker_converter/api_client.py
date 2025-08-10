@@ -7,6 +7,12 @@ import pandas as pd
 import requests
 
 from .config import config
+from .constants import (
+    AlphaVantageFunction,
+    AlphaVantageResponseKey,
+    AlphaVantageValueKey,
+    OutputSize,
+)
 
 
 class AlphaVantageAPIError(Exception):
@@ -57,10 +63,12 @@ class AlphaVantageClient:
                 data = response.json()
 
                 # Check for API errors
-                if "Error Message" in data:
-                    raise AlphaVantageAPIError(f"API Error: {data['Error Message']}")
+                if AlphaVantageResponseKey.ERROR_MESSAGE in data:
+                    raise AlphaVantageAPIError(
+                        f"API Error: {data[AlphaVantageResponseKey.ERROR_MESSAGE]}"
+                    )
 
-                if "Note" in data:
+                if AlphaVantageResponseKey.NOTE in data:
                     # Rate limit hit, wait and retry
                     if attempt < self.max_retries - 1:
                         wait_time = self.rate_limit_delay * (2**attempt)
@@ -68,7 +76,7 @@ class AlphaVantageClient:
                         continue
                     else:
                         raise AlphaVantageAPIError(
-                            f"Rate limit exceeded: {data['Note']}"
+                            f"Rate limit exceeded: {data[AlphaVantageResponseKey.NOTE]}"
                         )
 
                 # Apply rate limiting and return data
@@ -88,8 +96,55 @@ class AlphaVantageClient:
         # This should never be reached, but needed for mypy
         raise AlphaVantageAPIError("Unexpected error: max retries exceeded")
 
+    def _convert_time_series_to_dataframe(
+        self,
+        time_series: dict[str, dict[str, str]],
+        datetime_key: str = "Date",
+        additional_columns: Optional[dict[str, Any]] = None,
+    ) -> pd.DataFrame:
+        """Convert Alpha Vantage time series data to DataFrame.
+
+        Args:
+            time_series: Time series data from Alpha Vantage API
+            datetime_key: Name for the datetime column ('Date' or 'DateTime')
+            additional_columns: Additional columns to add to each row
+
+        Returns:
+            Sorted DataFrame with time series data
+        """
+        df_data = []
+        additional_columns = additional_columns or {}
+
+        for datetime_str, values in time_series.items():
+            row: dict[str, Any] = {datetime_key: pd.to_datetime(datetime_str)}
+
+            # Standard OHLCV columns
+            if AlphaVantageValueKey.OPEN in values:
+                row.update(
+                    {
+                        "Open": float(values[AlphaVantageValueKey.OPEN]),
+                        "High": float(values[AlphaVantageValueKey.HIGH]),
+                        "Low": float(values[AlphaVantageValueKey.LOW]),
+                        "Close": float(values[AlphaVantageValueKey.CLOSE]),
+                    }
+                )
+
+            # Volume handling (different keys for different endpoints)
+            if AlphaVantageValueKey.VOLUME in values:
+                volume_value = values[AlphaVantageValueKey.VOLUME]
+                row["Volume"] = (
+                    int(volume_value) if volume_value.isdigit() else float(volume_value)
+                )
+
+            # Add any additional columns
+            row.update(additional_columns)
+            df_data.append(row)
+
+        df = pd.DataFrame(df_data)
+        return df.sort_values(datetime_key).reset_index(drop=True)
+
     def get_daily_stock_data(
-        self, symbol: str, outputsize: str = "compact"
+        self, symbol: str, outputsize: str = OutputSize.COMPACT
     ) -> pd.DataFrame:
         """Get daily stock data for a given symbol.
 
@@ -101,7 +156,7 @@ class AlphaVantageClient:
             DataFrame with daily stock data (Date, Open, High, Low, Close, Volume).
         """
         params = {
-            "function": "TIME_SERIES_DAILY",
+            "function": AlphaVantageFunction.TIME_SERIES_DAILY,
             "symbol": symbol.upper(),
             "outputsize": outputsize,
         }
@@ -109,30 +164,24 @@ class AlphaVantageClient:
         data = self._make_request(params)
 
         # Extract time series data
-        time_series_key = "Time Series (Daily)"
+        time_series_key = AlphaVantageResponseKey.TIME_SERIES_DAILY
         if time_series_key not in data:
-            raise AlphaVantageAPIError(
-                f"Unexpected response format: {list(data.keys())}"
-            )
+            # Handle common API response variations
+            available_keys = list(data.keys())
+            if "Information" in available_keys:
+                raise AlphaVantageAPIError(
+                    f"API Information message: {data.get('Information', 'Rate limit or service issue')}"
+                )
+            raise AlphaVantageAPIError(f"Unexpected response format: {available_keys}")
 
         time_series = data[time_series_key]
 
-        # Convert to DataFrame
-        df_data = []
-        for date_str, values in time_series.items():
-            row = {
-                "Date": pd.to_datetime(date_str),
-                "Open": float(values["1. open"]),
-                "High": float(values["2. high"]),
-                "Low": float(values["3. low"]),
-                "Close": float(values["4. close"]),
-                "Volume": int(values["5. volume"]),
-            }
-            df_data.append(row)
-
-        df = pd.DataFrame(df_data)
-        df = df.sort_values("Date").reset_index(drop=True)
-        df["Symbol"] = symbol.upper()
+        # Convert to DataFrame using helper method
+        df = self._convert_time_series_to_dataframe(
+            time_series,
+            datetime_key="Date",
+            additional_columns={"Symbol": symbol.upper()},
+        )
 
         return df
 
@@ -165,22 +214,12 @@ class AlphaVantageClient:
 
         time_series = data[time_series_key]
 
-        # Convert to DataFrame
-        df_data = []
-        for datetime_str, values in time_series.items():
-            row = {
-                "DateTime": pd.to_datetime(datetime_str),
-                "Open": float(values["1. open"]),
-                "High": float(values["2. high"]),
-                "Low": float(values["3. low"]),
-                "Close": float(values["4. close"]),
-                "Volume": int(values["5. volume"]),
-            }
-            df_data.append(row)
-
-        df = pd.DataFrame(df_data)
-        df = df.sort_values("DateTime").reset_index(drop=True)
-        df["Symbol"] = symbol.upper()
+        # Convert to DataFrame using helper method
+        df = self._convert_time_series_to_dataframe(
+            time_series,
+            datetime_key="DateTime",
+            additional_columns={"Symbol": symbol.upper()},
+        )
 
         return df
 
@@ -249,8 +288,14 @@ class AlphaVantageClient:
         # Parse forex time series data
         time_series_key = "Time Series FX (Daily)"
         if time_series_key not in data:
+            # Handle common API response variations
+            available_keys = list(data.keys())
+            if "Information" in available_keys:
+                raise AlphaVantageAPIError(
+                    f"API Information message: {data.get('Information', 'Rate limit or service issue')}"
+                )
             raise AlphaVantageAPIError(
-                f"Unexpected forex data format: {list(data.keys())}"
+                f"Unexpected forex data format: {available_keys}"
             )
 
         time_series = data[time_series_key]
@@ -300,8 +345,14 @@ class AlphaVantageClient:
         # Parse digital currency time series data
         time_series_key = "Time Series (Digital Currency Daily)"
         if time_series_key not in data:
+            # Handle common API response variations
+            available_keys = list(data.keys())
+            if "Information" in available_keys:
+                raise AlphaVantageAPIError(
+                    f"API Information message: {data.get('Information', 'Rate limit or service issue')}"
+                )
             raise AlphaVantageAPIError(
-                f"Unexpected crypto data format: {list(data.keys())}"
+                f"Unexpected crypto data format: {available_keys}"
             )
 
         time_series = data[time_series_key]
@@ -309,23 +360,44 @@ class AlphaVantageClient:
         # Convert to DataFrame
         df_data = []
         for date_str, values in time_series.items():
-            df_data.append(
-                {
-                    "Date": pd.to_datetime(date_str),
-                    "Open_Market": float(values[f"1a. open ({market})"]),
-                    "High_Market": float(values[f"2a. high ({market})"]),
-                    "Low_Market": float(values[f"3a. low ({market})"]),
-                    "Close_Market": float(values[f"4a. close ({market})"]),
-                    "Open_USD": float(values["1b. open (USD)"]),
-                    "High_USD": float(values["2b. high (USD)"]),
-                    "Low_USD": float(values["3b. low (USD)"]),
-                    "Close_USD": float(values["4b. close (USD)"]),
-                    "Volume": float(values["5. volume"]),
-                    "Market_Cap_USD": float(values["6. market cap (USD)"]),
-                    "Symbol": symbol,
-                    "Market": market,
-                }
-            )
+            # Handle both old and new API response formats
+            try:
+                # Try new format first (current Alpha Vantage format)
+                df_data.append(
+                    {
+                        "Date": pd.to_datetime(date_str),
+                        "Open_Market": float(values["1. open"]),
+                        "High_Market": float(values["2. high"]),
+                        "Low_Market": float(values["3. low"]),
+                        "Close_Market": float(values["4. close"]),
+                        "Open_USD": float(values["1. open"]),  # For compatibility
+                        "High_USD": float(values["2. high"]),
+                        "Low_USD": float(values["3. low"]),
+                        "Close_USD": float(values["4. close"]),
+                        "Volume": float(values["5. volume"]),
+                        "Symbol": symbol,
+                        "Market": market,
+                    }
+                )
+            except KeyError:
+                # Fall back to old format if new format fails
+                df_data.append(
+                    {
+                        "Date": pd.to_datetime(date_str),
+                        "Open_Market": float(values[f"1a. open ({market})"]),
+                        "High_Market": float(values[f"2a. high ({market})"]),
+                        "Low_Market": float(values[f"3a. low ({market})"]),
+                        "Close_Market": float(values[f"4a. close ({market})"]),
+                        "Open_USD": float(values["1b. open (USD)"]),
+                        "High_USD": float(values["2b. high (USD)"]),
+                        "Low_USD": float(values["3b. low (USD)"]),
+                        "Close_USD": float(values["4b. close (USD)"]),
+                        "Volume": float(values["5. volume"]),
+                        "Market_Cap_USD": float(values["6. market cap (USD)"]),
+                        "Symbol": symbol,
+                        "Market": market,
+                    }
+                )
 
         df = pd.DataFrame(df_data)
         df = df.sort_values("Date")
