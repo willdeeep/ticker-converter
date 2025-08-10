@@ -92,7 +92,7 @@ class ParquetStorage(BaseStorage):
             df = pd.read_parquet(file_path, engine="pyarrow")
         except (OSError, pa.ArrowException) as e:
             raise OSError(f"Failed to read Parquet file {file_path}: {e}") from e
-        except Exception as e:
+        except (pd.errors.ParserError, ValueError) as e:
             raise ValueError(f"Invalid Parquet format in {file_path}: {e}") from e
 
         # Remove metadata columns if they exist
@@ -207,7 +207,7 @@ class ParquetStorage(BaseStorage):
                     metadata.created_by if hasattr(metadata, "created_by") else None
                 ),
             }
-        except Exception as e:
+        except (OSError, pa.ArrowException) as e:
             raise ValueError(
                 f"Failed to read Parquet file info from {file_path}: {e}"
             ) from e

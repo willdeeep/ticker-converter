@@ -1,11 +1,14 @@
-"""Base storage classes and configuration for market data storage."""
+"""Base storage interface for market data."""
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, Union
 
 import pandas as pd
+
+from ..constants import FILENAME_TIMESTAMP_FORMAT
 from pydantic import BaseModel, Field
 
 
@@ -70,28 +73,25 @@ class BaseStorage(ABC):
             Path(self.config.base_path).mkdir(parents=True, exist_ok=True)
 
     def _generate_filename(
-        self,
-        symbol: str,
-        data_type: str,
-        file_extension: str,
-        timestamp: Optional[datetime] = None,
+        self, symbol: str, data_type: str, extension: str, timestamp: Optional[datetime] = None
     ) -> str:
-        """Generate a standardized filename for stored data.
+        """Generate filename for storage.
 
         Args:
-            symbol: Financial symbol (e.g., 'AAPL', 'BTC')
-            data_type: Type of data (e.g., 'daily', 'intraday')
-            file_extension: File extension (e.g., 'json', 'parquet')
-            timestamp: Optional timestamp, defaults to current time
+            symbol: Financial symbol
+            data_type: Type of data
+            extension: File extension
+            timestamp: Optional timestamp
 
         Returns:
-            Standardized filename string
+            Generated filename
         """
         if timestamp is None:
             timestamp = datetime.utcnow()
-
-        timestamp_str = timestamp.strftime(self.config.timestamp_format)
-        return f"{symbol}_{data_type}_{timestamp_str}.{file_extension}"
+        
+        # Use modern f-string with format specification
+        timestamp_str = timestamp.strftime(FILENAME_TIMESTAMP_FORMAT)
+        return f"{symbol}_{data_type}_{timestamp_str}.{extension}"
 
     def _generate_file_path(
         self,
