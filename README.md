@@ -14,13 +14,13 @@ This project implements a comprehensive financial data analytics pipeline that:
 
 ## Features
 
-- 🔄 **ETL Pipeline**: Complete extract, transform, load workflows
-- 📊 **Data Processing**: Moving averages, volatility calculations, and custom metrics
-- 🗄️ **Database Integration**: PostgreSQL with SQLAlchemy ORM
-- ⚡ **API Backend**: FastAPI with automatic documentation
-- 🔧 **Workflow Orchestration**: Apache Airflow DAGs
-- 🧪 **Testing**: Comprehensive test suite with pytest
-- 📦 **Modern Python**: Type hints, black formatting, ruff linting
+- **ETL Pipeline**: Complete extract, transform, load workflows
+- **Data Processing**: Moving averages, volatility calculations, and custom metrics
+- **Database Integration**: PostgreSQL with SQLAlchemy ORM
+- **API Backend**: FastAPI with automatic documentation
+- **Workflow Orchestration**: Apache Airflow DAGs
+- **Testing**: Comprehensive test suite with pytest
+- **Modern Python**: Type hints, black formatting, ruff linting
 
 ## Quick Start
 
@@ -150,6 +150,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- 📚 [Documentation](docs/)
-- 🐛 [Issue Tracker](https://github.com/willdeeep/ticker-converter/issues)
-- 💬 [Discussions](https://github.com/willdeeep/ticker-converter/discussions)
+- [Documentation](docs/)
+- [Issue Tracker](https://github.com/willdeeep/ticker-converter/issues)
+- [Discussions](https://github.com/willdeeep/ticker-converter/discussions)
