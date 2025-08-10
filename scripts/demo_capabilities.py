@@ -123,7 +123,9 @@ def demo_comprehensive_analysis(client: AlphaVantageClient) -> None:
         for from_curr, to_curr in symbols:
             try:
                 data = client.get_currency_exchange_rate(from_curr, to_curr)
-                rate = float(data["Realtime Currency Exchange Rate"]["5. Exchange Rate"])
+                rate = float(
+                    data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
+                )
                 rates[f"{from_curr}/{to_curr}"] = rate
                 print(f"[SUCCESS] {from_curr}/{to_curr}: {rate:.6f}")
             except AlphaVantageAPIError as e:
@@ -132,7 +134,9 @@ def demo_comprehensive_analysis(client: AlphaVantageClient) -> None:
         # Show crypto vs fiat comparison
         try:
             btc_usd = client.get_currency_exchange_rate("BTC", "USD")
-            btc_price = float(btc_usd["Realtime Currency Exchange Rate"]["5. Exchange Rate"])
+            btc_price = float(
+                btc_usd["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
+            )
 
             if "USD/EUR" in rates:
                 btc_eur_equivalent = btc_price * rates["USD/EUR"]

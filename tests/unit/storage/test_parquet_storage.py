@@ -1,10 +1,10 @@
 """Tests for Parquet storage implementation."""
 
-import pytest
-import pandas as pd
-import pyarrow as pa
 from datetime import datetime
 from pathlib import Path
+
+import pandas as pd
+import pytest
 
 from ticker_converter.storage.base import StorageConfig
 from ticker_converter.storage.parquet_storage import ParquetStorage
@@ -26,12 +26,14 @@ class TestParquetStorage:
     @pytest.fixture
     def sample_data(self):
         """Create sample DataFrame for testing."""
-        return pd.DataFrame({
-            "Date": pd.date_range("2023-01-01", periods=3),
-            "Close": [100.0, 101.5, 99.8],
-            "Volume": [1000, 1100, 950],
-            "Symbol": ["AAPL", "AAPL", "AAPL"]
-        })
+        return pd.DataFrame(
+            {
+                "Date": pd.date_range("2023-01-01", periods=3),
+                "Close": [100.0, 101.5, 99.8],
+                "Volume": [1000, 1100, 950],
+                "Symbol": ["AAPL", "AAPL", "AAPL"],
+            }
+        )
 
     def test_format_name(self, parquet_storage):
         """Test format name property."""
@@ -96,7 +98,7 @@ class TestParquetStorage:
         loaded_df = pd.read_parquet(metadata.file_path)
 
         # Should not have metadata columns
-        metadata_columns = ['_symbol', '_data_type', '_timestamp', '_data_source']
+        metadata_columns = ["_symbol", "_data_type", "_timestamp", "_data_source"]
         for col in metadata_columns:
             assert col not in loaded_df.columns
 
@@ -133,7 +135,7 @@ class TestParquetStorage:
             assert col in loaded_df.columns
 
         # Metadata columns should be removed
-        metadata_columns = ['_symbol', '_data_type', '_timestamp', '_data_source']
+        metadata_columns = ["_symbol", "_data_type", "_timestamp", "_data_source"]
         for col in metadata_columns:
             assert col not in loaded_df.columns
 
@@ -146,7 +148,7 @@ class TestParquetStorage:
         """Test load with invalid Parquet file."""
         # Create invalid Parquet file
         invalid_file = tmp_path / "invalid.parquet"
-        with open(invalid_file, 'w') as f:
+        with open(invalid_file, "w") as f:
             f.write("not a parquet file")
 
         with pytest.raises((OSError, ValueError)):
@@ -155,12 +157,14 @@ class TestParquetStorage:
     def test_data_type_optimization(self, parquet_storage):
         """Test data type optimization for Parquet storage."""
         # Create DataFrame with various data types
-        df = pd.DataFrame({
-            "int_col": [1, 2, 3],
-            "float_col": [1.1, 2.2, 3.3],
-            "string_col": ["a", "b", "c"],
-            "mixed_obj": ["text1", "text2", "text3"]
-        })
+        df = pd.DataFrame(
+            {
+                "int_col": [1, 2, 3],
+                "float_col": [1.1, 2.2, 3.3],
+                "string_col": ["a", "b", "c"],
+                "mixed_obj": ["text1", "text2", "text3"],
+            }
+        )
 
         optimized_df = parquet_storage._optimize_data_types(df)
 
@@ -199,11 +203,13 @@ class TestParquetStorage:
     def test_datetime_preservation(self, parquet_storage):
         """Test that datetime columns are preserved in Parquet."""
         # Create DataFrame with datetime
-        df = pd.DataFrame({
-            "Date": pd.date_range("2023-01-01", periods=2),
-            "timestamp": pd.date_range("2023-01-01 10:00:00", periods=2, freq="1h"),
-            "Close": [100.0, 101.5]
-        })
+        df = pd.DataFrame(
+            {
+                "Date": pd.date_range("2023-01-01", periods=2),
+                "timestamp": pd.date_range("2023-01-01 10:00:00", periods=2, freq="1h"),
+                "Close": [100.0, 101.5],
+            }
+        )
 
         # Save and load
         metadata = parquet_storage.save(df, "TEST", "daily")
@@ -215,16 +221,21 @@ class TestParquetStorage:
 
         # Check values are the same
         pd.testing.assert_series_equal(
-            loaded_df["Date"].sort_index(),
-            df["Date"].sort_index()
+            loaded_df["Date"].sort_index(), df["Date"].sort_index()
         )
 
     def test_large_numbers_precision(self, parquet_storage):
         """Test precision preservation for large numbers."""
-        df = pd.DataFrame({
-            "large_int": [999999999999, 1000000000000, 1000000000001],
-            "high_precision": [123.456789012345, 987.654321098765, 555.111222333444]
-        })
+        df = pd.DataFrame(
+            {
+                "large_int": [999999999999, 1000000000000, 1000000000001],
+                "high_precision": [
+                    123.456789012345,
+                    987.654321098765,
+                    555.111222333444,
+                ],
+            }
+        )
 
         # Save and load
         metadata = parquet_storage.save(df, "TEST", "daily")
@@ -232,8 +243,9 @@ class TestParquetStorage:
 
         # Check precision preservation
         pd.testing.assert_series_equal(
-            loaded_df["large_int"].sort_index(),
-            df["large_int"].sort_index()
+            loaded_df["large_int"].sort_index(), df["large_int"].sort_index()
         )
         # For floats, check they're close (Parquet may have slight precision differences)
-        assert loaded_df["high_precision"].iloc[0] == pytest.approx(df["high_precision"].iloc[0], rel=1e-6)
+        assert loaded_df["high_precision"].iloc[0] == pytest.approx(
+            df["high_precision"].iloc[0], rel=1e-6
+        )

@@ -1,7 +1,7 @@
 """Storage factory for creating storage instances."""
 
 from pathlib import Path
-from typing import Union
+from typing import Any, Union
 
 from .base import BaseStorage, StorageConfig
 from .json_storage import JSONStorage
@@ -12,16 +12,16 @@ class StorageFactory:
     """Factory class for creating storage instances."""
 
     _STORAGE_TYPES = {
-        'json': JSONStorage,
-        'parquet': ParquetStorage,
+        "json": JSONStorage,
+        "parquet": ParquetStorage,
     }
 
     @classmethod
     def create_storage(
-        self,
+        cls,
         storage_type: str,
         base_path: Union[str, Path] = "data",
-        **config_kwargs
+        **config_kwargs: Any,
     ) -> BaseStorage:
         """Create a storage instance.
 
@@ -36,8 +36,8 @@ class StorageFactory:
         Raises:
             ValueError: If storage type is not supported
         """
-        if storage_type not in self._STORAGE_TYPES:
-            available_types = list(self._STORAGE_TYPES.keys())
+        if storage_type not in cls._STORAGE_TYPES:
+            available_types = list(cls._STORAGE_TYPES.keys())
             raise ValueError(
                 f"Unsupported storage type '{storage_type}'. "
                 f"Available types: {available_types}"
@@ -47,7 +47,7 @@ class StorageFactory:
         config = StorageConfig(base_path=base_path, **config_kwargs)
 
         # Create and return storage instance
-        storage_class = self._STORAGE_TYPES[storage_type]
+        storage_class = cls._STORAGE_TYPES[storage_type]
         return storage_class(config)
 
     @classmethod

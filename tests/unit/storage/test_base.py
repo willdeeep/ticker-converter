@@ -1,12 +1,12 @@
 """Tests for storage base classes and configuration."""
 
-import pytest
-import pandas as pd
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock
 
-from ticker_converter.storage.base import StorageConfig, StorageMetadata, BaseStorage
+import pandas as pd
+import pytest
+
+from ticker_converter.storage.base import BaseStorage, StorageConfig, StorageMetadata
 
 
 class TestStorageConfig:
@@ -26,7 +26,7 @@ class TestStorageConfig:
             base_path="/custom/path",
             create_directories=False,
             timestamp_format="%Y-%m-%d",
-            include_metadata=False
+            include_metadata=False,
         )
         assert str(config.base_path) == "/custom/path"
         assert config.create_directories is False
@@ -45,7 +45,7 @@ class TestStorageMetadata:
             data_type="daily",
             record_count=100,
             file_format="json",
-            file_path="/path/to/file.json"
+            file_path="/path/to/file.json",
         )
 
         assert metadata.data_source == "alpha_vantage"
@@ -64,7 +64,7 @@ class TestStorageMetadata:
             data_type="daily",
             record_count=100,
             file_format="json",
-            file_path="/path/to/file.json"
+            file_path="/path/to/file.json",
         )
 
         json_data = metadata.model_dump()
@@ -102,11 +102,13 @@ class TestBaseStorage:
     @pytest.fixture
     def sample_data(self):
         """Create sample DataFrame for testing."""
-        return pd.DataFrame({
-            "Date": pd.date_range("2023-01-01", periods=5),
-            "Close": [100.0, 101.5, 99.8, 102.3, 103.1],
-            "Volume": [1000, 1100, 950, 1200, 1050]
-        })
+        return pd.DataFrame(
+            {
+                "Date": pd.date_range("2023-01-01", periods=5),
+                "Close": [100.0, 101.5, 99.8, 102.3, 103.1],
+                "Volume": [1000, 1100, 950, 1200, 1050],
+            }
+        )
 
     def test_filename_generation(self, mock_storage):
         """Test filename generation."""
@@ -148,7 +150,9 @@ class TestBaseStorage:
     def test_metadata_creation(self, mock_storage, sample_data):
         """Test metadata creation."""
         file_path = Path("/test/path.json")
-        metadata = mock_storage._create_metadata("AAPL", "daily", sample_data, file_path)
+        metadata = mock_storage._create_metadata(
+            "AAPL", "daily", sample_data, file_path
+        )
 
         assert metadata.symbol == "AAPL"
         assert metadata.data_type == "daily"

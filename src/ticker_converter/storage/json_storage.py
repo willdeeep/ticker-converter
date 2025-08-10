@@ -7,7 +7,7 @@ from typing import Any, Optional, Union
 
 import pandas as pd
 
-from .base import BaseStorage, StorageConfig, StorageMetadata
+from .base import BaseStorage, StorageMetadata
 
 
 class JSONStorage(BaseStorage):
@@ -24,7 +24,7 @@ class JSONStorage(BaseStorage):
         symbol: str,
         data_type: str,
         timestamp: Optional[datetime] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> StorageMetadata:
         """Save DataFrame to JSON file.
 
@@ -56,9 +56,9 @@ class JSONStorage(BaseStorage):
 
         # Save to JSON file
         try:
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(json_data, f, indent=2, ensure_ascii=False, default=str)
-        except (OSError, IOError) as e:
+        except OSError as e:
             raise OSError(f"Failed to save JSON file {file_path}: {e}") from e
 
         # Create and return metadata
@@ -83,16 +83,16 @@ class JSONStorage(BaseStorage):
             raise FileNotFoundError(f"JSON file not found: {file_path}")
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding="utf-8") as f:
                 json_data = json.load(f)
-        except (OSError, IOError) as e:
+        except OSError as e:
             raise OSError(f"Failed to read JSON file {file_path}: {e}") from e
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON format in {file_path}: {e}") from e
 
         # Extract DataFrame from JSON structure
-        if 'data' in json_data:
-            df = pd.DataFrame(json_data['data'])
+        if "data" in json_data:
+            df = pd.DataFrame(json_data["data"])
         else:
             # Fallback: treat entire JSON as DataFrame data
             df = pd.DataFrame(json_data)
@@ -103,12 +103,8 @@ class JSONStorage(BaseStorage):
         return df
 
     def _prepare_json_data(
-        self,
-        data: pd.DataFrame,
-        symbol: str,
-        data_type: str,
-        **kwargs: Any
-    ) -> dict:
+        self, data: pd.DataFrame, symbol: str, data_type: str, **kwargs: Any
+    ) -> dict[str, Any]:
         """Prepare DataFrame for JSON serialization.
 
         Args:
@@ -121,23 +117,22 @@ class JSONStorage(BaseStorage):
             Dictionary ready for JSON serialization
         """
         # Convert DataFrame to dictionary
-        orient = kwargs.get('orient', 'records')
-        date_format = kwargs.get('date_format', 'iso')
+        orient = kwargs.get("orient", "records")
 
         df_dict = data.to_dict(orient=orient)
 
         # Create structured JSON with metadata if enabled
         if self.config.include_metadata:
             json_data = {
-                'metadata': {
-                    'symbol': symbol,
-                    'data_type': data_type,
-                    'timestamp': datetime.utcnow().isoformat(),
-                    'record_count': len(data),
-                    'columns': list(data.columns),
-                    'data_source': 'alpha_vantage'
+                "metadata": {
+                    "symbol": symbol,
+                    "data_type": data_type,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "record_count": len(data),
+                    "columns": list(data.columns),
+                    "data_source": "alpha_vantage",
                 },
-                'data': df_dict
+                "data": df_dict,
             }
         else:
             json_data = df_dict
@@ -151,7 +146,7 @@ class JSONStorage(BaseStorage):
             df: DataFrame to process (modified in-place)
         """
         # Common date column names to check
-        date_columns = ['Date', 'date', 'timestamp', 'Timestamp']
+        date_columns = ["Date", "date", "timestamp", "Timestamp"]
 
         for col in date_columns:
             if col in df.columns:

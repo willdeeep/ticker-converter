@@ -203,6 +203,7 @@ module = [
     "airflow.*",
     "sqlalchemy.*",
     "alembic.*",
+    "pyarrow.*",
 ]
 ignore_missing_imports = true
 
