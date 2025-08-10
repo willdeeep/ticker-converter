@@ -1,11 +1,13 @@
 """Core functionality for the Financial Market Data Analytics Pipeline."""
 
 import logging
-from typing import Any, Optional
+from typing import Any
+from typing import Optional
 
 import pandas as pd
 
-from .api_client import AlphaVantageAPIError, AlphaVantageClient
+from .api_client import AlphaVantageAPIError
+from .api_client import AlphaVantageClient
 from .pipeline_config import PipelineConfig
 
 logger = logging.getLogger(__name__)
@@ -108,55 +110,62 @@ class FinancialDataPipeline:
         Returns:
             Transformed data with engineered features.
         """
-        from .data_models.market_data import MarketDataPoint, RawMarketData
-        from .etl_modules import DataCleaner, FeatureEngineer, QualityValidator
-        
+        from .data_models.market_data import MarketDataPoint
+        from .data_models.market_data import RawMarketData
+        from .etl_modules import DataCleaner
+        from .etl_modules import FeatureEngineer
+        from .etl_modules import QualityValidator
+
         try:
             # Convert DataFrame to RawMarketData model
             data_points = []
             for idx, row in data.iterrows():
                 point = MarketDataPoint(
-                    timestamp=idx if isinstance(idx, pd.Timestamp) else pd.Timestamp(idx),
-                    symbol=row.get('Symbol', symbol),
-                    open=float(row['Open']),
-                    high=float(row['High']),
-                    low=float(row['Low']),
-                    close=float(row['Close']),
-                    volume=int(row['Volume']),
+                    timestamp=(
+                        idx if isinstance(idx, pd.Timestamp) else pd.Timestamp(idx)
+                    ),
+                    symbol=row.get("Symbol", symbol),
+                    open=float(row["Open"]),
+                    high=float(row["High"]),
+                    low=float(row["Low"]),
+                    close=float(row["Close"]),
+                    volume=int(row["Volume"]),
                 )
                 data_points.append(point)
-            
+
             raw_data = RawMarketData(
                 data_points=data_points,
                 source="alpha_vantage",
                 symbol=symbol,
-                data_type="daily"
+                data_type="daily",
             )
-            
+
             # Initialize pipeline components
             cleaner = DataCleaner()
             feature_engineer = FeatureEngineer()
             validator = QualityValidator()
-            
+
             # Validate input data
             validation_result = validator.validate(data, symbol)
             if not validation_result.is_valid:
-                logger.warning(f"Data validation issues for {symbol}: {validation_result.errors}")
-            
+                logger.warning(
+                    f"Data validation issues for {symbol}: {validation_result.errors}"
+                )
+
             # Clean the data
             cleaned_data = cleaner.clean(raw_data)
-            
+
             # Engineer features
             feature_data = feature_engineer.engineer_features(cleaned_data)
-            
-            # Convert back to DataFrame with features
-            df_with_features = raw_data.to_dataframe()
-            
-            # Add engineered features (this would be extracted from feature_data in a full implementation)
+
+            # Convert back to DataFrame with features from feature_data
+            df_with_features = feature_data.to_dataframe()
+
+            # Use the engineered features from feature_data
             # For now, return the original transformed data
             logger.info(f"Data transformation completed for {symbol}")
             return df_with_features
-            
+
         except Exception as e:
             logger.error(f"Error during data transformation for {symbol}: {e}")
             return data
