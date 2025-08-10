@@ -8,6 +8,8 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from ..data_models.market_data import CleanedMarketData, FeatureEngineeredData, VolatilityFlag
+from .constants import FeatureConstants, TechnicalIndicatorConstants, MarketDataColumns
+from .utils import FeatureEngineering
 
 logger = logging.getLogger(__name__)
 
@@ -15,23 +17,47 @@ logger = logging.getLogger(__name__)
 class FeatureConfig(BaseModel):
     """Configuration for feature engineering operations."""
     
-    moving_averages: List[int] = Field(default=[7, 30], description="Moving average periods")
+    moving_averages: List[int] = Field(
+        default=FeatureConstants.DEFAULT_MA_PERIODS, 
+        description="Moving average periods"
+    )
     calculate_returns: bool = Field(default=True, description="Calculate price returns")
     calculate_volatility: bool = Field(default=True, description="Calculate volatility metrics")
-    volatility_window: int = Field(default=20, description="Window for volatility calculations")
+    volatility_window: int = Field(
+        default=FeatureConstants.DEFAULT_VOLATILITY_WINDOW, 
+        description="Window for volatility calculations"
+    )
     
     # Volatility thresholds
-    volatility_threshold_low: float = Field(default=0.02, description="Low volatility threshold")
-    volatility_threshold_moderate: float = Field(default=0.05, description="Moderate volatility threshold")
-    volatility_threshold_high: float = Field(default=0.10, description="High volatility threshold")
+    volatility_threshold_low: float = Field(
+        default=FeatureConstants.VOLATILITY_LOW_THRESHOLD, 
+        description="Low volatility threshold"
+    )
+    volatility_threshold_moderate: float = Field(
+        default=FeatureConstants.VOLATILITY_MODERATE_THRESHOLD, 
+        description="Moderate volatility threshold"
+    )
+    volatility_threshold_high: float = Field(
+        default=FeatureConstants.VOLATILITY_HIGH_THRESHOLD, 
+        description="High volatility threshold"
+    )
     
     # Technical indicators
     calculate_rsi: bool = Field(default=True, description="Calculate RSI indicator")
-    rsi_period: int = Field(default=14, description="RSI calculation period")
+    rsi_period: int = Field(
+        default=FeatureConstants.DEFAULT_RSI_PERIOD, 
+        description="RSI calculation period"
+    )
     
     calculate_bollinger_bands: bool = Field(default=True, description="Calculate Bollinger Bands")
-    bollinger_period: int = Field(default=20, description="Bollinger Bands period")
-    bollinger_std: float = Field(default=2.0, description="Bollinger Bands standard deviation")
+    bollinger_period: int = Field(
+        default=TechnicalIndicatorConstants.BB_DEFAULT_PERIOD, 
+        description="Bollinger Bands period"
+    )
+    bollinger_std: float = Field(
+        default=TechnicalIndicatorConstants.BB_DEFAULT_STD, 
+        description="Bollinger Bands standard deviation"
+    )
 
 
 class FeatureEngineer:
@@ -94,18 +120,8 @@ class FeatureEngineer:
             return df
         
         try:
-            # Daily returns
-            df['Daily_Return'] = df['Close'].pct_change()
-            self.features_created.append('Daily_Return')
-            
-            # Log returns
-            df['Log_Return'] = np.log(df['Close'] / df['Close'].shift(1))
-            self.features_created.append('Log_Return')
-            
-            # Cumulative returns
-            df['Cumulative_Return'] = (1 + df['Daily_Return']).cumprod() - 1
-            self.features_created.append('Cumulative_Return')
-            
+            df = FeatureEngineering.calculate_returns(df, MarketDataColumns.CLOSE)
+            self.features_created.extend(['Daily_Return', 'Log_Return', 'Cumulative_Return'])
             logger.debug("Calculated return features")
             
         except Exception as e:
@@ -118,12 +134,14 @@ class FeatureEngineer:
         try:
             for period in self.config.moving_averages:
                 col_name = f'MA_{period}'
-                df[col_name] = df['Close'].rolling(window=period, min_periods=1).mean()
+                df[col_name] = FeatureEngineering.calculate_moving_average(
+                    df, MarketDataColumns.CLOSE, period
+                )
                 self.features_created.append(col_name)
                 
                 # Calculate ratio of current price to moving average
                 ratio_col = f'Price_to_MA_{period}_Ratio'
-                df[ratio_col] = df['Close'] / df[col_name]
+                df[ratio_col] = df[MarketDataColumns.CLOSE] / df[col_name]
                 self.features_created.append(ratio_col)
             
             logger.debug(f"Calculated moving averages for periods: {self.config.moving_averages}")
@@ -166,11 +184,7 @@ class FeatureEngineer:
     
     def _calculate_true_range(self, df: pd.DataFrame) -> pd.Series:
         """Calculate True Range for ATR."""
-        high_low = df['High'] - df['Low']
-        high_close_prev = np.abs(df['High'] - df['Close'].shift(1))
-        low_close_prev = np.abs(df['Low'] - df['Close'].shift(1))
-        
-        return pd.concat([high_low, high_close_prev, low_close_prev], axis=1).max(axis=1)
+        return FeatureEngineering.calculate_true_range(df)
     
     def _calculate_volatility_flags(self, df: pd.DataFrame) -> pd.DataFrame:
         """Calculate volatility flags based on thresholds."""
@@ -226,7 +240,7 @@ class FeatureEngineer:
         """Calculate RSI indicator."""
         try:
             period = self.config.rsi_period
-            delta = df['Close'].diff()
+            delta = df[MarketDataColumns.CLOSE].diff()
             
             gain = delta.where(delta > 0, 0)
             loss = -delta.where(delta < 0, 0)
@@ -238,9 +252,9 @@ class FeatureEngineer:
             df['RSI'] = 100 - (100 / (1 + rs))
             self.features_created.append('RSI')
             
-            # RSI signals
-            df['RSI_Oversold'] = (df['RSI'] < 30).astype(int)
-            df['RSI_Overbought'] = (df['RSI'] > 70).astype(int)
+            # RSI signals using constants
+            df['RSI_Oversold'] = (df['RSI'] < TechnicalIndicatorConstants.RSI_OVERSOLD_THRESHOLD).astype(int)
+            df['RSI_Overbought'] = (df['RSI'] > TechnicalIndicatorConstants.RSI_OVERBOUGHT_THRESHOLD).astype(int)
             self.features_created.extend(['RSI_Oversold', 'RSI_Overbought'])
             
             logger.debug("Calculated RSI indicator")
@@ -257,10 +271,10 @@ class FeatureEngineer:
             std_dev = self.config.bollinger_std
             
             # Middle band (SMA)
-            df['BB_Middle'] = df['Close'].rolling(window=period, min_periods=1).mean()
+            df['BB_Middle'] = df[MarketDataColumns.CLOSE].rolling(window=period, min_periods=1).mean()
             
             # Standard deviation
-            rolling_std = df['Close'].rolling(window=period, min_periods=1).std()
+            rolling_std = df[MarketDataColumns.CLOSE].rolling(window=period, min_periods=1).std()
             
             # Upper and lower bands
             df['BB_Upper'] = df['BB_Middle'] + (rolling_std * std_dev)
@@ -270,7 +284,7 @@ class FeatureEngineer:
             df['BB_Width'] = df['BB_Upper'] - df['BB_Lower']
             
             # Position within bands
-            df['BB_Position'] = (df['Close'] - df['BB_Lower']) / (df['BB_Upper'] - df['BB_Lower'])
+            df['BB_Position'] = (df[MarketDataColumns.CLOSE] - df['BB_Lower']) / (df['BB_Upper'] - df['BB_Lower'])
             
             # Signals
             df['BB_Squeeze'] = (df['BB_Width'] < df['BB_Width'].rolling(window=20, min_periods=1).mean()).astype(int)
