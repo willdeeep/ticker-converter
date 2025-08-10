@@ -1,11 +1,11 @@
-# Pull Request: Issue #1 - Alpha Vantage API Integration v0.1.1
+# Pull Request: Issue #1 - Alpha Vantage API Integration v0.1.2
 
 ## Summary
 
 This PR implements **Issue #1 - Alpha Vantage API Integration** with comprehensive financial data capabilities including stocks, forex, and cryptocurrencies through a unified API client.
 
 **Closes:** #1
-**Version:** 0.1.1
+**Version:** 0.1.2
 
 ## Key Features
 
