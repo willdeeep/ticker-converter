@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ticker-converter"
-version = "0.1.2"
+version = "0.2.1"
 description = "Financial Market Data Analytics Pipeline for SCSK"
 readme = "README.md"
 license = {file = "LICENSE"}
