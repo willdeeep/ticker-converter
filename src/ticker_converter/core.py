@@ -8,7 +8,6 @@ import pandas as pd
 from .api_client import AlphaVantageAPIError, AlphaVantageClient
 from .pipeline_config import PipelineConfig
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -16,8 +15,8 @@ class FinancialDataPipeline:
     """Main pipeline class for financial data processing."""
 
     def __init__(
-        self, 
-        api_key: Optional[str] = None, 
+        self,
+        api_key: Optional[str] = None,
         config: Optional[PipelineConfig] = None
     ) -> None:
         """Initialize the pipeline.
@@ -82,10 +81,10 @@ class FinancialDataPipeline:
 
     def _handle_api_error(self, error_message: str) -> pd.DataFrame:
         """Handle API errors consistently.
-        
+
         Args:
             error_message: Error message to log/print
-            
+
         Returns:
             Empty DataFrame if configured to return empty on error
         """

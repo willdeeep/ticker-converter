@@ -1,15 +1,14 @@
 """Base storage interface for market data."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, Union
 
 import pandas as pd
+from pydantic import BaseModel, Field
 
 from ..constants import FILENAME_TIMESTAMP_FORMAT
-from pydantic import BaseModel, Field
 
 
 class StorageConfig(BaseModel):
@@ -88,7 +87,7 @@ class BaseStorage(ABC):
         """
         if timestamp is None:
             timestamp = datetime.utcnow()
-        
+
         # Use modern f-string with format specification
         timestamp_str = timestamp.strftime(FILENAME_TIMESTAMP_FORMAT)
         return f"{symbol}_{data_type}_{timestamp_str}.{extension}"
