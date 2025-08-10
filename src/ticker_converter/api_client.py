@@ -115,7 +115,7 @@ class AlphaVantageClient:
 
         for datetime_str, values in time_series.items():
             row = {datetime_key: pd.to_datetime(datetime_str)}
-            
+
             # Standard OHLCV columns
             if AlphaVantageValueKey.OPEN in values:
                 row.update({
@@ -124,12 +124,12 @@ class AlphaVantageClient:
                     "Low": float(values[AlphaVantageValueKey.LOW]),
                     "Close": float(values[AlphaVantageValueKey.CLOSE]),
                 })
-                
+
             # Volume handling (different keys for different endpoints)
             if AlphaVantageValueKey.VOLUME in values:
                 volume_value = values[AlphaVantageValueKey.VOLUME]
                 row["Volume"] = int(volume_value) if volume_value.isdigit() else float(volume_value)
-            
+
             # Add any additional columns
             row.update(additional_columns)
             df_data.append(row)
@@ -172,7 +172,7 @@ class AlphaVantageClient:
             datetime_key="Date",
             additional_columns={"Symbol": symbol.upper()}
         )
-        
+
         return df
 
     def get_intraday_stock_data(
@@ -210,7 +210,7 @@ class AlphaVantageClient:
             datetime_key="DateTime",
             additional_columns={"Symbol": symbol.upper()}
         )
-        
+
         return df
 
     def get_company_overview(self, symbol: str) -> dict[str, Any]:

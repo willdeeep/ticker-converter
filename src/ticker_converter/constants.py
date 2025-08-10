@@ -5,7 +5,7 @@ from enum import Enum
 
 class AlphaVantageFunction(str, Enum):
     """Alpha Vantage API function names."""
-    
+
     TIME_SERIES_DAILY = "TIME_SERIES_DAILY"
     TIME_SERIES_INTRADAY = "TIME_SERIES_INTRADAY"
     OVERVIEW = "OVERVIEW"
@@ -16,7 +16,7 @@ class AlphaVantageFunction(str, Enum):
 
 class AlphaVantageResponseKey(str, Enum):
     """Alpha Vantage API response keys."""
-    
+
     TIME_SERIES_DAILY = "Time Series (Daily)"
     TIME_SERIES_FX_DAILY = "Time Series FX (Daily)"
     TIME_SERIES_DIGITAL_CURRENCY_DAILY = "Time Series (Digital Currency Daily)"
@@ -27,7 +27,7 @@ class AlphaVantageResponseKey(str, Enum):
 
 class AlphaVantageValueKey(str, Enum):
     """Alpha Vantage API value keys within time series."""
-    
+
     OPEN = "1. open"
     HIGH = "2. high"
     LOW = "3. low"
@@ -39,14 +39,14 @@ class AlphaVantageValueKey(str, Enum):
 
 class DataFormat(str, Enum):
     """Data format constants."""
-    
+
     JSON = "json"
     PARQUET = "parquet"
 
 
 class TimeInterval(str, Enum):
     """Time interval constants."""
-    
+
     ONE_MIN = "1min"
     FIVE_MIN = "5min"
     FIFTEEN_MIN = "15min"
@@ -56,7 +56,7 @@ class TimeInterval(str, Enum):
 
 class OutputSize(str, Enum):
     """Output size constants."""
-    
+
     COMPACT = "compact"
     FULL = "full"
 
