@@ -8,6 +8,8 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from ..data_models.market_data import CleanedMarketData, RawMarketData
+from .constants import CleaningConstants, MarketDataColumns
+from .utils import DataFrameUtils, OutlierDetector, PriceValidator
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +19,19 @@ class CleaningConfig(BaseModel):
     
     remove_duplicates: bool = Field(default=True, description="Remove duplicate records")
     fill_missing_values: bool = Field(default=True, description="Fill missing values")
-    missing_value_method: str = Field(default="forward_fill", description="Method for filling missing values")
+    missing_value_method: str = Field(
+        default=CleaningConstants.FORWARD_FILL, 
+        description="Method for filling missing values"
+    )
     remove_outliers: bool = Field(default=True, description="Remove statistical outliers")
-    outlier_method: str = Field(default="iqr", description="Outlier detection method")
-    outlier_threshold: float = Field(default=1.5, description="Outlier threshold multiplier")
+    outlier_method: str = Field(
+        default=CleaningConstants.IQR_METHOD, 
+        description="Outlier detection method"
+    )
+    outlier_threshold: float = Field(
+        default=CleaningConstants.IQR_DEFAULT_MULTIPLIER, 
+        description="Outlier threshold multiplier"
+    )
     validate_price_relationships: bool = Field(default=True, description="Validate price relationships")
     ensure_consistent_types: bool = Field(default=True, description="Ensure consistent data types")
     sort_by_date: bool = Field(default=True, description="Sort data by date")
@@ -90,20 +101,7 @@ class DataCleaner:
             return df
         
         try:
-            # Ensure numeric columns are proper types
-            numeric_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
-            for col in numeric_columns:
-                if col in df.columns:
-                    df[col] = pd.to_numeric(df[col], errors='coerce')
-            
-            # Ensure Volume is integer
-            if 'Volume' in df.columns:
-                df['Volume'] = df['Volume'].fillna(0).astype('int64')
-            
-            # Ensure Symbol is string
-            if 'Symbol' in df.columns:
-                df['Symbol'] = df['Symbol'].astype(str)
-            
+            df = DataFrameUtils.ensure_numeric_types(df)
             self.cleaning_operations.append("ensure_consistent_types")
             logger.debug("Data types standardized")
             
@@ -136,7 +134,10 @@ class DataCleaner:
         
         try:
             # Remove duplicates based on index (date) and Symbol
-            df = df.reset_index().drop_duplicates(subset=['Date', 'Symbol'], keep='first').set_index('Date')
+            df = df.reset_index().drop_duplicates(
+                subset=[MarketDataColumns.DATE, MarketDataColumns.SYMBOL], 
+                keep='first'
+            ).set_index(MarketDataColumns.DATE)
             
             duplicates_removed = initial_count - len(df)
             if duplicates_removed > 0:
@@ -155,31 +156,11 @@ class DataCleaner:
         
         try:
             initial_count = len(df)
+            df, removal_counts = PriceValidator.validate_price_relationships(df)
             
-            # Remove rows where High < Low
-            invalid_high_low = df['High'] < df['Low']
-            if invalid_high_low.any():
-                df = df[~invalid_high_low]
-                logger.warning(f"Removed {invalid_high_low.sum()} rows with High < Low")
-            
-            # Remove rows where Close is outside High/Low range
-            invalid_close = (df['Close'] > df['High']) | (df['Close'] < df['Low'])
-            if invalid_close.any():
-                df = df[~invalid_close]
-                logger.warning(f"Removed {invalid_close.sum()} rows with Close outside High/Low range")
-            
-            # Remove rows with non-positive prices
-            price_columns = ['Open', 'High', 'Low', 'Close']
-            for col in price_columns:
-                if col in df.columns:
-                    invalid_prices = df[col] <= 0
-                    if invalid_prices.any():
-                        df = df[~invalid_prices]
-                        logger.warning(f"Removed {invalid_prices.sum()} rows with non-positive {col} prices")
-            
-            removed_count = initial_count - len(df)
-            if removed_count > 0:
-                self.cleaning_operations.append(f"validate_price_relationships_{removed_count}")
+            total_removed = initial_count - len(df)
+            if total_removed > 0:
+                self.cleaning_operations.append(f"validate_price_relationships_{total_removed}")
                 
         except Exception as e:
             logger.warning(f"Error validating price relationships: {e}")
@@ -197,14 +178,14 @@ class DataCleaner:
             if missing_before == 0:
                 return df
             
-            if self.config.missing_value_method == "forward_fill":
+            if self.config.missing_value_method == CleaningConstants.FORWARD_FILL:
                 df = df.fillna(method='ffill')
-            elif self.config.missing_value_method == "backward_fill":
+            elif self.config.missing_value_method == CleaningConstants.BACKWARD_FILL:
                 df = df.fillna(method='bfill')
-            elif self.config.missing_value_method == "interpolate":
+            elif self.config.missing_value_method == CleaningConstants.INTERPOLATE:
                 numeric_columns = df.select_dtypes(include=[np.number]).columns
                 df[numeric_columns] = df[numeric_columns].interpolate(method='linear')
-            elif self.config.missing_value_method == "mean":
+            elif self.config.missing_value_method == CleaningConstants.MEAN_FILL:
                 numeric_columns = df.select_dtypes(include=[np.number]).columns
                 df[numeric_columns] = df[numeric_columns].fillna(df[numeric_columns].mean())
             
@@ -227,55 +208,20 @@ class DataCleaner:
             return df
         
         try:
-            initial_count = len(df)
-            price_columns = ['Open', 'High', 'Low', 'Close']
+            df, total_removed = OutlierDetector.remove_outliers_from_dataframe(
+                df=df,
+                columns=MarketDataColumns.PRICE_COLUMNS,
+                method=self.config.outlier_method,
+                threshold=self.config.outlier_threshold
+            )
             
-            for col in price_columns:
-                if col not in df.columns:
-                    continue
-                
-                if self.config.outlier_method == "iqr":
-                    df, removed = self._remove_outliers_iqr(df, col)
-                elif self.config.outlier_method == "zscore":
-                    df, removed = self._remove_outliers_zscore(df, col)
-                
-                if removed > 0:
-                    logger.info(f"Removed {removed} outliers from {col} using {self.config.outlier_method}")
-            
-            total_removed = initial_count - len(df)
             if total_removed > 0:
                 self.outliers_removed = total_removed
                 self.cleaning_operations.append(f"remove_outliers_{self.config.outlier_method}_{total_removed}")
+                logger.info(f"Removed {total_removed} outliers using {self.config.outlier_method}")
                 
         except Exception as e:
             logger.warning(f"Error removing outliers: {e}")
         
         return df
-    
-    def _remove_outliers_iqr(self, df: pd.DataFrame, column: str) -> Tuple[pd.DataFrame, int]:
-        """Remove outliers using IQR method."""
-        initial_count = len(df)
-        
-        Q1 = df[column].quantile(0.25)
-        Q3 = df[column].quantile(0.75)
-        IQR = Q3 - Q1
-        
-        lower_bound = Q1 - self.config.outlier_threshold * IQR
-        upper_bound = Q3 + self.config.outlier_threshold * IQR
-        
-        outliers = (df[column] < lower_bound) | (df[column] > upper_bound)
-        df = df[~outliers]
-        
-        removed = initial_count - len(df)
-        return df, removed
-    
-    def _remove_outliers_zscore(self, df: pd.DataFrame, column: str) -> Tuple[pd.DataFrame, int]:
-        """Remove outliers using Z-score method."""
-        initial_count = len(df)
-        
-        z_scores = np.abs((df[column] - df[column].mean()) / df[column].std())
-        outliers = z_scores > self.config.outlier_threshold
-        df = df[~outliers]
-        
-        removed = initial_count - len(df)
-        return df, removed
+
