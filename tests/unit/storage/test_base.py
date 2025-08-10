@@ -85,7 +85,9 @@ class MockStorage(BaseStorage):
         self._validate_data(data)
 
         # Generate file path using the protected method
-        file_path = self._generate_file_path(symbol, data_type, self.format_name, timestamp)
+        file_path = self._generate_file_path(
+            symbol, data_type, self.format_name, timestamp
+        )
         return self._create_metadata(symbol, data_type, data, file_path)
 
     def load(self, file_path):
@@ -125,7 +127,9 @@ class TestBaseStorage:
         expected_filename = "AAPL_daily_20230115_143000.mock"
         assert expected_filename in str(metadata.file_path)
 
-    def test_filename_generation_no_timestamp_through_save(self, mock_storage, sample_data):
+    def test_filename_generation_no_timestamp_through_save(
+        self, mock_storage, sample_data
+    ):
         """Test filename generation without timestamp through save method."""
         metadata = mock_storage.save(sample_data, "BTC", "intraday")
 
@@ -134,7 +138,9 @@ class TestBaseStorage:
         assert filename.startswith("BTC_intraday_")
         assert filename.endswith(".mock")
 
-    def test_file_path_structure_through_save(self, mock_storage, sample_data, tmp_path):
+    def test_file_path_structure_through_save(
+        self, mock_storage, sample_data, tmp_path
+    ):
         """Test file path structure through save method."""
         timestamp = datetime(2023, 1, 15, 14, 30, 0)
         metadata = mock_storage.save(sample_data, "AAPL", "daily", timestamp)

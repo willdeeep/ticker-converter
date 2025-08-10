@@ -144,7 +144,10 @@ class TestEndToEndPipeline:
         except AlphaVantageAPIError as e:
             # If we hit a rate limit or API information message, that's expected
             error_msg = str(e).lower()
-            if any(phrase in error_msg for phrase in ["rate limit", "information", "api call frequency"]):
+            if any(
+                phrase in error_msg
+                for phrase in ["rate limit", "information", "api call frequency"]
+            ):
                 pytest.skip(f"Hit API limit or restriction - this is expected: {e}")
             else:
                 raise  # Re-raise if it's a different API error

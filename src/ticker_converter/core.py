@@ -15,9 +15,7 @@ class FinancialDataPipeline:
     """Main pipeline class for financial data processing."""
 
     def __init__(
-        self,
-        api_key: Optional[str] = None,
-        config: Optional[PipelineConfig] = None
+        self, api_key: Optional[str] = None, config: Optional[PipelineConfig] = None
     ) -> None:
         """Initialize the pipeline.
 
@@ -59,7 +57,9 @@ class FinancialDataPipeline:
         try:
             return self.alpha_vantage.get_intraday_stock_data(symbol, interval)
         except AlphaVantageAPIError as e:
-            return self._handle_api_error(f"Error fetching intraday data for {symbol}: {e}")
+            return self._handle_api_error(
+                f"Error fetching intraday data for {symbol}: {e}"
+            )
 
     def get_company_info(self, symbol: str) -> dict[str, Any]:
         """Get company overview information.
@@ -80,19 +80,23 @@ class FinancialDataPipeline:
             return {}
 
     def _handle_api_error(self, error_message: str) -> pd.DataFrame:
-        """Handle API errors consistently.
+        """Handle API errors based on configuration.
 
         Args:
-            error_message: Error message to log/print
+            error_message: The error message to log/display
 
         Returns:
-            Empty DataFrame if configured to return empty on error
+            Empty DataFrame if return_empty_on_error is True, None otherwise
         """
         if self.config.log_errors:
             logger.error(error_message)
         if not self.config.suppress_api_errors:
             print(error_message)
-        return pd.DataFrame() if self.config.return_empty_on_error else None
+        if self.config.return_empty_on_error:
+            return pd.DataFrame()
+        else:
+            # MyPy requires consistent return type - raise exception instead of returning None
+            raise RuntimeError(error_message)
 
     def transform(self, data: pd.DataFrame) -> pd.DataFrame:
         """Transform raw financial data.

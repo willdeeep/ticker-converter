@@ -64,7 +64,9 @@ class AlphaVantageClient:
 
                 # Check for API errors
                 if AlphaVantageResponseKey.ERROR_MESSAGE in data:
-                    raise AlphaVantageAPIError(f"API Error: {data[AlphaVantageResponseKey.ERROR_MESSAGE]}")
+                    raise AlphaVantageAPIError(
+                        f"API Error: {data[AlphaVantageResponseKey.ERROR_MESSAGE]}"
+                    )
 
                 if AlphaVantageResponseKey.NOTE in data:
                     # Rate limit hit, wait and retry
@@ -114,21 +116,25 @@ class AlphaVantageClient:
         additional_columns = additional_columns or {}
 
         for datetime_str, values in time_series.items():
-            row = {datetime_key: pd.to_datetime(datetime_str)}
+            row: dict[str, Any] = {datetime_key: pd.to_datetime(datetime_str)}
 
             # Standard OHLCV columns
             if AlphaVantageValueKey.OPEN in values:
-                row.update({
-                    "Open": float(values[AlphaVantageValueKey.OPEN]),
-                    "High": float(values[AlphaVantageValueKey.HIGH]),
-                    "Low": float(values[AlphaVantageValueKey.LOW]),
-                    "Close": float(values[AlphaVantageValueKey.CLOSE]),
-                })
+                row.update(
+                    {
+                        "Open": float(values[AlphaVantageValueKey.OPEN]),
+                        "High": float(values[AlphaVantageValueKey.HIGH]),
+                        "Low": float(values[AlphaVantageValueKey.LOW]),
+                        "Close": float(values[AlphaVantageValueKey.CLOSE]),
+                    }
+                )
 
             # Volume handling (different keys for different endpoints)
             if AlphaVantageValueKey.VOLUME in values:
                 volume_value = values[AlphaVantageValueKey.VOLUME]
-                row["Volume"] = int(volume_value) if volume_value.isdigit() else float(volume_value)
+                row["Volume"] = (
+                    int(volume_value) if volume_value.isdigit() else float(volume_value)
+                )
 
             # Add any additional columns
             row.update(additional_columns)
@@ -163,10 +169,10 @@ class AlphaVantageClient:
             # Handle common API response variations
             available_keys = list(data.keys())
             if "Information" in available_keys:
-                raise AlphaVantageAPIError(f"API Information message: {data.get('Information', 'Rate limit or service issue')}")
-            raise AlphaVantageAPIError(
-                f"Unexpected response format: {available_keys}"
-            )
+                raise AlphaVantageAPIError(
+                    f"API Information message: {data.get('Information', 'Rate limit or service issue')}"
+                )
+            raise AlphaVantageAPIError(f"Unexpected response format: {available_keys}")
 
         time_series = data[time_series_key]
 
@@ -174,7 +180,7 @@ class AlphaVantageClient:
         df = self._convert_time_series_to_dataframe(
             time_series,
             datetime_key="Date",
-            additional_columns={"Symbol": symbol.upper()}
+            additional_columns={"Symbol": symbol.upper()},
         )
 
         return df
@@ -212,7 +218,7 @@ class AlphaVantageClient:
         df = self._convert_time_series_to_dataframe(
             time_series,
             datetime_key="DateTime",
-            additional_columns={"Symbol": symbol.upper()}
+            additional_columns={"Symbol": symbol.upper()},
         )
 
         return df
@@ -285,7 +291,9 @@ class AlphaVantageClient:
             # Handle common API response variations
             available_keys = list(data.keys())
             if "Information" in available_keys:
-                raise AlphaVantageAPIError(f"API Information message: {data.get('Information', 'Rate limit or service issue')}")
+                raise AlphaVantageAPIError(
+                    f"API Information message: {data.get('Information', 'Rate limit or service issue')}"
+                )
             raise AlphaVantageAPIError(
                 f"Unexpected forex data format: {available_keys}"
             )
@@ -340,7 +348,9 @@ class AlphaVantageClient:
             # Handle common API response variations
             available_keys = list(data.keys())
             if "Information" in available_keys:
-                raise AlphaVantageAPIError(f"API Information message: {data.get('Information', 'Rate limit or service issue')}")
+                raise AlphaVantageAPIError(
+                    f"API Information message: {data.get('Information', 'Rate limit or service issue')}"
+                )
             raise AlphaVantageAPIError(
                 f"Unexpected crypto data format: {available_keys}"
             )
