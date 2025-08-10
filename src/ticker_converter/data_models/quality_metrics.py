@@ -3,12 +3,13 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 
 class DataQualityMetrics(BaseModel):
     """Metrics for assessing data quality."""
+
+    model_config = {'frozen': False}  # Allow field mutation
 
     total_records: int = Field(..., ge=0, description="Total number of records")
     complete_records: int = Field(

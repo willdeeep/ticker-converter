@@ -4,12 +4,10 @@ import logging
 from datetime import datetime
 
 import pandas as pd
-from pydantic import BaseModel
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from ..data_models.market_data import ValidationResult
-from ..data_models.quality_metrics import DataQualityMetrics
-from ..data_models.quality_metrics import DataQualityReport
+from ..data_models.quality_metrics import DataQualityMetrics, DataQualityReport
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +69,7 @@ class QualityValidator:
         Returns:
             ValidationResult with validation outcome
         """
-        logger.info(f"Starting data quality validation for {symbol}")
+        logger.info("Starting data quality validation for %s", symbol)
 
         result = ValidationResult(is_valid=True)
 
@@ -89,15 +87,15 @@ class QualityValidator:
             if self.config.check_timeliness:
                 self._check_timeliness(df, result)
 
-            logger.info(f"Validation completed for {symbol}. Valid: {result.is_valid}")
+            logger.info("Validation completed for %s. Valid: %s", symbol, result.is_valid)
             if result.errors:
-                logger.warning(f"Validation errors: {result.errors}")
+                logger.warning("Validation errors: %s", result.errors)
             if result.warnings:
-                logger.info(f"Validation warnings: {result.warnings}")
+                logger.info("Validation warnings: %s", result.warnings)
 
         except Exception as e:
             result.add_error(f"Validation failed with exception: {str(e)}")
-            logger.error(f"Validation failed for {symbol}: {e}")
+            logger.error("Validation failed for %s: %s", symbol, e)
 
         return result
 
@@ -113,7 +111,7 @@ class QualityValidator:
         Returns:
             DataQualityReport with detailed quality assessment
         """
-        logger.info(f"Generating quality report for {symbol}")
+        logger.info("Generating quality report for %s", symbol)
 
         # Calculate metrics
         metrics = self._calculate_quality_metrics(df)
@@ -134,7 +132,7 @@ class QualityValidator:
         self._generate_recommendations(metrics, report)
 
         logger.info(
-            f"Quality report generated for {symbol}. Overall score: {metrics.overall_quality_score:.3f}"
+            "Quality report generated for %s. Overall score: %.3f", symbol, metrics.overall_quality_score
         )
 
         return report

@@ -6,8 +6,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from .constants import MarketDataColumns
-from .constants import ValidationConstants
+from .constants import MarketDataColumns, ValidationConstants
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,7 @@ class PriceValidator:
             removal_counts["high_low_violations"] = invalid_high_low.sum()
             df = df[~invalid_high_low]
             logger.warning(
-                f"Removed {removal_counts['high_low_violations']} rows with High < Low"
+                "Removed %s rows with High < Low", removal_counts['high_low_violations']
             )
 
         # Remove rows where Close is outside High/Low range
@@ -60,7 +59,7 @@ class PriceValidator:
             removal_counts["close_range_violations"] = invalid_close.sum()
             df = df[~invalid_close]
             logger.warning(
-                f"Removed {removal_counts['close_range_violations']} rows with Close outside High/Low range"
+                "Removed %s rows with Close outside High/Low range", removal_counts['close_range_violations']
             )
 
         # Remove rows with non-positive prices
@@ -72,7 +71,7 @@ class PriceValidator:
                     removal_counts["negative_prices"] += count
                     df = df[~negative_prices]
                     logger.warning(
-                        f"Removed {count} rows with non-positive {col} prices"
+                        "Removed %s rows with non-positive %s prices", count, col
                     )
 
         return df, removal_counts
@@ -244,7 +243,7 @@ class OutlierDetector:
                     df[col], threshold
                 )
             else:
-                logger.warning(f"Unknown outlier method: {method}")
+                logger.warning("Unknown outlier method: %s", method)
                 continue
 
             outlier_mask |= col_outliers
