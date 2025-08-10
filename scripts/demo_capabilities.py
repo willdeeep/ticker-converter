@@ -13,26 +13,61 @@ from datetime import datetime
 
 from ticker_converter.api_client import AlphaVantageAPIError, AlphaVantageClient
 from ticker_converter.config import config
+from ticker_converter.constants import AlphaVantageResponseKey, AlphaVantageValueKey
+
+# Demo configuration constants
+DEMO_SEPARATOR = "=" * 60
+DEMO_SYMBOLS = {
+    "stock": "AAPL",
+    "crypto_symbols": ["BTC", "ETH"],
+    "cross_analysis_pairs": [("USD", "EUR"), ("USD", "GBP"), ("USD", "JPY")]
+}
+
+
+def print_section_header(title: str) -> None:
+    """Print a formatted section header."""
+    print("\n" + DEMO_SEPARATOR)
+    print(title)
+    print(DEMO_SEPARATOR)
+
+
+def safe_get_exchange_rate(client: AlphaVantageClient, from_curr: str, to_curr: str) -> float | None:
+    """Safely get exchange rate between two currencies.
+
+    Args:
+        client: Alpha Vantage API client
+        from_curr: Source currency code
+        to_curr: Target currency code
+
+    Returns:
+        Exchange rate as float, or None if error occurred
+    """
+    try:
+        data = client.get_currency_exchange_rate(from_curr, to_curr)
+        rate_info = data[AlphaVantageResponseKey.REALTIME_CURRENCY_EXCHANGE_RATE]
+        return float(rate_info[AlphaVantageValueKey.EXCHANGE_RATE])
+    except (AlphaVantageAPIError, KeyError, ValueError) as e:
+        print(f"[ERROR] {from_curr}/{to_curr}: {e}")
+        return None
 
 
 def demo_stock_data(client: AlphaVantageClient) -> None:
     """Demonstrate stock data functionality."""
-    print("=" * 60)
-    print("STOCK DATA DEMONSTRATION")
-    print("=" * 60)
+    print_section_header("STOCK DATA DEMONSTRATION")
 
     try:
         # Get Apple stock data
-        print("Getting AAPL daily stock data...")
-        stock_data = client.get_daily_data("AAPL")
+        symbol = DEMO_SYMBOLS["stock"]
+        print(f"Getting {symbol} daily stock data...")
+        stock_data = client.get_daily_data(symbol)
         latest_date = stock_data.iloc[-1]["Date"].strftime("%Y-%m-%d")
         latest_close = stock_data.iloc[-1]["Close"]
-        print(f"[SUCCESS] AAPL latest close ({latest_date}): ${latest_close:.2f}")
+        print(f"[SUCCESS] {symbol} latest close ({latest_date}): ${latest_close:.2f}")
         print(f"   Data points: {len(stock_data)} days")
 
         # Get company overview
-        print("\nGetting AAPL company overview...")
-        overview = client.get_company_overview("AAPL")
+        print(f"\nGetting {symbol} company overview...")
+        overview = client.get_company_overview(symbol)
         company_name = overview.get("Name", "N/A")
         market_cap = overview.get("MarketCapitalization", "N/A")
         print(f"[SUCCESS] Company: {company_name}")
@@ -44,17 +79,15 @@ def demo_stock_data(client: AlphaVantageClient) -> None:
 
 def demo_forex_data(client: AlphaVantageClient) -> None:
     """Demonstrate forex data functionality."""
-    print("\n" + "=" * 60)
-    print("FOREX DATA DEMONSTRATION")
-    print("=" * 60)
+    print_section_header("FOREX DATA DEMONSTRATION")
 
     try:
         # Get real-time exchange rate
         print("Getting USD/EUR exchange rate...")
         exchange_data = client.get_currency_exchange_rate("USD", "EUR")
-        rate_info = exchange_data["Realtime Currency Exchange Rate"]
-        exchange_rate = float(rate_info["5. Exchange Rate"])
-        last_refreshed = rate_info["6. Last Refreshed"]
+        rate_info = exchange_data[AlphaVantageResponseKey.REALTIME_CURRENCY_EXCHANGE_RATE]
+        exchange_rate = float(rate_info[AlphaVantageValueKey.EXCHANGE_RATE])
+        last_refreshed = rate_info[AlphaVantageValueKey.LAST_REFRESHED]
         print(f"[SUCCESS] USD/EUR rate: {exchange_rate:.6f}")
         print(f"   Last updated: {last_refreshed}")
 
@@ -72,36 +105,39 @@ def demo_forex_data(client: AlphaVantageClient) -> None:
 
 def demo_crypto_data(client: AlphaVantageClient) -> None:
     """Demonstrate cryptocurrency data functionality."""
-    print("\n" + "=" * 60)
-    print("CRYPTOCURRENCY DATA DEMONSTRATION")
-    print("=" * 60)
+    print_section_header("CRYPTOCURRENCY DATA DEMONSTRATION")
 
     try:
         # Get Bitcoin exchange rate
-        print("Getting BTC/USD exchange rate...")
-        btc_rate = client.get_currency_exchange_rate("BTC", "USD")
-        rate_info = btc_rate["Realtime Currency Exchange Rate"]
-        btc_price = float(rate_info["5. Exchange Rate"])
-        last_refreshed = rate_info["6. Last Refreshed"]
-        print(f"[SUCCESS] BTC/USD rate: ${btc_price:,.2f}")
-        print(f"   Last updated: {last_refreshed}")
+        crypto_symbols = DEMO_SYMBOLS["crypto_symbols"]
 
-        # Get historical crypto data
+        for symbol in crypto_symbols:
+            print(f"Getting {symbol}/USD exchange rate...")
+            rate = safe_get_exchange_rate(client, symbol, "USD")
+            if rate is not None:
+                print(f"[SUCCESS] {symbol}/USD rate: ${rate:,.2f}")
+
+        # Get historical crypto data for Bitcoin
         print("\nGetting BTC historical data...")
         crypto_history = client.get_digital_currency_daily("BTC", "USD")
         latest_date = crypto_history.iloc[-1]["Date"].strftime("%Y-%m-%d")
-        latest_close = crypto_history.iloc[-1]["Close_USD"]
-        latest_volume = crypto_history.iloc[-1]["Volume"]
-        print(f"[SUCCESS] BTC latest close ({latest_date}): ${latest_close:,.2f}")
-        print(f"   Volume: {latest_volume:,.2f} BTC")
-        print(f"   Historical data points: {len(crypto_history)} days")
 
-        # Try Ethereum as well
-        print("\nGetting ETH/USD exchange rate...")
-        eth_rate = client.get_currency_exchange_rate("ETH", "USD")
-        eth_info = eth_rate["Realtime Currency Exchange Rate"]
-        eth_price = float(eth_info["5. Exchange Rate"])
-        print(f"[SUCCESS] ETH/USD rate: ${eth_price:,.2f}")
+        # Handle different possible column names for close price
+        close_columns = ["Close_USD", "Close", "4a. close (USD)"]
+        latest_close = None
+        for col in close_columns:
+            if col in crypto_history.columns:
+                latest_close = crypto_history.iloc[-1][col]
+                break
+
+        if latest_close is not None:
+            print(f"[SUCCESS] BTC latest close ({latest_date}): ${latest_close:,.2f}")
+
+        if "Volume" in crypto_history.columns:
+            latest_volume = crypto_history.iloc[-1]["Volume"]
+            print(f"   Volume: {latest_volume:,.2f} BTC")
+
+        print(f"   Historical data points: {len(crypto_history)} days")
 
     except AlphaVantageAPIError as e:
         print(f"[ERROR] Crypto data error: {e}")
@@ -109,41 +145,28 @@ def demo_crypto_data(client: AlphaVantageClient) -> None:
 
 def demo_comprehensive_analysis(client: AlphaVantageClient) -> None:
     """Demonstrate comprehensive multi-asset analysis."""
-    print("\n" + "=" * 60)
-    print("COMPREHENSIVE MARKET ANALYSIS")
-    print("=" * 60)
+    print_section_header("COMPREHENSIVE MARKET ANALYSIS")
 
     try:
         print("Cross-asset comparison using single API...")
 
         # Get multiple exchange rates for comparison
         rates = {}
-        symbols = [("USD", "EUR"), ("USD", "GBP"), ("USD", "JPY")]
-
-        for from_curr, to_curr in symbols:
-            try:
-                data = client.get_currency_exchange_rate(from_curr, to_curr)
-                rate = float(
-                    data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
-                )
+        for from_curr, to_curr in DEMO_SYMBOLS["cross_analysis_pairs"]:
+            rate = safe_get_exchange_rate(client, from_curr, to_curr)
+            if rate is not None:
                 rates[f"{from_curr}/{to_curr}"] = rate
                 print(f"[SUCCESS] {from_curr}/{to_curr}: {rate:.6f}")
-            except AlphaVantageAPIError as e:
-                print(f"[ERROR] {from_curr}/{to_curr}: {e}")
 
         # Show crypto vs fiat comparison
         try:
-            btc_usd = client.get_currency_exchange_rate("BTC", "USD")
-            btc_price = float(
-                btc_usd["Realtime Currency Exchange Rate"]["5. Exchange Rate"]
-            )
-
-            if "USD/EUR" in rates:
+            btc_price = safe_get_exchange_rate(client, "BTC", "USD")
+            if btc_price and "USD/EUR" in rates:
                 btc_eur_equivalent = btc_price * rates["USD/EUR"]
                 print("\nCross-currency calculation:")
                 print(f"   BTC: ${btc_price:,.2f} USD = €{btc_eur_equivalent:,.2f} EUR")
 
-        except AlphaVantageAPIError as e:
+        except (KeyError, TypeError) as e:
             print(f"[ERROR] Cross-currency calculation error: {e}")
 
     except AlphaVantageAPIError as e:
@@ -173,9 +196,7 @@ def main() -> None:
     demo_crypto_data(client)
     demo_comprehensive_analysis(client)
 
-    print("\n" + "=" * 60)
-    print("DEMONSTRATION COMPLETE!")
-    print("=" * 60)
+    print_section_header("DEMONSTRATION COMPLETE!")
     print("[SUCCESS] Stocks: Daily prices, company overviews")
     print("[SUCCESS] Forex: Real-time rates, historical data")
     print("[SUCCESS] Crypto: Real-time prices, historical data")
