@@ -11,7 +11,7 @@ def cleanup_old_files():
     base_path = Path("raw_data_output")
 
     if not base_path.exists():
-        print("❌ No stored data found in 'raw_data_output' directory")
+        print("No stored data found in 'raw_data_output' directory")
         return
 
     print("🧹 Cleaning Up Old Data Files")
@@ -58,24 +58,24 @@ def cleanup_old_files():
             old_files = [f[1] for f in files[1:]]
 
             print(f"\n📁 {key}:")
-            print(f"   ✅ Keeping: {latest_file.name}")
+            print(f"   Keeping: {latest_file.name}")
 
             for old_file in old_files:
                 file_size = old_file.stat().st_size
-                print(f"   🗑️  Removing: {old_file.name} ({file_size/1024:.1f} KB)")
+                print(f"   Removing: {old_file.name} ({file_size/1024:.1f} KB)")
                 old_file.unlink()
                 files_removed += 1
                 space_saved += file_size
 
     if files_removed == 0:
-        print("✅ No old files found - directory is already clean!")
+        print("No old files found - directory is already clean!")
     else:
-        print("\n✅ Cleanup complete!")
+        print("\nCleanup complete!")
         print(f"   Files removed: {files_removed}")
         print(f"   Space saved: {space_saved/1024:.1f} KB")
 
     # Show current directory status
-    print("\n📊 Current directory status:")
+    print("\nCurrent directory status:")
     remaining_files = list(base_path.rglob("*"))
     remaining_files = [f for f in remaining_files if f.is_file()]
 
