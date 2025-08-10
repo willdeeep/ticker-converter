@@ -28,7 +28,7 @@ def examine_stored_data():
     # Examine each file
     for file_path in sorted(json_files + parquet_files):
         print(f"\n📄 Examining: {file_path.relative_to(base_path)}")
-       
+
         try:
             # Load based on file extension
             if file_path.suffix == '.json':

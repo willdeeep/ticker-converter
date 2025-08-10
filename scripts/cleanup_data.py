@@ -74,7 +74,7 @@ def cleanup_old_files():
         print(f"\n✅ Cleanup complete!")
         print(f"   Files removed: {files_removed}")
         print(f"   Space saved: {space_saved/1024:.1f} KB")
-       
+
     # Show current directory status
     print(f"\n📊 Current directory status:")
     remaining_files = list(base_path.rglob("*"))
