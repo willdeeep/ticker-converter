@@ -1,7 +1,6 @@
 """Tests for storage factory."""
 
 import pytest
-from pathlib import Path
 
 from ticker_converter.storage.factory import StorageFactory
 from ticker_converter.storage.json_storage import JSONStorage
@@ -31,7 +30,7 @@ class TestStorageFactory:
             "json",
             base_path=str(tmp_path),
             include_metadata=False,
-            timestamp_format="%Y-%m-%d"
+            timestamp_format="%Y-%m-%d",
         )
 
         assert isinstance(storage, JSONStorage)

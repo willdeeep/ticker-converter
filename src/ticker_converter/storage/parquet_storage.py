@@ -8,7 +8,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from .base import BaseStorage, StorageConfig, StorageMetadata
+from .base import BaseStorage, StorageMetadata
 
 
 class ParquetStorage(BaseStorage):
@@ -25,7 +25,7 @@ class ParquetStorage(BaseStorage):
         symbol: str,
         data_type: str,
         timestamp: Optional[datetime] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> StorageMetadata:
         """Save DataFrame to Parquet file.
 
@@ -56,18 +56,15 @@ class ParquetStorage(BaseStorage):
         df_to_save = self._prepare_parquet_data(data, symbol, data_type)
 
         # Set default Parquet options
-        compression = kwargs.get('compression', 'snappy')
-        index = kwargs.get('index', False)
+        compression = kwargs.get("compression", "snappy")
+        index = kwargs.get("index", False)
 
         # Save to Parquet file
         try:
             df_to_save.to_parquet(
-                file_path,
-                compression=compression,
-                index=index,
-                engine='pyarrow'
+                file_path, compression=compression, index=index, engine="pyarrow"
             )
-        except (OSError, IOError, pa.ArrowException) as e:
+        except (OSError, pa.ArrowException) as e:
             raise OSError(f"Failed to save Parquet file {file_path}: {e}") from e
 
         # Create and return metadata
@@ -92,23 +89,20 @@ class ParquetStorage(BaseStorage):
             raise FileNotFoundError(f"Parquet file not found: {file_path}")
 
         try:
-            df = pd.read_parquet(file_path, engine='pyarrow')
-        except (OSError, IOError, pa.ArrowException) as e:
+            df = pd.read_parquet(file_path, engine="pyarrow")
+        except (OSError, pa.ArrowException) as e:
             raise OSError(f"Failed to read Parquet file {file_path}: {e}") from e
         except Exception as e:
             raise ValueError(f"Invalid Parquet format in {file_path}: {e}") from e
 
         # Remove metadata columns if they exist
-        metadata_columns = ['_symbol', '_data_type', '_timestamp', '_data_source']
+        metadata_columns = ["_symbol", "_data_type", "_timestamp", "_data_source"]
         df = df.drop(columns=[col for col in metadata_columns if col in df.columns])
 
         return df
 
     def _prepare_parquet_data(
-        self,
-        data: pd.DataFrame,
-        symbol: str,
-        data_type: str
+        self, data: pd.DataFrame, symbol: str, data_type: str
     ) -> pd.DataFrame:
         """Prepare DataFrame for Parquet storage.
 
@@ -125,10 +119,10 @@ class ParquetStorage(BaseStorage):
 
         # Add metadata columns if enabled
         if self.config.include_metadata:
-            df['_symbol'] = symbol
-            df['_data_type'] = data_type
-            df['_timestamp'] = datetime.utcnow()
-            df['_data_source'] = 'alpha_vantage'
+            df["_symbol"] = symbol
+            df["_data_type"] = data_type
+            df["_timestamp"] = datetime.utcnow()
+            df["_data_source"] = "alpha_vantage"
 
         # Optimize data types for Parquet storage
         df = self._optimize_data_types(df)
@@ -149,7 +143,7 @@ class ParquetStorage(BaseStorage):
 
         for column in optimized_df.columns:
             # Skip metadata columns
-            if column.startswith('_'):
+            if column.startswith("_"):
                 continue
 
             dtype = optimized_df[column].dtype
@@ -159,27 +153,29 @@ class ParquetStorage(BaseStorage):
                 # For integer columns, try to downcast
                 if pd.api.types.is_integer_dtype(dtype):
                     optimized_df[column] = pd.to_numeric(
-                        optimized_df[column],
-                        downcast='integer'
+                        optimized_df[column], downcast="integer"
                     )
                 # For float columns, try to downcast
                 elif pd.api.types.is_float_dtype(dtype):
                     optimized_df[column] = pd.to_numeric(
-                        optimized_df[column],
-                        downcast='float'
+                        optimized_df[column], downcast="float"
                     )
 
             # Convert object columns to string if they contain text
-            elif dtype == 'object':
+            elif dtype == "object":
                 # Check if it's likely a string column
                 if optimized_df[column].notna().any():
-                    sample_value = optimized_df[column].dropna().iloc[0] if len(optimized_df[column].dropna()) > 0 else None
+                    sample_value = (
+                        optimized_df[column].dropna().iloc[0]
+                        if len(optimized_df[column].dropna()) > 0
+                        else None
+                    )
                     if isinstance(sample_value, str):
-                        optimized_df[column] = optimized_df[column].astype('string')
+                        optimized_df[column] = optimized_df[column].astype("string")
 
         return optimized_df
 
-    def get_file_info(self, file_path: Union[str, Path]) -> dict:
+    def get_file_info(self, file_path: Union[str, Path]) -> dict[str, Any]:
         """Get information about a Parquet file without loading it.
 
         Args:
@@ -202,12 +198,16 @@ class ParquetStorage(BaseStorage):
             metadata = parquet_file.metadata
 
             return {
-                'num_rows': metadata.num_rows,
-                'num_columns': len(schema),
-                'columns': [field.name for field in schema],
-                'file_size_bytes': file_path.stat().st_size,
-                'schema': str(schema),
-                'created_by': metadata.created_by if hasattr(metadata, 'created_by') else None
+                "num_rows": metadata.num_rows,
+                "num_columns": len(schema),
+                "columns": [field.name for field in schema],
+                "file_size_bytes": file_path.stat().st_size,
+                "schema": str(schema),
+                "created_by": (
+                    metadata.created_by if hasattr(metadata, "created_by") else None
+                ),
             }
         except Exception as e:
-            raise ValueError(f"Failed to read Parquet file info from {file_path}: {e}") from e
+            raise ValueError(
+                f"Failed to read Parquet file info from {file_path}: {e}"
+            ) from e

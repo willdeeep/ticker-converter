@@ -1,13 +1,14 @@
 """Integration tests for storage with real Alpha Vantage data."""
 
 import os
-import pytest
-import pandas as pd
 from datetime import datetime
 
+import pandas as pd
+import pytest
+
 from ticker_converter.api_client import AlphaVantageClient
-from ticker_converter.storage.factory import StorageFactory
 from ticker_converter.config import config
+from ticker_converter.storage.factory import StorageFactory
 
 
 @pytest.mark.integration
@@ -119,7 +120,9 @@ class TestStorageIntegration:
 
         # Test both formats
         for storage_type in ["json", "parquet"]:
-            storage = StorageFactory.create_storage(storage_type, base_path=str(tmp_path))
+            storage = StorageFactory.create_storage(
+                storage_type, base_path=str(tmp_path)
+            )
 
             # Measure save time
             start_time = datetime.now()
@@ -135,13 +138,17 @@ class TestStorageIntegration:
             assert len(loaded_data) == len(large_data)
 
             # Print performance info (for manual review)
-            print(f"{storage_type.upper()} - Save: {save_time:.3f}s, Load: {load_time:.3f}s, "
-                  f"Records: {len(large_data)}")
+            print(
+                f"{storage_type.upper()} - Save: {save_time:.3f}s, Load: {load_time:.3f}s, "
+                f"Records: {len(large_data)}"
+            )
 
     def test_cross_format_compatibility(self, tmp_path, real_stock_data):
         """Test that data can be saved in one format and the structure preserved."""
         json_storage = StorageFactory.create_storage("json", base_path=str(tmp_path))
-        parquet_storage = StorageFactory.create_storage("parquet", base_path=str(tmp_path))
+        parquet_storage = StorageFactory.create_storage(
+            "parquet", base_path=str(tmp_path)
+        )
 
         # Save in both formats
         json_metadata = json_storage.save(real_stock_data, "AAPL", "daily")
@@ -161,7 +168,7 @@ class TestStorageIntegration:
                 pd.testing.assert_series_equal(
                     json_loaded[col].astype(float).sort_index(),
                     parquet_loaded[col].astype(float).sort_index(),
-                    check_names=False
+                    check_names=False,
                 )
 
     def test_file_organization(self, tmp_path, real_stock_data):

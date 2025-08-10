@@ -13,12 +13,19 @@ class StorageConfig(BaseModel):
     """Configuration for data storage operations."""
 
     base_path: Union[str, Path] = Field(default="data", description="Base storage path")
-    create_directories: bool = Field(default=True, description="Auto-create directories")
-    timestamp_format: str = Field(default="%Y%m%d_%H%M%S", description="Timestamp format for files")
-    include_metadata: bool = Field(default=True, description="Include metadata in stored files")
+    create_directories: bool = Field(
+        default=True, description="Auto-create directories"
+    )
+    timestamp_format: str = Field(
+        default="%Y%m%d_%H%M%S", description="Timestamp format for files"
+    )
+    include_metadata: bool = Field(
+        default=True, description="Include metadata in stored files"
+    )
 
     class Config:
         """Pydantic configuration."""
+
         arbitrary_types_allowed = True
 
 
@@ -26,18 +33,23 @@ class StorageMetadata(BaseModel):
     """Metadata for stored market data."""
 
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    data_source: str = Field(..., description="Source of the data (e.g., 'alpha_vantage')")
+    data_source: str = Field(
+        ..., description="Source of the data (e.g., 'alpha_vantage')"
+    )
     symbol: str = Field(..., description="Financial symbol (e.g., 'AAPL', 'BTC')")
-    data_type: str = Field(..., description="Type of data (e.g., 'daily', 'intraday', 'forex')")
+    data_type: str = Field(
+        ..., description="Type of data (e.g., 'daily', 'intraday', 'forex')"
+    )
     record_count: int = Field(..., description="Number of records stored")
-    file_format: str = Field(..., description="Storage format (e.g., 'json', 'parquet')")
+    file_format: str = Field(
+        ..., description="Storage format (e.g., 'json', 'parquet')"
+    )
     file_path: str = Field(..., description="Full path to stored file")
 
     class Config:
         """Pydantic configuration."""
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+
+        json_encoders = {datetime: lambda v: v.isoformat()}
 
 
 class BaseStorage(ABC):
@@ -62,7 +74,7 @@ class BaseStorage(ABC):
         symbol: str,
         data_type: str,
         file_extension: str,
-        timestamp: Optional[datetime] = None
+        timestamp: Optional[datetime] = None,
     ) -> str:
         """Generate a standardized filename for stored data.
 
@@ -86,7 +98,7 @@ class BaseStorage(ABC):
         symbol: str,
         data_type: str,
         file_extension: str,
-        timestamp: Optional[datetime] = None
+        timestamp: Optional[datetime] = None,
     ) -> Path:
         """Generate full file path for data storage.
 
@@ -123,7 +135,7 @@ class BaseStorage(ABC):
         data_type: str,
         data: pd.DataFrame,
         file_path: Path,
-        data_source: str = "alpha_vantage"
+        data_source: str = "alpha_vantage",
     ) -> StorageMetadata:
         """Create metadata for stored data.
 
@@ -143,7 +155,7 @@ class BaseStorage(ABC):
             data_type=data_type,
             record_count=len(data),
             file_format=self.format_name,
-            file_path=str(file_path)
+            file_path=str(file_path),
         )
 
     @property
@@ -159,7 +171,7 @@ class BaseStorage(ABC):
         symbol: str,
         data_type: str,
         timestamp: Optional[datetime] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> StorageMetadata:
         """Save DataFrame to storage.
 

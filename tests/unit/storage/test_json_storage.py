@@ -1,10 +1,11 @@
 """Tests for JSON storage implementation."""
 
 import json
-import pytest
-import pandas as pd
 from datetime import datetime
 from pathlib import Path
+
+import pandas as pd
+import pytest
 
 from ticker_converter.storage.base import StorageConfig
 from ticker_converter.storage.json_storage import JSONStorage
@@ -26,11 +27,13 @@ class TestJSONStorage:
     @pytest.fixture
     def sample_data(self):
         """Create sample DataFrame for testing."""
-        return pd.DataFrame({
-            "Date": pd.date_range("2023-01-01", periods=3),
-            "Close": [100.0, 101.5, 99.8],
-            "Volume": [1000, 1100, 950]
-        })
+        return pd.DataFrame(
+            {
+                "Date": pd.date_range("2023-01-01", periods=3),
+                "Close": [100.0, 101.5, 99.8],
+                "Volume": [1000, 1100, 950],
+            }
+        )
 
     def test_format_name(self, json_storage):
         """Test format name property."""
@@ -71,7 +74,7 @@ class TestJSONStorage:
         metadata = json_storage.save(sample_data, "AAPL", "daily")
 
         # Load and check JSON structure
-        with open(metadata.file_path, 'r') as f:
+        with open(metadata.file_path) as f:
             json_data = json.load(f)
 
         assert "metadata" in json_data
@@ -97,7 +100,7 @@ class TestJSONStorage:
         metadata = storage.save(sample_data, "AAPL", "daily")
 
         # Load and check JSON structure
-        with open(metadata.file_path, 'r') as f:
+        with open(metadata.file_path) as f:
             json_data = json.load(f)
 
         # Should be just the data, no metadata wrapper
@@ -135,7 +138,7 @@ class TestJSONStorage:
         """Test load with invalid JSON file."""
         # Create invalid JSON file
         invalid_file = tmp_path / "invalid.json"
-        with open(invalid_file, 'w') as f:
+        with open(invalid_file, "w") as f:
             f.write("{ invalid json content")
 
         with pytest.raises(ValueError, match="Invalid JSON format"):
@@ -146,11 +149,11 @@ class TestJSONStorage:
         # Create JSON without metadata wrapper
         data = [
             {"Date": "2023-01-01", "Close": 100.0},
-            {"Date": "2023-01-02", "Close": 101.5}
+            {"Date": "2023-01-02", "Close": 101.5},
         ]
 
         json_file = tmp_path / "test.json"
-        with open(json_file, 'w') as f:
+        with open(json_file, "w") as f:
             json.dump(data, f)
 
         # Load data
@@ -163,11 +166,13 @@ class TestJSONStorage:
     def test_datetime_restoration(self, json_storage, tmp_path):
         """Test that datetime columns are properly restored."""
         # Create DataFrame with datetime
-        df = pd.DataFrame({
-            "Date": pd.date_range("2023-01-01", periods=2),
-            "timestamp": pd.date_range("2023-01-01 10:00:00", periods=2, freq="1h"),
-            "Close": [100.0, 101.5]
-        })
+        df = pd.DataFrame(
+            {
+                "Date": pd.date_range("2023-01-01", periods=2),
+                "timestamp": pd.date_range("2023-01-01 10:00:00", periods=2, freq="1h"),
+                "Close": [100.0, 101.5],
+            }
+        )
 
         # Save and load
         metadata = json_storage.save(df, "TEST", "daily")
@@ -183,7 +188,7 @@ class TestJSONStorage:
         metadata = json_storage.save(sample_data, "AAPL", "daily", orient="index")
 
         # Load and verify structure
-        with open(metadata.file_path, 'r') as f:
+        with open(metadata.file_path) as f:
             json_data = json.load(f)
 
         # With orient="index", data should be dict with numeric keys
@@ -194,7 +199,9 @@ class TestJSONStorage:
     def test_file_path_generation(self, json_storage):
         """Test that file paths are generated correctly."""
         timestamp = datetime(2023, 5, 15, 9, 30, 0)
-        file_path = json_storage._generate_file_path("MSFT", "intraday", "json", timestamp)
+        file_path = json_storage._generate_file_path(
+            "MSFT", "intraday", "json", timestamp
+        )
 
         assert file_path.suffix == ".json"
         assert "MSFT_intraday_20230515_093000.json" in str(file_path)
