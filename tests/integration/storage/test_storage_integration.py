@@ -6,7 +6,7 @@ from datetime import datetime
 import pandas as pd
 import pytest
 
-from ticker_converter.api_client import AlphaVantageClient
+from ticker_converter.api_client import AlphaVantageAPIError, AlphaVantageClient
 from ticker_converter.config import config
 from ticker_converter.storage.factory import StorageFactory
 
@@ -26,8 +26,8 @@ class TestStorageIntegration:
     def real_stock_data(self, api_client):
         """Get real stock data from Alpha Vantage."""
         try:
-            return api_client.get_daily_data("AAPL")
-        except Exception as e:
+            return api_client.get_daily_stock_data("AAPL")
+        except (AlphaVantageAPIError, ConnectionError, TimeoutError, ValueError, KeyError) as e:
             pytest.skip(f"Failed to fetch real data: {e}")
 
     @pytest.fixture(scope="class")
@@ -35,7 +35,7 @@ class TestStorageIntegration:
         """Get real forex data from Alpha Vantage."""
         try:
             return api_client.get_forex_daily("USD", "EUR")
-        except Exception as e:
+        except (AlphaVantageAPIError, ConnectionError, TimeoutError, ValueError, KeyError) as e:
             pytest.skip(f"Failed to fetch real forex data: {e}")
 
     @pytest.fixture(params=["json", "parquet"])
