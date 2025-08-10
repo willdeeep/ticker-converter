@@ -4,15 +4,14 @@ import logging
 from typing import Optional
 
 import pandas as pd
-from pydantic import BaseModel
-from pydantic import Field
+from pydantic import BaseModel, Field
 
-from ..data_models.market_data import CleanedMarketData
-from ..data_models.market_data import FeatureEngineeredData
-from ..data_models.market_data import VolatilityFlag
-from .constants import FeatureConstants
-from .constants import MarketDataColumns
-from .constants import TechnicalIndicatorConstants
+from ..data_models.market_data import (
+    CleanedMarketData,
+    FeatureEngineeredData,
+    VolatilityFlag,
+)
+from .constants import FeatureConstants, MarketDataColumns, TechnicalIndicatorConstants
 from .utils import FeatureEngineering
 
 logger = logging.getLogger(__name__)
@@ -91,7 +90,7 @@ class FeatureEngineer:
         Returns:
             FeatureEngineeredData with engineered features
         """
-        logger.info(f"Starting feature engineering for {cleaned_data.raw_data.symbol}")
+        logger.info("Starting feature engineering for %s", cleaned_data.raw_data.symbol)
 
         # Reset features list
         self.features_created = []
@@ -99,7 +98,7 @@ class FeatureEngineer:
         # Get DataFrame from cleaned data
         df = cleaned_data.raw_data.to_dataframe()
 
-        logger.info(f"Input data shape: {df.shape}")
+        logger.info("Input data shape: %s", df.shape)
 
         # Apply feature engineering operations
         df = self._calculate_returns(df)
@@ -109,8 +108,8 @@ class FeatureEngineer:
         df = self._calculate_technical_indicators(df)
         df = self._calculate_price_features(df)
 
-        logger.info(f"Feature engineered data shape: {df.shape}")
-        logger.info(f"Features created: {self.features_created}")
+        logger.info("Feature engineered data shape: %s", df.shape)
+        logger.info("Features created: %s", self.features_created)
 
         # Create feature engineered data object
         feature_data = FeatureEngineeredData(
@@ -137,7 +136,7 @@ class FeatureEngineer:
             logger.debug("Calculated return features")
 
         except Exception as e:
-            logger.warning(f"Error calculating returns: {e}")
+            logger.warning("Error calculating returns: %s", e)
 
         return df
 
@@ -157,11 +156,11 @@ class FeatureEngineer:
                 self.features_created.append(ratio_col)
 
             logger.debug(
-                f"Calculated moving averages for periods: {self.config.moving_averages}"
+                "Calculated moving averages for periods: %s", self.config.moving_averages
             )
 
         except Exception as e:
-            logger.warning(f"Error calculating moving averages: {e}")
+            logger.warning("Error calculating moving averages: %s", e)
 
         return df
 
@@ -194,7 +193,7 @@ class FeatureEngineer:
             logger.debug("Calculated volatility metrics")
 
         except Exception as e:
-            logger.warning(f"Error calculating volatility metrics: {e}")
+            logger.warning("Error calculating volatility metrics: %s", e)
 
         return df
 
@@ -232,7 +231,7 @@ class FeatureEngineer:
             logger.debug("Calculated volatility flags")
 
         except Exception as e:
-            logger.warning(f"Error calculating volatility flags: {e}")
+            logger.warning("Error calculating volatility flags: %s", e)
 
         return df
 
@@ -248,7 +247,7 @@ class FeatureEngineer:
                 df = self._calculate_bollinger_bands(df)
 
         except Exception as e:
-            logger.warning(f"Error calculating technical indicators: {e}")
+            logger.warning("Error calculating technical indicators: %s", e)
 
         return df
 
@@ -280,7 +279,7 @@ class FeatureEngineer:
             logger.debug("Calculated RSI indicator")
 
         except Exception as e:
-            logger.warning(f"Error calculating RSI: {e}")
+            logger.warning("Error calculating RSI: %s", e)
 
         return df
 
@@ -331,7 +330,7 @@ class FeatureEngineer:
             logger.debug("Calculated Bollinger Bands")
 
         except Exception as e:
-            logger.warning(f"Error calculating Bollinger Bands: {e}")
+            logger.warning("Error calculating Bollinger Bands: %s", e)
 
         return df
 
@@ -379,6 +378,6 @@ class FeatureEngineer:
             logger.debug("Calculated price features")
 
         except Exception as e:
-            logger.warning(f"Error calculating price features: {e}")
+            logger.warning("Error calculating price features: %s", e)
 
         return df

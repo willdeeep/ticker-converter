@@ -3,14 +3,11 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any
-from typing import Optional
-from typing import Union
+from typing import Any, Optional, Union
 
 import pandas as pd
 
-from .base import BaseStorage
-from .base import StorageMetadata
+from .base import BaseStorage, StorageMetadata
 
 
 class JSONStorage(BaseStorage):

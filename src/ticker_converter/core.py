@@ -1,13 +1,11 @@
 """Core functionality for the Financial Market Data Analytics Pipeline."""
 
 import logging
-from typing import Any
-from typing import Optional
+from typing import Any, Optional
 
 import pandas as pd
 
-from .api_client import AlphaVantageAPIError
-from .api_client import AlphaVantageClient
+from .api_client import AlphaVantageAPIError, AlphaVantageClient
 from .pipeline_config import PipelineConfig
 
 logger = logging.getLogger(__name__)
@@ -110,11 +108,8 @@ class FinancialDataPipeline:
         Returns:
             Transformed data with engineered features.
         """
-        from .data_models.market_data import MarketDataPoint
-        from .data_models.market_data import RawMarketData
-        from .etl_modules import DataCleaner
-        from .etl_modules import FeatureEngineer
-        from .etl_modules import QualityValidator
+        from .data_models.market_data import MarketDataPoint, RawMarketData
+        from .etl_modules import DataCleaner, FeatureEngineer, QualityValidator
 
         try:
             # Convert DataFrame to RawMarketData model
@@ -149,7 +144,7 @@ class FinancialDataPipeline:
             validation_result = validator.validate(data, symbol)
             if not validation_result.is_valid:
                 logger.warning(
-                    f"Data validation issues for {symbol}: {validation_result.errors}"
+                    "Data validation issues for %s: %s", symbol, validation_result.errors
                 )
 
             # Clean the data
@@ -163,9 +158,9 @@ class FinancialDataPipeline:
 
             # Use the engineered features from feature_data
             # For now, return the original transformed data
-            logger.info(f"Data transformation completed for {symbol}")
+            logger.info("Data transformation completed for %s", symbol)
             return df_with_features
 
         except Exception as e:
-            logger.error(f"Error during data transformation for {symbol}: {e}")
+            logger.error("Error during data transformation for %s: %s", symbol, e)
             return data

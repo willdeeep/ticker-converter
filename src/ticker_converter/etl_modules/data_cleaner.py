@@ -5,16 +5,11 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel
-from pydantic import Field
+from pydantic import BaseModel, Field
 
-from ..data_models.market_data import CleanedMarketData
-from ..data_models.market_data import RawMarketData
-from .constants import CleaningConstants
-from .constants import MarketDataColumns
-from .utils import DataFrameUtils
-from .utils import OutlierDetector
-from .utils import PriceValidator
+from ..data_models.market_data import CleanedMarketData, RawMarketData
+from .constants import CleaningConstants, MarketDataColumns
+from .utils import DataFrameUtils, OutlierDetector, PriceValidator
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +67,7 @@ class DataCleaner:
         Returns:
             CleanedMarketData with cleaned DataFrame
         """
-        logger.info(f"Starting data cleaning for {raw_data.symbol}")
+        logger.info("Starting data cleaning for %s", raw_data.symbol)
 
         # Reset counters
         self.cleaning_operations = []
@@ -83,7 +78,7 @@ class DataCleaner:
         df = raw_data.to_dataframe()
         original_count = len(df)
 
-        logger.info(f"Original data shape: {df.shape}")
+        logger.info("Original data shape: %s", df.shape)
 
         # Apply cleaning operations
         df = self._ensure_consistent_types(df)
@@ -93,9 +88,9 @@ class DataCleaner:
         df = self._fill_missing_values(df)
         df = self._remove_outliers(df)
 
-        logger.info(f"Cleaned data shape: {df.shape}")
-        logger.info(f"Records removed: {original_count - len(df)}")
-        logger.info(f"Cleaning operations applied: {self.cleaning_operations}")
+        logger.info("Cleaned data shape: %s", df.shape)
+        logger.info("Records removed: %s", original_count - len(df))
+        logger.info("Cleaning operations applied: %s", self.cleaning_operations)
 
         # Create cleaned data object
         cleaned_data = CleanedMarketData(
@@ -118,7 +113,7 @@ class DataCleaner:
             logger.debug("Data types standardized")
 
         except Exception as e:
-            logger.warning(f"Error ensuring consistent types: {e}")
+            logger.warning("Error ensuring consistent types: %s", e)
 
         return df
 
@@ -133,7 +128,7 @@ class DataCleaner:
                 self.cleaning_operations.append("sort_by_date")
                 logger.debug("Data sorted by date")
         except Exception as e:
-            logger.warning(f"Error sorting by date: {e}")
+            logger.warning("Error sorting by date: %s", e)
 
         return df
 
@@ -160,10 +155,10 @@ class DataCleaner:
                 self.cleaning_operations.append(
                     f"remove_duplicates_{duplicates_removed}"
                 )
-                logger.info(f"Removed {duplicates_removed} duplicate records")
+                logger.info("Removed %s duplicate records", duplicates_removed)
 
         except Exception as e:
-            logger.warning(f"Error removing duplicates: {e}")
+            logger.warning("Error removing duplicates: %s", e)
 
         return df
 
@@ -183,7 +178,7 @@ class DataCleaner:
                 )
 
         except Exception as e:
-            logger.warning(f"Error validating price relationships: {e}")
+            logger.warning("Error validating price relationships: %s", e)
 
         return df
 
@@ -220,11 +215,11 @@ class DataCleaner:
                     f"fill_missing_values_{self.config.missing_value_method}_{filled_count}"
                 )
                 logger.info(
-                    f"Filled {filled_count} missing values using {self.config.missing_value_method}"
+                    "Filled %s missing values using %s", filled_count, self.config.missing_value_method
                 )
 
         except Exception as e:
-            logger.warning(f"Error filling missing values: {e}")
+            logger.warning("Error filling missing values: %s", e)
 
         return df
 
@@ -247,10 +242,10 @@ class DataCleaner:
                     f"remove_outliers_{self.config.outlier_method}_{total_removed}"
                 )
                 logger.info(
-                    f"Removed {total_removed} outliers using {self.config.outlier_method}"
+                    "Removed %s outliers using %s", total_removed, self.config.outlier_method
                 )
 
         except Exception as e:
-            logger.warning(f"Error removing outliers: {e}")
+            logger.warning("Error removing outliers: %s", e)
 
         return df
