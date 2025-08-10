@@ -309,23 +309,40 @@ class AlphaVantageClient:
         # Convert to DataFrame
         df_data = []
         for date_str, values in time_series.items():
-            df_data.append(
-                {
-                    "Date": pd.to_datetime(date_str),
-                    "Open_Market": float(values[f"1a. open ({market})"]),
-                    "High_Market": float(values[f"2a. high ({market})"]),
-                    "Low_Market": float(values[f"3a. low ({market})"]),
-                    "Close_Market": float(values[f"4a. close ({market})"]),
-                    "Open_USD": float(values["1b. open (USD)"]),
-                    "High_USD": float(values["2b. high (USD)"]),
-                    "Low_USD": float(values["3b. low (USD)"]),
-                    "Close_USD": float(values["4b. close (USD)"]),
-                    "Volume": float(values["5. volume"]),
-                    "Market_Cap_USD": float(values["6. market cap (USD)"]),
-                    "Symbol": symbol,
-                    "Market": market,
-                }
-            )
+            # Handle both old and new API response formats
+            try:
+                # Try new format first (current Alpha Vantage format)
+                df_data.append(
+                    {
+                        "Date": pd.to_datetime(date_str),
+                        "Open": float(values["1. open"]),
+                        "High": float(values["2. high"]),
+                        "Low": float(values["3. low"]),
+                        "Close": float(values["4. close"]),
+                        "Volume": float(values["5. volume"]),
+                        "Symbol": symbol,
+                        "Market": market,
+                    }
+                )
+            except KeyError:
+                # Fall back to old format if new format fails
+                df_data.append(
+                    {
+                        "Date": pd.to_datetime(date_str),
+                        "Open": float(values[f"1a. open ({market})"]),
+                        "High": float(values[f"2a. high ({market})"]),
+                        "Low": float(values[f"3a. low ({market})"]),
+                        "Close": float(values[f"4a. close ({market})"]),
+                        "Open_USD": float(values["1b. open (USD)"]),
+                        "High_USD": float(values["2b. high (USD)"]),
+                        "Low_USD": float(values["3b. low (USD)"]),
+                        "Close_USD": float(values["4b. close (USD)"]),
+                        "Volume": float(values["5. volume"]),
+                        "Market_Cap_USD": float(values["6. market cap (USD)"]),
+                        "Symbol": symbol,
+                        "Market": market,
+                    }
+                )
 
         df = pd.DataFrame(df_data)
         df = df.sort_values("Date")
