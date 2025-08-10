@@ -1,7 +1,7 @@
 """Common utilities for ETL operations."""
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -48,7 +48,7 @@ class PriceValidator:
             removal_counts["high_low_violations"] = invalid_high_low.sum()
             df = df[~invalid_high_low]
             logger.warning(
-                "Removed %s rows with High < Low", removal_counts['high_low_violations']
+                "Removed %s rows with High < Low", removal_counts["high_low_violations"]
             )
 
         # Remove rows where Close is outside High/Low range
@@ -59,7 +59,8 @@ class PriceValidator:
             removal_counts["close_range_violations"] = invalid_close.sum()
             df = df[~invalid_close]
             logger.warning(
-                "Removed %s rows with Close outside High/Low range", removal_counts['close_range_violations']
+                "Removed %s rows with Close outside High/Low range",
+                removal_counts["close_range_violations"],
             )
 
         # Remove rows with non-positive prices
@@ -78,7 +79,7 @@ class PriceValidator:
 
     @staticmethod
     def check_price_validity(
-        df: pd.DataFrame, config: Optional[dict] = None
+        df: pd.DataFrame, config: Optional[dict[str, Any]] = None
     ) -> dict[str, int]:
         """Check price validity and return violation counts.
 
@@ -157,7 +158,7 @@ class DataFrameUtils:
         return df
 
     @staticmethod
-    def get_missing_value_stats(df: pd.DataFrame) -> dict[str, int]:
+    def get_missing_value_stats(df: pd.DataFrame) -> dict[str, Any]:
         """Get comprehensive missing value statistics.
 
         Args:
@@ -170,7 +171,9 @@ class DataFrameUtils:
             "total_values": df.size,
             "missing_values": df.isnull().sum().sum(),
             "complete_records": len(df.dropna()),
-            "missing_by_column": df.isnull().sum().to_dict(),
+            "missing_by_column": {
+                str(k): int(v) for k, v in df.isnull().sum().to_dict().items()
+            },
         }
 
 
@@ -188,6 +191,7 @@ class OutlierDetector:
         Returns:
             Boolean Series indicating outliers
         """
+        # pylint: disable=invalid-name  # Q1, Q3, IQR are standard statistical terms
         Q1 = series.quantile(0.25)
         Q3 = series.quantile(0.75)
         IQR = Q3 - Q1

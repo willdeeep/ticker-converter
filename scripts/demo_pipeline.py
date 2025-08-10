@@ -10,15 +10,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 import logging
 from datetime import datetime, timedelta
 
-import pandas as pd
-
 from ticker_converter.data_models.market_data import MarketDataPoint, RawMarketData
 from ticker_converter.etl_modules import DataCleaner, FeatureEngineer, QualityValidator
 from ticker_converter.etl_modules.data_cleaner import CleaningConfig
 from ticker_converter.etl_modules.feature_engineer import FeatureConfig
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -149,8 +147,12 @@ def demonstrate_pipeline():
     # Categorize features
     return_features = [f for f in feature_data.features_created if "Return" in f]
     ma_features = [f for f in feature_data.features_created if "MA_" in f]
-    volatility_features = [f for f in feature_data.features_created if "Volatility" in f or "ATR" in f]
-    technical_features = [f for f in feature_data.features_created if "RSI" in f or "BB_" in f]
+    volatility_features = [
+        f for f in feature_data.features_created if "Volatility" in f or "ATR" in f
+    ]
+    technical_features = [
+        f for f in feature_data.features_created if "RSI" in f or "BB_" in f
+    ]
 
     print(f"  - Returns: {len(return_features)} features")
     print(f"  - Moving Averages: {len(ma_features)} features")
@@ -161,10 +163,12 @@ def demonstrate_pipeline():
     print("\n5. Final Quality Assessment")
     print("-" * 40)
 
-    final_validation = validator.validate(df, "AAPL")
+    validator.validate(df, "AAPL")
     final_quality_report = validator.generate_quality_report(df, "AAPL")
 
-    print(f"Final quality score: {final_quality_report.metrics.overall_quality_score:.3f}")
+    print(
+        f"Final quality score: {final_quality_report.metrics.overall_quality_score:.3f}"
+    )
     print(f"Completeness: {final_quality_report.metrics.completeness_score:.3f}")
     print(f"Consistency: {final_quality_report.metrics.consistency_score:.3f}")
     print(f"Validity: {final_quality_report.metrics.validity_score:.3f}")

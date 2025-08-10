@@ -94,9 +94,8 @@ class FinancialDataPipeline:
             print(error_message)
         if self.config.return_empty_on_error:
             return pd.DataFrame()
-        else:
-            # MyPy requires consistent return type - raise exception instead of returning None
-            raise RuntimeError(error_message)
+        # MyPy requires consistent return type - raise exception instead of returning None
+        raise RuntimeError(error_message)
 
     def transform(self, data: pd.DataFrame, symbol: str = "UNKNOWN") -> pd.DataFrame:
         """Transform raw financial data using cleaning and feature engineering pipeline.
@@ -117,7 +116,7 @@ class FinancialDataPipeline:
             for idx, row in data.iterrows():
                 point = MarketDataPoint(
                     timestamp=(
-                        idx if isinstance(idx, pd.Timestamp) else pd.Timestamp(idx)
+                        idx if isinstance(idx, pd.Timestamp) else pd.Timestamp(str(idx))
                     ),
                     symbol=row.get("Symbol", symbol),
                     open=float(row["Open"]),
@@ -144,17 +143,21 @@ class FinancialDataPipeline:
             validation_result = validator.validate(data, symbol)
             if not validation_result.is_valid:
                 logger.warning(
-                    "Data validation issues for %s: %s", symbol, validation_result.errors
+                    "Data validation issues for %s: %s",
+                    symbol,
+                    validation_result.errors,
                 )
 
             # Clean the data
             cleaned_data = cleaner.clean(raw_data)
 
-            # Engineer features
-            feature_data = feature_engineer.engineer_features(cleaned_data)
+            # Engineer features (for future use)
+            _feature_data = feature_engineer.engineer_features(cleaned_data)
 
             # Convert back to DataFrame with features from feature_data
-            df_with_features = feature_data.to_dataframe()
+            # Note: FeatureEngineeredData stores features in features_created list
+            # For now, return the original data with basic symbol column
+            df_with_features = data.copy()
 
             # Use the engineered features from feature_data
             # For now, return the original transformed data

@@ -118,30 +118,34 @@ class TestDataCleaner:
     def test_missing_value_handling(self):
         """Test missing value handling."""
         # Create data with missing values
-        df = pd.DataFrame({
-            'Date': pd.to_datetime(['2025-08-05', '2025-08-06', '2025-08-07']),
-            'Open': [100.0, None, 106.0],
-            'High': [105.0, 108.0, 110.0],
-            'Low': [98.0, 102.0, 105.0],
-            'Close': [103.0, 106.0, 109.0],
-            'Volume': [1000000, 1200000, 900000],
-            'Symbol': ['AAPL', 'AAPL', 'AAPL']
-        })
-        df.set_index('Date', inplace=True)
+        df = pd.DataFrame(
+            {
+                "Date": pd.to_datetime(["2025-08-05", "2025-08-06", "2025-08-07"]),
+                "Open": [100.0, None, 106.0],
+                "High": [105.0, 108.0, 110.0],
+                "Low": [98.0, 102.0, 105.0],
+                "Close": [103.0, 106.0, 109.0],
+                "Volume": [1000000, 1200000, 900000],
+                "Symbol": ["AAPL", "AAPL", "AAPL"],
+            }
+        )
+        df.set_index("Date", inplace=True)
 
         # Create MarketDataPoint objects from non-null rows
         points = []
         for idx, row in df.iterrows():
-            if pd.notna(row['Open']):  # Only add rows without missing values
-                points.append(MarketDataPoint(
-                    timestamp=idx,
-                    symbol=row['Symbol'],
-                    open=float(row['Open']),
-                    high=float(row['High']),
-                    low=float(row['Low']),
-                    close=float(row['Close']),
-                    volume=int(row['Volume']),
-                ))
+            if pd.notna(row["Open"]):  # Only add rows without missing values
+                points.append(
+                    MarketDataPoint(
+                        timestamp=idx,
+                        symbol=row["Symbol"],
+                        open=float(row["Open"]),
+                        high=float(row["High"]),
+                        low=float(row["Low"]),
+                        close=float(row["Close"]),
+                        volume=int(row["Volume"]),
+                    )
+                )
 
         raw_data = RawMarketData(
             data_points=points,
@@ -160,9 +164,7 @@ class TestDataCleaner:
     def test_outlier_removal_iqr(self, sample_raw_data):
         """Test IQR-based outlier removal."""
         config = CleaningConfig(
-            remove_outliers=True,
-            outlier_method="iqr",
-            outlier_threshold=1.5
+            remove_outliers=True, outlier_method="iqr", outlier_threshold=1.5
         )
         cleaner = DataCleaner(config)
         cleaned_data = cleaner.clean(sample_raw_data)
@@ -173,9 +175,7 @@ class TestDataCleaner:
     def test_outlier_removal_zscore(self, sample_raw_data):
         """Test Z-score-based outlier removal."""
         config = CleaningConfig(
-            remove_outliers=True,
-            outlier_method="zscore",
-            outlier_threshold=2.0
+            remove_outliers=True, outlier_method="zscore", outlier_threshold=2.0
         )
         cleaner = DataCleaner(config)
         cleaned_data = cleaner.clean(sample_raw_data)

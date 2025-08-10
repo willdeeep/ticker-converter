@@ -74,10 +74,9 @@ class AlphaVantageClient:
                         wait_time = self.rate_limit_delay * (2**attempt)
                         time.sleep(wait_time)
                         continue
-                    else:
-                        raise AlphaVantageAPIError(
-                            f"Rate limit exceeded: {data[AlphaVantageResponseKey.NOTE]}"
-                        )
+                    raise AlphaVantageAPIError(
+                        f"Rate limit exceeded: {data[AlphaVantageResponseKey.NOTE]}"
+                    )
 
                 # Apply rate limiting and return data
                 time.sleep(self.rate_limit_delay)
@@ -88,10 +87,9 @@ class AlphaVantageClient:
                     wait_time = self.rate_limit_delay * (2**attempt)
                     time.sleep(wait_time)
                     continue
-                else:
-                    raise AlphaVantageAPIError(
-                        f"Request failed after {self.max_retries} attempts: {e}"
-                    ) from e
+                raise AlphaVantageAPIError(
+                    f"Request failed after {self.max_retries} attempts: {e}"
+                ) from e
 
         # This should never be reached, but needed for mypy
         raise AlphaVantageAPIError("Unexpected error: max retries exceeded")

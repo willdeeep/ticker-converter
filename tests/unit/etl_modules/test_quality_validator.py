@@ -1,7 +1,5 @@
 """Tests for quality validation module."""
 
-from datetime import datetime, timedelta
-
 import pandas as pd
 import pytest
 
@@ -21,15 +19,17 @@ class TestQualityValidator:
         data = []
 
         for i, date in enumerate(dates):
-            data.append({
-                "Date": date,
-                "Symbol": "AAPL",
-                "Open": 100.0 + i,
-                "High": 105.0 + i,
-                "Low": 98.0 + i,
-                "Close": 103.0 + i,
-                "Volume": 1000000 + i * 10000,
-            })
+            data.append(
+                {
+                    "Date": date,
+                    "Symbol": "AAPL",
+                    "Open": 100.0 + i,
+                    "High": 105.0 + i,
+                    "Low": 98.0 + i,
+                    "Close": 103.0 + i,
+                    "Volume": 1000000 + i * 10000,
+                }
+            )
 
         df = pd.DataFrame(data)
         df.set_index("Date", inplace=True)
@@ -42,15 +42,19 @@ class TestQualityValidator:
         data = []
 
         for i, date in enumerate(dates):
-            data.append({
-                "Date": date,
-                "Symbol": "AAPL",
-                "Open": 100.0 + i if i != 2 else None,  # Missing value
-                "High": 95.0 + i if i != 1 else 105.0 + i,  # High < Low for i=1
-                "Low": 98.0 + i,
-                "Close": 90.0 if i == 3 else 103.0 + i,  # Negative price change
-                "Volume": -1000 if i == 4 else 1000000 + i * 10000,  # Negative volume
-            })
+            data.append(
+                {
+                    "Date": date,
+                    "Symbol": "AAPL",
+                    "Open": 100.0 + i if i != 2 else None,  # Missing value
+                    "High": 95.0 + i if i != 1 else 105.0 + i,  # High < Low for i=1
+                    "Low": 98.0 + i,
+                    "Close": 90.0 if i == 3 else 103.0 + i,  # Negative price change
+                    "Volume": (
+                        -1000 if i == 4 else 1000000 + i * 10000
+                    ),  # Negative volume
+                }
+            )
 
         df = pd.DataFrame(data)
         df.set_index("Date", inplace=True)
@@ -74,10 +78,7 @@ class TestQualityValidator:
 
     def test_completeness_check(self, bad_data):
         """Test completeness validation."""
-        config = ValidationConfig(
-            check_completeness=True,
-            min_completeness_score=0.95
-        )
+        config = ValidationConfig(check_completeness=True, min_completeness_score=0.95)
         validator = QualityValidator(config)
         result = validator.validate(bad_data, "AAPL")
 
@@ -97,9 +98,7 @@ class TestQualityValidator:
     def test_validity_check(self, bad_data):
         """Test validity validation."""
         config = ValidationConfig(
-            check_validity=True,
-            min_price_value=0.01,
-            max_daily_price_change=0.20
+            check_validity=True, min_price_value=0.01, max_daily_price_change=0.20
         )
         validator = QualityValidator(config)
         result = validator.validate(bad_data, "AAPL")
@@ -115,22 +114,24 @@ class TestQualityValidator:
         old_data = []
 
         for i, date in enumerate(old_dates):
-            old_data.append({
-                "Date": date,
-                "Symbol": "AAPL",
-                "Open": 100.0 + i,
-                "High": 105.0 + i,
-                "Low": 98.0 + i,
-                "Close": 103.0 + i,
-                "Volume": 1000000 + i * 10000,
-            })
+            old_data.append(
+                {
+                    "Date": date,
+                    "Symbol": "AAPL",
+                    "Open": 100.0 + i,
+                    "High": 105.0 + i,
+                    "Low": 98.0 + i,
+                    "Close": 103.0 + i,
+                    "Volume": 1000000 + i * 10000,
+                }
+            )
 
         old_df = pd.DataFrame(old_data)
         old_df.set_index("Date", inplace=True)
 
         config = ValidationConfig(
             check_timeliness=True,
-            max_data_age_days=30  # Data from 2024 should be too old
+            max_data_age_days=30,  # Data from 2024 should be too old
         )
         validator = QualityValidator(config)
         result = validator.validate(old_df, "AAPL")
@@ -160,7 +161,10 @@ class TestQualityValidator:
 
         # Bad data should have lower scores
         bad_report = validator.generate_quality_report(bad_data, "AAPL")
-        assert bad_report.metrics.overall_quality_score < good_report.metrics.overall_quality_score
+        assert (
+            bad_report.metrics.overall_quality_score
+            < good_report.metrics.overall_quality_score
+        )
 
     def test_field_completeness_analysis(self, bad_data):
         """Test field-level completeness analysis."""

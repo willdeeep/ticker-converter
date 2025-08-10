@@ -147,7 +147,7 @@ class TestFinancialDataPipeline:
         # Should have some rows
         assert len(result) > 0
         # Should have basic required columns
-        required_columns = ['Symbol', 'Open', 'High', 'Low', 'Close', 'Volume']
+        required_columns = ["Symbol", "Open", "High", "Low", "Close", "Volume"]
         for col in required_columns:
             assert col in result.columns
 

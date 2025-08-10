@@ -20,7 +20,7 @@ DEMO_SEPARATOR = "=" * 60
 DEMO_SYMBOLS = {
     "stock": "AAPL",
     "crypto_symbols": ["BTC", "ETH"],
-    "cross_analysis_pairs": [("USD", "EUR"), ("USD", "GBP"), ("USD", "JPY")]
+    "cross_analysis_pairs": [("USD", "EUR"), ("USD", "GBP"), ("USD", "JPY")],
 }
 
 
@@ -31,7 +31,9 @@ def print_section_header(title: str) -> None:
     print(DEMO_SEPARATOR)
 
 
-def safe_get_exchange_rate(client: AlphaVantageClient, from_curr: str, to_curr: str) -> float | None:
+def safe_get_exchange_rate(
+    client: AlphaVantageClient, from_curr: str, to_curr: str
+) -> float | None:
     """Safely get exchange rate between two currencies.
 
     Args:
@@ -85,7 +87,9 @@ def demo_forex_data(client: AlphaVantageClient) -> None:
         # Get real-time exchange rate
         print("Getting USD/EUR exchange rate...")
         exchange_data = client.get_currency_exchange_rate("USD", "EUR")
-        rate_info = exchange_data[AlphaVantageResponseKey.REALTIME_CURRENCY_EXCHANGE_RATE]
+        rate_info = exchange_data[
+            AlphaVantageResponseKey.REALTIME_CURRENCY_EXCHANGE_RATE
+        ]
         exchange_rate = float(rate_info[AlphaVantageValueKey.EXCHANGE_RATE])
         last_refreshed = rate_info[AlphaVantageValueKey.LAST_REFRESHED]
         print(f"[SUCCESS] USD/EUR rate: {exchange_rate:.6f}")

@@ -95,6 +95,7 @@ class DataCleaner:
         # Create cleaned data object
         cleaned_data = CleanedMarketData(
             raw_data=raw_data,
+            cleaned_dataframe=None,  # Will be set after processing
             cleaning_applied=self.cleaning_operations.copy(),
             outliers_removed=self.outliers_removed,
             missing_values_filled=self.missing_values_filled,
@@ -169,7 +170,7 @@ class DataCleaner:
 
         try:
             initial_count = len(df)
-            df, removal_counts = PriceValidator.validate_price_relationships(df)
+            df, _removal_counts = PriceValidator.validate_price_relationships(df)
 
             total_removed = initial_count - len(df)
             if total_removed > 0:
@@ -194,9 +195,9 @@ class DataCleaner:
                 return df
 
             if self.config.missing_value_method == CleaningConstants.FORWARD_FILL:
-                df = df.fillna(method="ffill")
+                df = df.ffill()
             elif self.config.missing_value_method == CleaningConstants.BACKWARD_FILL:
-                df = df.fillna(method="bfill")
+                df = df.bfill()
             elif self.config.missing_value_method == CleaningConstants.INTERPOLATE:
                 numeric_columns = df.select_dtypes(include=[np.number]).columns
                 df[numeric_columns] = df[numeric_columns].interpolate(method="linear")
@@ -215,7 +216,9 @@ class DataCleaner:
                     f"fill_missing_values_{self.config.missing_value_method}_{filled_count}"
                 )
                 logger.info(
-                    "Filled %s missing values using %s", filled_count, self.config.missing_value_method
+                    "Filled %s missing values using %s",
+                    filled_count,
+                    self.config.missing_value_method,
                 )
 
         except Exception as e:
@@ -242,7 +245,9 @@ class DataCleaner:
                     f"remove_outliers_{self.config.outlier_method}_{total_removed}"
                 )
                 logger.info(
-                    "Removed %s outliers using %s", total_removed, self.config.outlier_method
+                    "Removed %s outliers using %s",
+                    total_removed,
+                    self.config.outlier_method,
                 )
 
         except Exception as e:

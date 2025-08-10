@@ -114,6 +114,7 @@ class FeatureEngineer:
         # Create feature engineered data object
         feature_data = FeatureEngineeredData(
             cleaned_data=cleaned_data,
+            features_dataframe=None,  # Will be set after processing
             ma_periods=self.config.moving_averages.copy(),
             volatility_threshold_low=self.config.volatility_threshold_low,
             volatility_threshold_moderate=self.config.volatility_threshold_moderate,
@@ -156,7 +157,8 @@ class FeatureEngineer:
                 self.features_created.append(ratio_col)
 
             logger.debug(
-                "Calculated moving averages for periods: %s", self.config.moving_averages
+                "Calculated moving averages for periods: %s",
+                self.config.moving_averages,
             )
 
         except Exception as e:
@@ -207,7 +209,7 @@ class FeatureEngineer:
             if "Volatility" not in df.columns:
                 return df
 
-            def classify_volatility(vol):
+            def classify_volatility(vol: float) -> str:
                 if pd.isna(vol):
                     return VolatilityFlag.LOW.value
                 elif vol < self.config.volatility_threshold_low:
@@ -257,8 +259,8 @@ class FeatureEngineer:
             period = self.config.rsi_period
             delta = df[MarketDataColumns.CLOSE].diff()
 
-            gain = delta.where(delta > 0, 0)
-            loss = -delta.where(delta < 0, 0)
+            gain = delta.where(delta > 0, 0)  # type: ignore[operator]
+            loss = -delta.where(delta < 0, 0)  # type: ignore[operator]
 
             avg_gain = gain.rolling(window=period, min_periods=1).mean()
             avg_loss = loss.rolling(window=period, min_periods=1).mean()
