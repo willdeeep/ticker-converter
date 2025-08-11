@@ -1,5 +1,6 @@
 """Pytest configuration and shared fixtures."""
 
+import os
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -8,6 +9,30 @@ import pytest
 
 from src.ticker_converter.api_client import AlphaVantageClient
 from src.ticker_converter.core import FinancialDataPipeline
+
+
+# Safety check to prevent accidental real API usage
+def pytest_configure(config):
+    """Configure pytest with safety checks for API usage."""
+    # Set a mock API key if none is set or if it's a real-looking key
+    api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "")
+
+    # Check if we're running integration tests
+    integration_enabled = os.getenv("INTEGRATION_TEST", "false").lower() == "true"
+
+    if not integration_enabled:
+        # Force a mock API key for unit tests to prevent accidents
+        os.environ["ALPHA_VANTAGE_API_KEY"] = "test_mock_key_do_not_use_for_real_calls"
+        print("\n🔒 Safety: API key set to mock value for unit tests")
+    elif (
+        api_key
+        and len(api_key) > 10
+        and api_key != "test_mock_key_do_not_use_for_real_calls"
+    ):
+        print(
+            f"\n⚠️  WARNING: Integration tests enabled with real API key (length: {len(api_key)})"
+        )
+        print("This will consume your Alpha Vantage API quota!")
 
 
 @pytest.fixture

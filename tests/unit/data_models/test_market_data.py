@@ -6,10 +6,9 @@ import pytest
 from pydantic import ValidationError
 
 from src.ticker_converter.data_models.market_data import (
+    CurrencyRate,
     MarketDataPoint,
     RawMarketData,
-    ValidationResult,
-    VolatilityFlag,
 )
 
 
@@ -198,40 +197,44 @@ class TestRawMarketData:
         assert df.iloc[1]["Close"] == 106.0
 
 
-class TestValidationResult:
-    """Test ValidationResult model."""
+class TestCurrencyRate:
+    """Test CurrencyRate model."""
 
-    def test_valid_result(self):
-        """Test creating a valid validation result."""
-        result = ValidationResult(is_valid=True)
+    def test_valid_currency_rate(self):
+        """Test creating a valid currency rate."""
+        rate = CurrencyRate(
+            timestamp=datetime(2025, 8, 8),
+            from_currency="USD",
+            to_currency="GBP",
+            rate=0.8,
+            source="test_api",
+        )
 
-        assert result.is_valid is True
-        assert len(result.errors) == 0
-        assert len(result.warnings) == 0
+        assert rate.from_currency == "USD"
+        assert rate.to_currency == "GBP"
+        assert rate.rate == 0.8
+        assert rate.source == "test_api"
 
-    def test_add_error(self):
-        """Test adding errors."""
-        result = ValidationResult(is_valid=True)
-        result.add_error("Test error")
+    def test_currency_code_uppercase(self):
+        """Test currency codes are converted to uppercase."""
+        rate = CurrencyRate(
+            timestamp=datetime(2025, 8, 8),
+            from_currency="usd",
+            to_currency="gbp",
+            rate=0.8,
+            source="test_api",
+        )
 
-        assert result.is_valid is False
-        assert "Test error" in result.errors
+        assert rate.from_currency == "USD"
+        assert rate.to_currency == "GBP"
 
-    def test_add_warning(self):
-        """Test adding warnings."""
-        result = ValidationResult(is_valid=True)
-        result.add_warning("Test warning")
-
-        assert result.is_valid is True  # Warnings don't affect validity
-        assert "Test warning" in result.warnings
-
-
-class TestVolatilityFlag:
-    """Test VolatilityFlag enum."""
-
-    def test_enum_values(self):
-        """Test enum values."""
-        assert VolatilityFlag.LOW.value == "low"
-        assert VolatilityFlag.MODERATE.value == "moderate"
-        assert VolatilityFlag.HIGH.value == "high"
-        assert VolatilityFlag.EXTREME.value == "extreme"
+    def test_invalid_rate(self):
+        """Test validation of invalid exchange rate."""
+        with pytest.raises(ValidationError):
+            CurrencyRate(
+                timestamp=datetime(2025, 8, 8),
+                from_currency="USD",
+                to_currency="GBP",
+                rate=-0.8,  # Negative rate should fail
+                source="test_api",
+            )

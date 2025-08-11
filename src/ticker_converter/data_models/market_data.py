@@ -1,27 +1,15 @@
 """Market data models using Pydantic for validation."""
 
 from datetime import datetime
-from enum import Enum
-from typing import Optional
 
 import pandas as pd
 from pydantic import (
     BaseModel,
-    ConfigDict,
     Field,
     ValidationInfo,
     field_validator,
     model_validator,
 )
-
-
-class VolatilityFlag(str, Enum):
-    """Volatility classification for market data."""
-
-    LOW = "low"
-    MODERATE = "moderate"
-    HIGH = "high"
-    EXTREME = "extreme"
 
 
 class MarketDataPoint(BaseModel):
@@ -109,75 +97,27 @@ class RawMarketData(BaseModel):
         return df
 
 
-class CleanedMarketData(BaseModel):
-    """Cleaned and validated market data."""
+class CurrencyRate(BaseModel):
+    """Currency exchange rate data."""
 
-    raw_data: RawMarketData = Field(..., description="Original raw data")
-    cleaned_dataframe: Optional[bytes] = Field(None, description="Serialized DataFrame")
-    cleaning_applied: list[str] = Field(
-        default_factory=list, description="Applied cleaning operations"
+    timestamp: datetime = Field(..., description="Rate timestamp")
+    from_currency: str = Field(
+        ..., min_length=3, max_length=3, description="Source currency code"
     )
-    outliers_removed: int = Field(default=0, description="Number of outliers removed")
-    missing_values_filled: int = Field(
-        default=0, description="Number of missing values filled"
+    to_currency: str = Field(
+        ..., min_length=3, max_length=3, description="Target currency code"
     )
-    processed_at: datetime = Field(default_factory=datetime.utcnow)
+    rate: float = Field(..., gt=0, description="Exchange rate")
+    source: str = Field(..., description="Data source")
+    retrieved_at: datetime = Field(default_factory=datetime.utcnow)
+
+    @field_validator("from_currency", "to_currency")
+    @classmethod
+    def validate_currency_code(cls, v: str) -> str:
+        """Validate currency codes are uppercase."""
+        return v.upper()
 
     class Config:
         """Pydantic configuration."""
 
-        arbitrary_types_allowed = True
-
-
-class FeatureEngineeredData(BaseModel):
-    """Market data with engineered features."""
-
-    cleaned_data: CleanedMarketData = Field(..., description="Cleaned source data")
-    features_dataframe: Optional[bytes] = Field(
-        None, description="Serialized DataFrame with features"
-    )
-
-    # Moving averages configuration
-    ma_periods: list[int] = Field(default=[7, 30], description="Moving average periods")
-
-    # Volatility configuration
-    volatility_threshold_low: float = Field(
-        default=0.02, description="Low volatility threshold"
-    )
-    volatility_threshold_moderate: float = Field(
-        default=0.05, description="Moderate volatility threshold"
-    )
-    volatility_threshold_high: float = Field(
-        default=0.10, description="High volatility threshold"
-    )
-
-    # Feature metadata
-    features_created: list[str] = Field(
-        default_factory=list, description="List of created features"
-    )
-    processed_at: datetime = Field(default_factory=datetime.utcnow)
-
-    class Config:
-        """Pydantic configuration."""
-
-        arbitrary_types_allowed = True
-
-
-class ValidationResult(BaseModel):
-    """Result of data validation checks."""
-
-    model_config = ConfigDict(frozen=False)  # Allow field mutation
-
-    is_valid: bool = Field(..., description="Whether data passed validation")
-    errors: list[str] = Field(default_factory=list, description="Validation errors")
-    warnings: list[str] = Field(default_factory=list, description="Validation warnings")
-    checked_at: datetime = Field(default_factory=datetime.utcnow)
-
-    def add_error(self, message: str) -> None:
-        """Add a validation error."""
-        self.errors.append(message)
-        self.is_valid = False
-
-    def add_warning(self, message: str) -> None:
-        """Add a validation warning."""
-        self.warnings.append(message)
+        json_encoders = {datetime: lambda v: v.isoformat()}
