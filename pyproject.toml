@@ -43,6 +43,8 @@ dependencies = [
     # Type stubs for mypy
     "pandas-stubs>=2.0.0",
     "types-requests>=2.31.0",
+    "types-psycopg2>=2.9.0",
+    "types-click>=7.1.0",
     # Utility Libraries
     "click>=8.1.0",
     "python-dateutil>=2.8.0",
