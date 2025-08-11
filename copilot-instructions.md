@@ -12,6 +12,11 @@ This repository develops and manages **ETL pipelines** using **Python** and **Ap
 *   **Target Runtimes**: Python 3.9+ [3, 6].
 *   **Key Architectural Patterns**: Airflow DAGs define workflows, with modular Python functions handling ETL logic and SQL scripts managing data transformations within databases [6, 7].
 
+### Important Project Documentation References
+
+*   **Project Structure**: See [`docs/FINAL_PROJECT_STRUCTURE.md`](docs/FINAL_PROJECT_STRUCTURE.md) for the target simplified SQL-centric pipeline architecture and directory structure.
+*   **Refactoring Guidelines**: Follow the refactoring best practices outlined in [`docs/python-refactoring.md`](docs/python-refactoring.md) when making code improvements or simplifications.
+
 ## Build and Validation Instructions
 
 To ensure efficient operation and successful validation, follow these steps for setting up, building, testing, and linting the project [3, 5-7].
