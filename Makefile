@@ -87,30 +87,43 @@ install-all: ## Install all optional dependencies
 	$(PIP) install -e ".[all]"
 
 # Testing
-test: ## Run all tests with coverage
+test: ## Run all tests with coverage (SAFE - no real API calls)
 	@echo "$(BLUE)Running all tests with coverage...$(NC)"
 	$(PYTHON) -m pytest $(TEST_DIR)/ --cov=$(SOURCE_DIR)/$(PACKAGE_NAME) --cov-report=term-missing --cov-report=html:htmlcov --cov-fail-under=40
 
-test-unit: ## Run only unit tests
+test-unit: ## Run only unit tests (SAFE - no real API calls)
 	@echo "$(BLUE)Running unit tests...$(NC)"
 	$(PYTHON) -m pytest $(TEST_DIR)/unit/ -v
 
-test-integration: ## Run only integration tests
-	@echo "$(BLUE)Running integration tests...$(NC)"
+test-integration: ## Run integration tests (SAFE - mocked API calls only)
+	@echo "$(BLUE)Running integration tests (mocked API calls)...$(NC)"
 	$(PYTHON) -m pytest $(TEST_DIR)/integration/ -v
 
-test-fast: ## Run tests without coverage (faster)
+test-fast: ## Run tests without coverage (SAFE - no real API calls)
 	@echo "$(BLUE)Running fast tests...$(NC)"
 	$(PYTHON) -m pytest $(TEST_DIR)/ -x --tb=short -q
 
-test-coverage: ## Generate coverage report
+test-coverage: ## Generate coverage report (SAFE - no real API calls)
 	@echo "$(BLUE)Generating coverage report...$(NC)"
 	$(PYTHON) -m pytest $(TEST_DIR)/ --cov=$(SOURCE_DIR)/$(PACKAGE_NAME) --cov-report=html:htmlcov
 	@echo "$(GREEN)Coverage report generated in htmlcov/$(NC)"
 
-test-specific: ## Run specific test (usage: make test-specific TEST=test_file.py::test_name)
+test-specific: ## Run specific test (SAFE - no real API calls unless explicitly specified)
 	@echo "$(BLUE)Running specific test: $(TEST)$(NC)"
 	$(PYTHON) -m pytest $(TEST_DIR)/$(TEST) -v
+
+test-api-live: ## ⚠️ WARNING: Run REAL API tests (consumes Alpha Vantage quota!)
+	@echo "$(RED)⚠️  WARNING: This will make REAL API calls and consume your Alpha Vantage quota!$(NC)"
+	@echo "$(YELLOW)Free tier limit: 25 requests per day$(NC)"
+	@echo "$(YELLOW)Make sure you have ALPHA_VANTAGE_API_KEY set in your environment.$(NC)"
+	@echo "$(YELLOW)Press Enter to continue or Ctrl+C to cancel...$(NC)"
+	@read dummy
+	@echo "$(BLUE)Running live API integration tests...$(NC)"
+	INTEGRATION_TEST=true $(PYTHON) -m pytest $(TEST_DIR)/integration/test_api_integration.py -v
+
+test-api-safe: ## Run API tests with mocked responses (SAFE - no quota usage)
+	@echo "$(BLUE)Running safe API tests (mocked responses)...$(NC)"
+	$(PYTHON) -m pytest $(TEST_DIR)/test_forex_crypto.py $(TEST_DIR)/unit/test_api_client.py -v
 
 # Code Quality
 lint: ## Run all linting checks

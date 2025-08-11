@@ -59,18 +59,32 @@ env =
 ### Running Unit Tests (Safe - No API Calls)
 
 ```bash
-# These commands will NEVER make real API calls
-make test
+# All these commands are SAFE - they use mocked API responses
+make test                 # Full test suite with coverage (SAFE)
+make test-unit           # Unit tests only (SAFE)
+make test-integration    # Integration tests with mocked APIs (SAFE)
+make test-fast           # Fast tests without coverage (SAFE)
+make test-coverage       # Generate coverage report (SAFE)
+make test-specific       # Run specific test (SAFE unless specified otherwise)
+make test-api-safe       # Explicitly safe API tests (SAFE)
+
+# Direct pytest commands (also safe by default)
 python -m pytest tests/
 python -m pytest tests/unit/
 ```
 
 **Output**: Shows safety message confirming mock API key usage.
 
-### Running Integration Tests (Uses Real API)
+### Running Live API Tests (Uses Real API - Consumes Quota!)
 
-⚠️ **WARNING**: These commands consume your Alpha Vantage API quota!
+⚠️ **WARNING**: Only this command consumes your Alpha Vantage API quota:
 
+```bash
+# DANGER: This command makes REAL API calls and consumes quota
+make test-api-live       # Interactive warning + real API integration tests
+```
+
+**Alternative direct methods** (also consume quota):
 ```bash
 # Method 1: Environment variable
 INTEGRATION_TEST=true ALPHA_VANTAGE_API_KEY=your_real_key python -m pytest tests/integration/
