@@ -95,9 +95,10 @@ class TestDataPipelineIntegration:
     def test_pipeline_with_core_transform(self, sample_market_data):
         """Test pipeline integration through core transform method."""
         from src.ticker_converter.config import config
+
         if not config.ALPHA_VANTAGE_API_KEY:
             pytest.skip("ALPHA_VANTAGE_API_KEY not set")
-        
+
         pipeline = FinancialDataPipeline()
         df = sample_market_data.to_dataframe()
 
