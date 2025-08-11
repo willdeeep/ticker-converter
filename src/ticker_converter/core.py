@@ -98,72 +98,47 @@ class FinancialDataPipeline:
         raise RuntimeError(error_message)
 
     def transform(self, data: pd.DataFrame, symbol: str = "UNKNOWN") -> pd.DataFrame:
-        """Transform raw financial data using cleaning and feature engineering pipeline.
+        """Transform raw financial data with basic formatting.
+        
+        Note: In the SQL-first architecture, complex transformations are done in PostgreSQL.
+        This method provides basic DataFrame formatting only.
 
         Args:
             data: Raw financial data.
             symbol: Stock symbol for the data.
 
         Returns:
-            Transformed data with engineered features.
+            Basic formatted data.
         """
-        from .data_models.market_data import MarketDataPoint, RawMarketData
-        from .etl_modules import DataCleaner, FeatureEngineer, QualityValidator
-
-        try:
-            # Convert DataFrame to RawMarketData model
-            data_points = []
-            for idx, row in data.iterrows():
-                point = MarketDataPoint(
-                    timestamp=(
-                        idx if isinstance(idx, pd.Timestamp) else pd.Timestamp(str(idx))
-                    ),
-                    symbol=row.get("Symbol", symbol),
-                    open=float(row["Open"]),
-                    high=float(row["High"]),
-                    low=float(row["Low"]),
-                    close=float(row["Close"]),
-                    volume=int(row["Volume"]),
-                )
-                data_points.append(point)
-
-            raw_data = RawMarketData(
-                data_points=data_points,
-                source="alpha_vantage",
-                symbol=symbol,
-                data_type="daily",
-            )
-
-            # Initialize pipeline components
-            cleaner = DataCleaner()
-            feature_engineer = FeatureEngineer()
-            validator = QualityValidator()
-
-            # Validate input data
-            validation_result = validator.validate(data, symbol)
-            if not validation_result.is_valid:
-                logger.warning(
-                    "Data validation issues for %s: %s",
-                    symbol,
-                    validation_result.errors,
-                )
-
-            # Clean the data
-            cleaned_data = cleaner.clean(raw_data)
-
-            # Engineer features (for future use)
-            _feature_data = feature_engineer.engineer_features(cleaned_data)
-
-            # Convert back to DataFrame with features from feature_data
-            # Note: FeatureEngineeredData stores features in features_created list
-            # For now, return the original data with basic symbol column
-            df_with_features = data.copy()
-
-            # Use the engineered features from feature_data
-            # For now, return the original transformed data
-            logger.info("Data transformation completed for %s", symbol)
-            return df_with_features
-
-        except Exception as e:
-            logger.error("Error during data transformation for %s: %s", symbol, e)
+        if data.empty:
             return data
+        
+        # Basic data formatting - ensure required columns exist
+        result = data.copy()
+        
+        # Ensure Symbol column exists
+        if "Symbol" not in result.columns:
+            result["Symbol"] = symbol
+        
+        # Ensure basic column names are standardized
+        column_mapping = {
+            "1. open": "Open",
+            "2. high": "High", 
+            "3. low": "Low",
+            "4. close": "Close",
+            "5. volume": "Volume"
+        }
+        
+        # Apply column mapping if needed
+        for old_col, new_col in column_mapping.items():
+            if old_col in result.columns:
+                result = result.rename(columns={old_col: new_col})
+        
+        # Basic validation - ensure required columns exist
+        required_columns = ["Open", "High", "Low", "Close", "Volume"]
+        missing_columns = [col for col in required_columns if col not in result.columns]
+        
+        if missing_columns:
+            logger.warning(f"Missing required columns for {symbol}: {missing_columns}")
+        
+        return result
