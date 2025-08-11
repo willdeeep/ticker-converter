@@ -39,7 +39,7 @@ class AlphaVantageClient:
 
         self.session = requests.Session()
 
-    def _make_request(self, params: dict[str, Any]) -> dict[str, Any]:
+    def make_request(self, params: dict[str, Any]) -> dict[str, Any]:
         """Make a request to the Alpha Vantage API with retry logic.
 
         Args:
@@ -159,7 +159,7 @@ class AlphaVantageClient:
             "outputsize": outputsize,
         }
 
-        data = self._make_request(params)
+        data = self.make_request(params)
 
         # Extract time series data
         time_series_key = AlphaVantageResponseKey.TIME_SERIES_DAILY
@@ -201,7 +201,7 @@ class AlphaVantageClient:
             "interval": interval,
         }
 
-        data = self._make_request(params)
+        data = self.make_request(params)
 
         # Extract time series data
         time_series_key = f"Time Series ({interval})"
@@ -234,7 +234,7 @@ class AlphaVantageClient:
             AlphaVantageAPIError: If the API request fails.
         """
         params = {"function": "OVERVIEW", "symbol": symbol}
-        return self._make_request(params)
+        return self.make_request(params)
 
     def get_currency_exchange_rate(
         self, from_currency: str, to_currency: str
@@ -256,7 +256,7 @@ class AlphaVantageClient:
             "from_currency": from_currency,
             "to_currency": to_currency,
         }
-        return self._make_request(params)
+        return self.make_request(params)
 
     def get_forex_daily(
         self, from_symbol: str, to_symbol: str, outputsize: str = "compact"
@@ -281,7 +281,7 @@ class AlphaVantageClient:
             "outputsize": outputsize,
         }
 
-        data = self._make_request(params)
+        data = self.make_request(params)
 
         # Parse forex time series data
         time_series_key = "Time Series FX (Daily)"
@@ -338,7 +338,7 @@ class AlphaVantageClient:
             "market": market,
         }
 
-        data = self._make_request(params)
+        data = self.make_request(params)
 
         # Parse digital currency time series data
         time_series_key = "Time Series (Digital Currency Daily)"

@@ -18,6 +18,7 @@ class AlphaVantageResponseKey:
     """Alpha Vantage API response keys."""
 
     TIME_SERIES_DAILY = "Time Series (Daily)"
+    REALTIME_CURRENCY_EXCHANGE_RATE = "Realtime Currency Exchange Rate"
     ERROR_MESSAGE = "Error Message"
     NOTE = "Note"
 
@@ -30,6 +31,8 @@ class AlphaVantageValueKey:
     LOW = "3. low"
     CLOSE = "4. close"
     VOLUME = "5. volume"
+    EXCHANGE_RATE = "5. Exchange Rate"
+    LAST_REFRESHED = "6. Last Refreshed"
 
 
 class OutputSize:

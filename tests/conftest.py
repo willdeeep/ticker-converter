@@ -11,7 +11,7 @@ from src.ticker_converter.api_clients.api_client import AlphaVantageClient
 
 
 # Safety check to prevent accidental real API usage
-def pytest_configure(config):
+def pytest_configure(config):  # pylint: disable=unused-argument
     """Configure pytest with safety checks for API usage."""
     # Set a mock API key if none is set or if it's a real-looking key
     api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "")
@@ -139,7 +139,9 @@ def mock_requests_session():
 
 
 @pytest.fixture
-def alpha_vantage_client(mock_config):  # pylint: disable=redefined-outer-name
+def alpha_vantage_client(
+    mock_config,
+):  # pylint: disable=unused-argument,redefined-outer-name
     """Alpha Vantage client instance for testing."""
     return AlphaVantageClient("test_api_key")
 

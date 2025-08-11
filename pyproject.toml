@@ -200,7 +200,7 @@ exclude_lines = [
 
 # Pylint configuration
 [tool.pylint.main]
-extension-pkg-allow-list = ["pydantic"]
+extension-pkg-allow-list = ["pydantic", "airflow"]
 
 [tool.pylint.messages_control]
 disable = [
@@ -208,13 +208,18 @@ disable = [
     "too-many-arguments",
     "too-many-instance-attributes",
     "line-too-long",  # handled by black
+    "fixme",  # TODO comments are acceptable in development
+    "pointless-statement",  # Airflow task dependencies look like statements
 ]
 
 [tool.pylint.typecheck]
 generated-members = [
     "pydantic.*",
+    "airflow.*",
 ]
-ignored-classes = ["FieldInfo"]
+ignored-classes = ["FieldInfo", "DAG", "BaseOperator"]
+# Ignore Airflow-specific keyword argument issues
+ignored-modules = ["airflow.models.dag"]
 
 [tool.pylint.design]
 max-args = 10

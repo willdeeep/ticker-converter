@@ -11,9 +11,15 @@ All using the single Alpha Vantage API.
 
 from datetime import datetime
 
-from ticker_converter.api_client import AlphaVantageAPIError, AlphaVantageClient
-from ticker_converter.config import config
-from ticker_converter.constants import AlphaVantageResponseKey, AlphaVantageValueKey
+from ticker_converter.api_clients.api_client import (
+    AlphaVantageAPIError,
+    AlphaVantageClient,
+)
+from ticker_converter.api_clients.constants import (
+    AlphaVantageResponseKey,
+    AlphaVantageValueKey,
+    config,
+)
 
 # Demo configuration constants
 DEMO_SEPARATOR = "=" * 60
@@ -61,7 +67,7 @@ def demo_stock_data(client: AlphaVantageClient) -> None:
         # Get Apple stock data
         symbol = DEMO_SYMBOLS["stock"]
         print(f"Getting {symbol} daily stock data...")
-        stock_data = client.get_daily_data(symbol)
+        stock_data = client.get_daily_stock_data(symbol)
         latest_date = stock_data.iloc[-1]["Date"].strftime("%Y-%m-%d")
         latest_close = stock_data.iloc[-1]["Close"]
         print(f"[SUCCESS] {symbol} latest close ({latest_date}): ${latest_close:.2f}")

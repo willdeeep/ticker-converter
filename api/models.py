@@ -37,12 +37,20 @@ class DailySummary(BaseModel):
     avg_closing_price_usd: float = Field(..., description="Average closing price USD")
     min_closing_price_usd: float = Field(..., description="Minimum closing price USD")
     max_closing_price_usd: float = Field(..., description="Maximum closing price USD")
-    avg_daily_return_pct: float | None = Field(None, description="Average daily return %")
-    min_daily_return_pct: float | None = Field(None, description="Minimum daily return %")
-    max_daily_return_pct: float | None = Field(None, description="Maximum daily return %")
+    avg_daily_return_pct: float | None = Field(
+        None, description="Average daily return %"
+    )
+    min_daily_return_pct: float | None = Field(
+        None, description="Minimum daily return %"
+    )
+    max_daily_return_pct: float | None = Field(
+        None, description="Maximum daily return %"
+    )
     total_volume: int = Field(..., description="Total trading volume")
     avg_volume: int = Field(..., description="Average trading volume")
-    avg_closing_price_gbp: float | None = Field(None, description="Average closing price GBP")
+    avg_closing_price_gbp: float | None = Field(
+        None, description="Average closing price GBP"
+    )
     usd_to_gbp_rate: float | None = Field(None, description="USD to GBP rate")
 
 

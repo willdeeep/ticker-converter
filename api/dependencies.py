@@ -4,7 +4,7 @@ import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
-from api.database import DatabaseConnection, get_database
+from api.database import DatabaseConnection, DatabaseManager
 
 
 def get_sql_query(filename: str) -> str:
@@ -22,10 +22,10 @@ def get_sql_query(filename: str) -> str:
     # Get the project root (parent of api directory)
     project_root = Path(__file__).parent.parent
     sql_file = project_root / "sql" / "queries" / filename
-    
+
     if not sql_file.exists():
         raise FileNotFoundError(f"SQL file not found: {sql_file}")
-    
+
     return sql_file.read_text()
 
 
@@ -35,7 +35,7 @@ async def get_db() -> AsyncGenerator[DatabaseConnection, None]:
     Yields:
         Database connection instance
     """
-    db = get_database()
+    db = DatabaseManager.get_database()
     try:
         yield db
     finally:
@@ -66,8 +66,8 @@ def get_database_url() -> str:
 
     if password:
         return f"postgresql://{user}:{password}@{host}:{port}/{database}"
-    else:
-        return f"postgresql://{user}@{host}:{port}/{database}"
+
+    return f"postgresql://{user}@{host}:{port}/{database}"
 
 
 def get_api_settings() -> dict:

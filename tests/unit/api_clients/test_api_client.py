@@ -55,10 +55,8 @@ class TestAlphaVantageClient:
         with patch.object(
             alpha_vantage_client.session, "get", return_value=mock_response
         ):
-            result = (
-                alpha_vantage_client._make_request(  # pylint: disable=protected-access
-                    {"function": "TIME_SERIES_DAILY"}
-                )
+            result = alpha_vantage_client.make_request(
+                {"function": "TIME_SERIES_DAILY"}
             )
 
         assert result == sample_daily_response
@@ -82,9 +80,7 @@ class TestAlphaVantageClient:
             with pytest.raises(
                 AlphaVantageAPIError, match="API Error: Invalid API call"
             ):
-                alpha_vantage_client._make_request(
-                    {"function": "TIME_SERIES_DAILY"}
-                )  # pylint: disable=protected-access
+                alpha_vantage_client.make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch("time.sleep")
     def test_make_request_rate_limit_retry(
@@ -106,10 +102,8 @@ class TestAlphaVantageClient:
             "get",
             side_effect=[mock_response_rate_limit, mock_response_success],
         ):
-            result = (
-                alpha_vantage_client._make_request(  # pylint: disable=protected-access
-                    {"function": "TIME_SERIES_DAILY"}
-                )
+            result = alpha_vantage_client.make_request(
+                {"function": "TIME_SERIES_DAILY"}
             )
 
         assert result == sample_daily_response
@@ -129,16 +123,14 @@ class TestAlphaVantageClient:
             with pytest.raises(
                 AlphaVantageAPIError, match="Request failed after 3 attempts"
             ):
-                alpha_vantage_client._make_request(
-                    {"function": "TIME_SERIES_DAILY"}
-                )  # pylint: disable=protected-access
+                alpha_vantage_client.make_request({"function": "TIME_SERIES_DAILY"})
 
     def test_get_daily_stock_data_success(
         self, alpha_vantage_client, sample_daily_response
     ):
         """Test successful daily stock data retrieval."""
         with patch.object(
-            alpha_vantage_client, "_make_request", return_value=sample_daily_response
+            alpha_vantage_client, "make_request", return_value=sample_daily_response
         ):
             df = alpha_vantage_client.get_daily_stock_data("AAPL")
 
@@ -161,7 +153,7 @@ class TestAlphaVantageClient:
         invalid_response = {"Unexpected": "format"}
 
         with patch.object(
-            alpha_vantage_client, "_make_request", return_value=invalid_response
+            alpha_vantage_client, "make_request", return_value=invalid_response
         ):
             with pytest.raises(
                 AlphaVantageAPIError, match="Unexpected response format"
@@ -173,7 +165,7 @@ class TestAlphaVantageClient:
     ):
         """Test successful intraday stock data retrieval."""
         with patch.object(
-            alpha_vantage_client, "_make_request", return_value=sample_intraday_response
+            alpha_vantage_client, "make_request", return_value=sample_intraday_response
         ):
             df = alpha_vantage_client.get_intraday_stock_data("AAPL", "5min")
 
@@ -195,7 +187,7 @@ class TestAlphaVantageClient:
     ):
         """Test successful company overview retrieval."""
         with patch.object(
-            alpha_vantage_client, "_make_request", return_value=sample_company_overview
+            alpha_vantage_client, "make_request", return_value=sample_company_overview
         ):
             result = alpha_vantage_client.get_company_overview("AAPL")
 
@@ -206,7 +198,7 @@ class TestAlphaVantageClient:
     def test_symbol_case_handling(self, alpha_vantage_client, sample_daily_response):
         """Test that symbols are properly converted to uppercase."""
         with patch.object(
-            alpha_vantage_client, "_make_request", return_value=sample_daily_response
+            alpha_vantage_client, "make_request", return_value=sample_daily_response
         ) as mock_request:
             alpha_vantage_client.get_daily_stock_data("aapl")
 

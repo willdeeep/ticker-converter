@@ -26,7 +26,7 @@ class DatabaseConnection:
             self._pool = await asyncpg.create_pool(self.database_url)
             logger.info("Database connection pool created successfully")
         except Exception as e:
-            logger.error(f"Failed to create database connection pool: {e}")
+            logger.error("Failed to create database connection pool: %s", e)
             raise
 
     async def close(self) -> None:
@@ -35,7 +35,9 @@ class DatabaseConnection:
             await self._pool.close()
             logger.info("Database connection pool closed")
 
-    async def execute_query(self, query: str, params: list[Any] | None = None) -> list[dict[str, Any]]:
+    async def execute_query(
+        self, query: str, params: list[Any] | None = None
+    ) -> list[dict[str, Any]]:
         """Execute a SQL query and return results.
 
         Args:
@@ -57,12 +59,14 @@ class DatabaseConnection:
 
                 return [dict(row) for row in result]
             except Exception as e:
-                logger.error(f"Query execution failed: {e}")
-                logger.error(f"Query: {query}")
-                logger.error(f"Params: {params}")
+                logger.error("Query execution failed: %s", e)
+                logger.error("Query: %s", query)
+                logger.error("Params: %s", params)
                 raise
 
-    async def execute_command(self, command: str, params: list[Any] | None = None) -> None:
+    async def execute_command(
+        self, command: str, params: list[Any] | None = None
+    ) -> None:
         """Execute a SQL command (INSERT, UPDATE, DELETE).
 
         Args:
@@ -79,44 +83,44 @@ class DatabaseConnection:
                 else:
                     await connection.execute(command)
             except Exception as e:
-                logger.error(f"Command execution failed: {e}")
-                logger.error(f"Command: {command}")
-                logger.error(f"Params: {params}")
+                logger.error("Command execution failed: %s", e)
+                logger.error("Command: %s", command)
+                logger.error("Params: %s", params)
                 raise
 
 
-# Global database instance
-db_connection: DatabaseConnection | None = None
+class DatabaseManager:
+    """Singleton manager for the database connection."""
 
+    _db_connection: DatabaseConnection | None = None
 
-def get_database() -> DatabaseConnection:
-    """Get the database connection instance.
+    @classmethod
+    def get_database(cls) -> DatabaseConnection:
+        """Get the database connection instance.
 
-    Returns:
-        Database connection instance
+        Returns:
+            Database connection instance
 
-    Raises:
-        RuntimeError: If database is not initialized
-    """
-    if db_connection is None:
-        raise RuntimeError("Database connection not initialized")
-    return db_connection
+        Raises:
+            RuntimeError: If database is not initialized
+        """
+        if cls._db_connection is None:
+            raise RuntimeError("Database connection not initialized")
+        return cls._db_connection
 
+    @classmethod
+    async def initialize_database(cls, database_url: str) -> None:
+        """Initialize the database connection.
 
-async def initialize_database(database_url: str) -> None:
-    """Initialize the global database connection.
+        Args:
+            database_url: PostgreSQL connection URL
+        """
+        cls._db_connection = DatabaseConnection(database_url)
+        await cls._db_connection.initialize()
 
-    Args:
-        database_url: PostgreSQL connection URL
-    """
-    global db_connection
-    db_connection = DatabaseConnection(database_url)
-    await db_connection.initialize()
-
-
-async def close_database() -> None:
-    """Close the global database connection."""
-    global db_connection
-    if db_connection:
-        await db_connection.close()
-        db_connection = None
+    @classmethod
+    async def close_database(cls) -> None:
+        """Close the database connection."""
+        if cls._db_connection:
+            await cls._db_connection.close()
+            cls._db_connection = None
