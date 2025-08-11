@@ -115,7 +115,7 @@ class CurrencyRate(BaseModel):
 # Complex SQLAlchemy models with extensive relationships
 class StockPrice(Base):
     __tablename__ = 'stock_prices'
-    
+
     id = Column(Integer, primary_key=True)
     symbol = Column(String, ForeignKey('stocks.symbol'))
     date = Column(Date)
@@ -124,7 +124,7 @@ class StockPrice(Base):
     low_price = Column(Float)
     close_price = Column(Float)
     volume = Column(BigInteger)
-    
+
     # Complex relationships
     stock = relationship("Stock", back_populates="prices")
     technical_indicators = relationship("TechnicalIndicator")
@@ -165,7 +165,7 @@ class FeatureEngineer:
         data['ma_20'] = data['close'].rolling(window=20).mean()
         data['ma_50'] = data['close'].rolling(window=50).mean()
         return data
-    
+
     def calculate_technical_indicators(self, data: pd.DataFrame) -> pd.DataFrame:
         data['rsi'] = self._calculate_rsi(data['close'])
         data['bollinger_upper'] = self._calculate_bollinger_bands(data)
@@ -223,11 +223,11 @@ async def get_stock_analysis(symbol: str):
     # Complex ORM queries
     stock = session.query(Stock).filter(Stock.symbol == symbol).first()
     prices = session.query(StockPrice).filter(StockPrice.symbol == symbol).all()
-    
+
     # Python-based calculations
     feature_engineer = FeatureEngineer()
     technical_data = feature_engineer.calculate_all_indicators(prices)
-    
+
     # Complex response building
     return {
         "symbol": symbol,

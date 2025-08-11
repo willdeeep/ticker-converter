@@ -40,7 +40,9 @@ help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(YELLOW)Quick Start:$(NC)"
-	@echo "  make install-dev    # Install all dependencies"
+	@echo "  make install-dev    # Install dev + database dependencies"
+	@echo "  make install-all    # Install API + database + dev dependencies"
+	@echo "  make install-full   # Install everything including Airflow"
 	@echo "  make test           # Run all tests"
 	@echo "  make lint           # Check code quality"
 	@echo "  make demo           # Run demo pipeline"
@@ -79,12 +81,33 @@ install: ## Install basic dependencies
 
 install-dev: ## Install all development dependencies
 	@echo "$(BLUE)Installing development dependencies...$(NC)"
-	$(PIP) install -e ".[dev,storage,models]"
+	$(PIP) install -e ".[dev,database]"
 	@echo "$(GREEN)Development environment ready$(NC)"
 
 install-all: ## Install all optional dependencies
 	@echo "$(BLUE)Installing all dependencies...$(NC)"
 	$(PIP) install -e ".[all]"
+	@echo "$(GREEN)All dependencies installed$(NC)"
+
+install-api: ## Install API dependencies (FastAPI, uvicorn, etc.)
+	@echo "$(BLUE)Installing API dependencies...$(NC)"
+	$(PIP) install -e ".[api]"
+	@echo "$(GREEN)API dependencies installed$(NC)"
+
+install-database: ## Install database dependencies (PostgreSQL adapters)
+	@echo "$(BLUE)Installing database dependencies...$(NC)"
+	$(PIP) install -e ".[database]"
+	@echo "$(GREEN)Database dependencies installed$(NC)"
+
+install-airflow: ## Install Airflow dependencies (for DAG development)
+	@echo "$(BLUE)Installing Airflow dependencies...$(NC)"
+	$(PIP) install -e ".[airflow]"
+	@echo "$(GREEN)Airflow dependencies installed$(NC)"
+
+install-full: ## Install all dependencies including Airflow
+	@echo "$(BLUE)Installing all dependencies including Airflow...$(NC)"
+	$(PIP) install -e ".[full]"
+	@echo "$(GREEN)Full development environment ready$(NC)"
 
 # Testing
 test: ## Run all tests with coverage (SAFE - no real API calls)
@@ -123,7 +146,7 @@ test-api-live: ## ⚠️ WARNING: Run REAL API tests (consumes Alpha Vantage quo
 
 test-api-safe: ## Run API tests with mocked responses (SAFE - no quota usage)
 	@echo "$(BLUE)Running safe API tests (mocked responses)...$(NC)"
-	$(PYTHON) -m pytest $(TEST_DIR)/test_forex_crypto.py $(TEST_DIR)/unit/test_api_client.py -v
+	$(PYTHON) -m pytest $(TEST_DIR)/unit/test_api_client.py -v
 
 # Code Quality
 lint: ## Run all linting checks
@@ -290,20 +313,7 @@ security-audit: ## Run security audit
 update-deps: ## Update dependencies
 	@echo "$(BLUE)Updating dependencies...$(NC)"
 	$(PIP) install --upgrade pip
-	$(PIP) install --upgrade -e ".[dev]"
-
-# Act - Local GitHub Actions Testing
-act-pr: ## Test GitHub Actions PR workflow locally
-	@echo "$(BLUE)Running GitHub Actions PR workflow locally with Act...$(NC)"
-	act pull_request --container-architecture linux/amd64
-
-act-push: ## Test GitHub Actions push workflow locally
-	@echo "$(BLUE)Running GitHub Actions push workflow locally with Act...$(NC)"
-	act push --container-architecture linux/amd64
-
-act-list: ## List available GitHub Actions workflows
-	@echo "$(BLUE)Available GitHub Actions workflows:$(NC)"
-	act --list --container-architecture linux/amd64
+	$(PIP) install --upgrade -e ".[dev,database]"
 
 # Aliases for common workflows
 quick-test: test-fast ## Alias for test-fast

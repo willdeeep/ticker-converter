@@ -192,7 +192,7 @@ def test_market_data_validation():
         "price": 150.25,
         "volume": 1000
     }
-    
+
     data_point = MarketDataPoint(**valid_data)
     assert data_point.symbol == "AAPL"
     assert data_point.price == 150.25
@@ -205,7 +205,7 @@ async def test_stock_data_api_integration():
     """Test complete stock data retrieval flow."""
     client = TestClient(app)
     response = client.get("/api/stocks/AAPL")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "symbol" in data
@@ -217,13 +217,13 @@ async def test_stock_data_api_integration():
 def test_database_query_performance():
     """Test SQL query performance under load."""
     start_time = time.time()
-    
+
     # Execute complex query
     result = session.execute(
         text("SELECT * FROM fact_stock_prices WHERE date_id > :date"),
         {"date": recent_date}
     )
-    
+
     execution_time = time.time() - start_time
     assert execution_time < 1.0  # Should complete within 1 second
 ```

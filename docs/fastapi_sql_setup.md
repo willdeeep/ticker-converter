@@ -81,15 +81,15 @@ db_manager = None
 async def lifespan(app: FastAPI):
     """Manage application lifespan events"""
     global db_manager
-    
+
     # Startup
     logger.info("Starting ticker-converter API")
     db_manager = DatabaseManager()
     await db_manager.connect()
     logger.info("Database connection pool initialized")
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down ticker-converter API")
     await db_manager.disconnect()
@@ -164,12 +164,12 @@ logger = logging.getLogger(__name__)
 
 class DatabaseManager:
     """Manages PostgreSQL connection pool and query execution"""
-    
+
     def __init__(self):
         self.pool: Optional[asyncpg.Pool] = None
         self.sql_cache: Dict[str, str] = {}
         self.sql_directory = Path(__file__).parent / "sql"
-    
+
     async def connect(self) -> None:
         """Initialize database connection pool"""
         try:
@@ -177,7 +177,7 @@ class DatabaseManager:
                 "DATABASE_URL",
                 "postgresql://ticker_user:password@localhost:5432/ticker_converter"
             )
-            
+
             self.pool = await asyncpg.create_pool(
                 database_url,
                 min_size=5,
@@ -186,19 +186,19 @@ class DatabaseManager:
                 max_inactive_connection_lifetime=300,
                 command_timeout=30
             )
-            
+
             logger.info("Database connection pool created successfully")
-            
+
         except Exception as e:
             logger.error(f"Failed to create database pool: {e}")
             raise
-    
+
     async def disconnect(self) -> None:
         """Close database connection pool"""
         if self.pool:
             await self.pool.close()
             logger.info("Database connection pool closed")
-    
+
     def load_sql(self, sql_file: str) -> str:
         """Load and cache SQL queries from files"""
         if sql_file not in self.sql_cache:
@@ -212,7 +212,7 @@ class DatabaseManager:
                 raise FileNotFoundError(f"SQL file not found: {sql_file}")
         
         return self.sql_cache[sql_file]
-    
+
     async def fetch_all(self, sql_file: str, **params) -> List[Dict[str, Any]]:
         """Execute query and return all results"""
         sql = self.load_sql(sql_file)
@@ -226,7 +226,7 @@ class DatabaseManager:
                 logger.error(f"SQL: {sql}")
                 logger.error(f"Params: {params}")
                 raise
-    
+
     async def fetch_one(self, sql_file: str, **params) -> Optional[Dict[str, Any]]:
         """Execute query and return single result"""
         sql = self.load_sql(sql_file)
@@ -240,7 +240,7 @@ class DatabaseManager:
                 logger.error(f"SQL: {sql}")
                 logger.error(f"Params: {params}")
                 raise
-    
+
     async def execute(self, sql_file: str, **params) -> str:
         """Execute query without returning results"""
         sql = self.load_sql(sql_file)
@@ -282,7 +282,7 @@ class StockPrice(BaseModel):
     low_usd: Decimal = Field(..., description="Low price in USD")
     close_usd: Decimal = Field(..., description="Closing price in USD")
     volume: int = Field(..., description="Trading volume")
-    
+
     class Config:
         json_encoders = {
             Decimal: lambda v: float(v)
@@ -306,7 +306,7 @@ class StockPerformance(BaseModel):
     volume: int = Field(..., description="Current volume")
     avg_volume_30d: Optional[int] = Field(None, description="30-day average volume")
     market_cap: Optional[Decimal] = Field(None, description="Market capitalization")
-    
+
     class Config:
         json_encoders = {
             Decimal: lambda v: float(v)
@@ -342,7 +342,7 @@ class TopPerformer(BaseModel):
     current_price: Decimal = Field(..., description="Current price")
     volume: int = Field(..., description="Trading volume")
     rank: int = Field(..., description="Performance rank")
-    
+
     class Config:
         json_encoders = {
             Decimal: lambda v: float(v)
@@ -359,7 +359,7 @@ class MarketSummary(BaseModel):
     losers: int = Field(..., description="Number of losing stocks")
     top_performer: str = Field(..., description="Best performing stock")
     worst_performer: str = Field(..., description="Worst performing stock")
-    
+
     class Config:
         json_encoders = {
             Decimal: lambda v: float(v)
@@ -372,7 +372,7 @@ class CorrelationData(BaseModel):
     correlation_coefficient: Decimal = Field(..., description="Correlation coefficient")
     period_days: int = Field(..., description="Analysis period in days")
     significance: str = Field(..., description="Statistical significance level")
-    
+
     class Config:
         json_encoders = {
             Decimal: lambda v: float(v)
@@ -425,14 +425,14 @@ async def get_stock_prices(
     db: DatabaseManager = Depends(get_database)
 ):
     """Get historical stock prices for a specific symbol"""
-    
+
     # Validate symbol
     if symbol.upper() not in MAGNIFICENT_SEVEN:
         raise HTTPException(
             status_code=404, 
             detail=f"Stock {symbol} not found. Available stocks: {', '.join(MAGNIFICENT_SEVEN)}"
         )
-    
+
     try:
         prices = await db.fetch_all(
             "stocks/get_stock_prices.sql",
@@ -456,13 +456,13 @@ async def get_stock_prices_gbp(
     db: DatabaseManager = Depends(get_database)
 ):
     """Get stock prices with GBP conversion"""
-    
+
     if symbol.upper() not in MAGNIFICENT_SEVEN:
         raise HTTPException(
             status_code=404, 
             detail=f"Stock {symbol} not found. Available stocks: {', '.join(MAGNIFICENT_SEVEN)}"
         )
-    
+
     try:
         prices = await db.fetch_all(
             "stocks/get_stock_prices_gbp.sql",
@@ -483,13 +483,13 @@ async def get_stock_performance(
     db: DatabaseManager = Depends(get_database)
 ):
     """Get current stock performance metrics"""
-    
+
     if symbol.upper() not in MAGNIFICENT_SEVEN:
         raise HTTPException(
             status_code=404, 
             detail=f"Stock {symbol} not found. Available stocks: {', '.join(MAGNIFICENT_SEVEN)}"
         )
-    
+
     try:
         performance = await db.fetch_one(
             "stocks/get_stock_performance.sql",
@@ -513,13 +513,13 @@ async def get_stock_history(
     db: DatabaseManager = Depends(get_database)
 ):
     """Get comprehensive stock price history"""
-    
+
     if symbol.upper() not in MAGNIFICENT_SEVEN:
         raise HTTPException(
             status_code=404, 
             detail=f"Stock {symbol} not found. Available stocks: {', '.join(MAGNIFICENT_SEVEN)}"
         )
-    
+
     try:
         history_data = await db.fetch_all(
             "stocks/get_price_history.sql",
@@ -568,7 +568,7 @@ async def get_top_performers(
     db: DatabaseManager = Depends(get_database)
 ):
     """Get top performing stocks for specified period"""
-    
+
     try:
         start_time = time.time()
         
@@ -591,7 +591,7 @@ async def get_market_summary(
     db: DatabaseManager = Depends(get_database)
 ):
     """Get market summary for specified date"""
-    
+
     try:
         summary = await db.fetch_one(
             "analytics/market_summary.sql",
@@ -617,7 +617,7 @@ async def get_stock_correlations(
     db: DatabaseManager = Depends(get_database)
 ):
     """Get stock correlation analysis"""
-    
+
     try:
         correlations = await db.fetch_all(
             "analytics/correlation_analysis.sql",
@@ -638,7 +638,7 @@ async def get_sector_performance(
     db: DatabaseManager = Depends(get_database)
 ):
     """Get sector-wise performance analysis"""
-    
+
     try:
         sectors = await db.fetch_all(
             "analytics/sector_performance.sql",
@@ -938,7 +938,7 @@ if __name__ == "__main__":
     # Load environment variables from .env file
     from dotenv import load_dotenv
     load_dotenv()
-    
+
     # Run development server
     uvicorn.run(
         "src.api.main:app",
@@ -1042,12 +1042,12 @@ def cache_result(expiry: int = 300):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             cache_key = f"{func.__name__}:{hash(str(args) + str(kwargs))}"
-            
+
             # Try to get from cache
             cached = await redis.get(cache_key)
             if cached:
                 return json.loads(cached)
-            
+
             # Execute function and cache result
             result = await func(*args, **kwargs)
             await redis.setex(cache_key, expiry, json.dumps(result, default=str))
@@ -1073,7 +1073,7 @@ from src.api.main import app
 async def test_get_stock_prices():
     async with AsyncClient(app=app, base_url="http://test") as ac:
         response = await ac.get("/api/v1/stocks/AAPL/prices?limit=10")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert len(data) <= 10
@@ -1083,7 +1083,7 @@ async def test_get_stock_prices():
 async def test_invalid_stock_symbol():
     async with AsyncClient(app=app, base_url="http://test") as ac:
         response = await ac.get("/api/v1/stocks/INVALID/prices")
-    
+
     assert response.status_code == 404
     assert "not found" in response.json()["detail"]
 ```
@@ -1095,7 +1095,7 @@ async def test_database_integration():
     """Test database connectivity and basic queries"""
     db = DatabaseManager()
     await db.connect()
-    
+
     try:
         result = await db.fetch_all("stocks/get_stock_prices.sql", 
                                    symbol="AAPL", start_date=None, 
@@ -1119,12 +1119,12 @@ REQUEST_DURATION = Histogram('api_request_duration_seconds', 'Request duration')
 @app.middleware("http")
 async def add_metrics(request, call_next):
     start_time = time.time()
-    
+
     response = await call_next(request)
-    
+
     REQUEST_COUNT.labels(method=request.method, endpoint=request.url.path).inc()
     REQUEST_DURATION.observe(time.time() - start_time)
-    
+
     return response
 
 @app.get("/metrics")
@@ -1141,9 +1141,9 @@ logger = structlog.get_logger()
 @app.middleware("http")
 async def logging_middleware(request, call_next):
     start_time = time.time()
-    
+
     response = await call_next(request)
-    
+
     logger.info(
         "api_request",
         method=request.method,
@@ -1153,7 +1153,7 @@ async def logging_middleware(request, call_next):
         user_agent=request.headers.get("user-agent"),
         remote_addr=request.client.host
     )
-    
+
     return response
 ```
 

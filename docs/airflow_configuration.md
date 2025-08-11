@@ -162,7 +162,7 @@ def create_postgres_connection():
         port=5432,
         extra='{"sslmode": "prefer", "connect_timeout": "10"}'
     )
-    
+
     session = settings.Session()
     # Delete if exists
     session.query(Connection).filter(Connection.conn_id == 'postgres_default').delete()
@@ -377,7 +377,7 @@ def execute_with_retry(**context):
     """Execute SQL with connection retry logic"""
     max_retries = 3
     retry_count = 0
-    
+
     while retry_count < max_retries:
         try:
             hook = get_postgres_hook()
@@ -426,7 +426,7 @@ transaction_task = PostgresOperator(
 def monitor_data_quality(**context):
     """Monitor data quality and send alerts"""
     hook = PostgresHook(postgres_conn_id='postgres_default')
-    
+
     # Check data freshness
     result = hook.get_first("""
         SELECT 
@@ -436,16 +436,16 @@ def monitor_data_quality(**context):
         FROM fact_stock_prices p
         JOIN dim_dates d ON p.date_id = d.date_id
     """)
-    
+
     record_count, latest_date, days_old = result
-    
+
     # Alert conditions
     if days_old > 2:
         send_alert(f"Data is {days_old} days old - last update: {latest_date}")
-    
+
     if record_count == 0:
         send_critical_alert("No stock price data found in database")
-    
+
     # Log metrics
     context['ti'].xcom_push(key='data_quality_metrics', value={
         'record_count': record_count,
