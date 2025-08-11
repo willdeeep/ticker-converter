@@ -56,13 +56,13 @@ def fetch_nyse_stock_data(**context):
     Minimal Python logic - only API calls and basic data formatting.
     """
     from src.data_ingestion.nyse_fetcher import NYSEFetcher
-    
+
     # Magnificent Seven stocks
     symbols = ['AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META', 'NVDA', 'TSLA']
-    
+
     fetcher = NYSEFetcher()
     postgres_hook = PostgresHook(postgres_conn_id='postgres_default')
-    
+
     for symbol in symbols:
         # Fetch data from API
         stock_data = fetcher.get_daily_data(symbol)
@@ -105,16 +105,16 @@ def fetch_usd_gbp_rates(**context):
     Fetch USD/GBP exchange rates from currency API.
     """
     from src.data_ingestion.currency_fetcher import CurrencyFetcher
-    
+
     fetcher = CurrencyFetcher()
     postgres_hook = PostgresHook(postgres_conn_id='postgres_default')
-    
+
     # Fetch USD/GBP rate for yesterday (market data is T-1)
     execution_date = context['execution_date']
     target_date = execution_date - timedelta(days=1)
-    
+
     rate_data = fetcher.get_exchange_rate('USD', 'GBP', target_date)
-    
+
     # Insert into staging table
     insert_sql = """
         INSERT INTO staging_currency_rates (from_currency, to_currency, rate, date, created_at)
@@ -123,7 +123,7 @@ def fetch_usd_gbp_rates(**context):
             rate = EXCLUDED.rate,
             updated_at = NOW()
     """
-    
+
     postgres_hook.run(insert_sql, parameters=(
         'USD', 'GBP', rate_data.rate, target_date
     ))
@@ -284,12 +284,12 @@ BEGIN
     JOIN dim_stocks s ON p.stock_id = s.stock_id
     JOIN dim_dates d ON p.date_id = d.date_id
     WHERE d.date = '{{ ds }}';
-    
+
     IF actual_stocks < expected_stocks THEN
         RAISE EXCEPTION 'Data quality check failed: Expected % stocks, found % for date %', 
             expected_stocks, actual_stocks, '{{ ds }}';
     END IF;
-    
+
     RAISE NOTICE 'Data quality check passed: % stocks found for date %', actual_stocks, '{{ ds }}';
 END $$;
 
@@ -310,12 +310,12 @@ BEGIN
           AND p.low_usd <= p.open_usd 
           AND p.low_usd <= p.close_usd
       );
-    
+
     IF invalid_count > 0 THEN
         RAISE EXCEPTION 'Data quality check failed: % invalid OHLC records found for date %', 
             invalid_count, '{{ ds }}';
     END IF;
-    
+
     RAISE NOTICE 'OHLC consistency check passed for date %', '{{ ds }}';
 END $$;
 
@@ -333,11 +333,11 @@ BEGIN
     WHERE d.date = '{{ ds }}'
       AND c1.code = 'USD'
       AND c2.code = 'GBP';
-    
+
     IF rate_count = 0 THEN
         RAISE EXCEPTION 'Data quality check failed: No USD/GBP rate found for date %', '{{ ds }}';
     END IF;
-    
+
     RAISE NOTICE 'Currency rate check passed for date %', '{{ ds }}';
 END $$;
 ```
@@ -466,17 +466,17 @@ dag = DAG(
 def check_data_freshness(**context):
     """Custom task to check if data is fresh enough"""
     postgres_hook = PostgresHook(postgres_conn_id='postgres_default')
-    
+
     # Check latest data date
     result = postgres_hook.get_first("""
         SELECT MAX(d.date) as latest_date
         FROM fact_stock_prices p
         JOIN dim_dates d ON p.date_id = d.date_id
     """)
-    
+
     latest_date = result[0]
     days_old = (datetime.now().date() - latest_date).days
-    
+
     if days_old > 3:  # Alert if data is more than 3 days old
         raise ValueError(f"Data is {days_old} days old - investigation required")
 
@@ -507,17 +507,17 @@ ON staging_currency_rates(date, from_currency, to_currency);
 def handle_api_failure(**context):
     """Fallback function for API failures"""
     from airflow.models import Variable
-    
+
     # Log failure
     logging.error(f"API fetch failed for {context['task_instance'].task_id}")
-    
+
     # Check if we have recent data to use
     postgres_hook = PostgresHook(postgres_conn_id='postgres_default')
     recent_data_count = postgres_hook.get_first("""
         SELECT COUNT(*) FROM staging_stock_data 
         WHERE date >= CURRENT_DATE - INTERVAL '2 days'
     """)[0]
-    
+
     if recent_data_count == 0:
         # No recent data - send alert and fail
         send_critical_alert("No stock data available - manual intervention required")
