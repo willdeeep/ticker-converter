@@ -2,15 +2,14 @@
 
 ## Overview
 
-This guide covers the setup and deployment of the ticker-converter SQL-centric ETL pipeline for NYSE stock market data analysis. The system supports both development (SQLite) and production (PostgreSQL) environments.
+This guide covers the setup and deployment of the ticker-converter SQL-centric ETL pipeline for NYSE stock market data analysis. The system uses PostgreSQL as the single database solution for both development and production environments.
 
 ## Prerequisites
 
 ### System Requirements
 - Python 3.9+ 
 - Git
-- SQLite 3.x (development)
-- PostgreSQL 12+ (production)
+- PostgreSQL 12+ (development and production)
 - Apache Airflow 2.5+ (optional for orchestration)
 
 ### API Access
@@ -43,21 +42,58 @@ pip install -e ".[dev]"
 pip install -e ".[all]"
 ```
 
-### 4. Environment Configuration
+### 4. PostgreSQL Database Setup
+
+#### Option 1: Local PostgreSQL Installation
+```bash
+# macOS (using Homebrew)
+brew install postgresql
+brew services start postgresql
+
+# Create database
+createdb ticker_converter
+
+# Create user (optional)
+psql -c "CREATE USER ticker_user WITH PASSWORD 'your_password';"
+psql -c "GRANT ALL PRIVILEGES ON DATABASE ticker_converter TO ticker_user;"
+```
+
+#### Option 2: Docker PostgreSQL
+```bash
+# Run PostgreSQL in Docker
+docker run --name ticker-postgres \
+  -e POSTGRES_DB=ticker_converter \
+  -e POSTGRES_USER=ticker_user \
+  -e POSTGRES_PASSWORD=your_password \
+  -p 5432:5432 \
+  -d postgres:14
+
+# Wait for container to start
+sleep 10
+```
+
+### 5. Environment Configuration
 ```bash
 # Copy environment template
 cp .env.example .env
 
-# Edit .env file with your API keys
+# Edit .env file with your configuration
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
 CURRENCY_API_KEY=your_currency_api_key
-DATABASE_URL=sqlite:///./data/stocks.db
+DATABASE_URL=postgresql://ticker_user:your_password@localhost:5432/ticker_converter
 ```
 
-### 5. Database Initialization
+### 6. Database Schema Initialization
 ```bash
-# Create database schema
+# Create database schema using SQL scripts
+psql $DATABASE_URL -f sql/ddl/001_create_dimensions.sql
+psql $DATABASE_URL -f sql/ddl/002_create_facts.sql
+psql $DATABASE_URL -f sql/ddl/003_create_views.sql
+psql $DATABASE_URL -f sql/ddl/004_create_indexes.sql
+
+# Or run the setup script
 python scripts/setup_database.py
+```
 
 # Verify schema creation
 python -c "from src.ticker_converter.database.connection import get_database_connection; print('Database connected successfully')"

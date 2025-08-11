@@ -9,7 +9,7 @@ The ticker-converter FastAPI application provides REST endpoints for NYSE stock 
 **Base URL**: `http://localhost:8000`  
 **API Version**: v1  
 **Response Format**: JSON  
-**Database**: Direct SQL query execution (SQLite/PostgreSQL)
+**Database**: Direct SQL query execution (PostgreSQL)
 
 ## Authentication
 

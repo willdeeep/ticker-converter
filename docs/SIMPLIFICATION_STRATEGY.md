@@ -217,7 +217,7 @@ This simplification strategy transforms the ticker-converter from an over-engine
 
 1. **Ingest**: NYSE stock data via Alpha Vantage API
 2. **Transform**: Currency conversion and performance calculations via SQL
-3. **Store**: Dimensional model in SQLite/PostgreSQL  
+3. **Store**: Dimensional model in PostgreSQL  
 4. **Orchestrate**: Airflow DAG with SQL operators
 5. **Serve**: FastAPI endpoints executing SQL queries
 

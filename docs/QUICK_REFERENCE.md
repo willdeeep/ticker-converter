@@ -51,6 +51,7 @@ Add:
 - Star schema (dim/fact tables)
 - Direct SQL in API endpoints
 - SQL operators in Airflow
+- PostgreSQL as single database solution
 
 ## SQL SCHEMA DESIGN
 

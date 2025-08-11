@@ -70,7 +70,7 @@ ticker-converter/
 │       │
 │       ├── database/                  # Database Operations
 │       │   ├── __init__.py
-│       │   ├── connection.py          # SQLite/PostgreSQL connection management
+│       │   ├── connection.py          # PostgreSQL connection management
 │       │   ├── schema.py              # Schema creation & migration functions
 │       │   └── queries.py             # SQL query execution utilities
 │       │
@@ -111,7 +111,7 @@ ticker-converter/
 │   └── fixtures/                      # Test Data
 │       ├── sample_stock_data.json     # Sample NYSE stock data
 │       ├── sample_currency_rates.json # Sample USD/GBP rates
-│       └── test_database.db           # SQLite test database
+│       └── test_database.sql          # PostgreSQL test database schema
 │
 ├── scripts/                           # Utility Scripts
 │   ├── setup_database.py              # Initialize database schema
@@ -179,7 +179,7 @@ Currency API → extract_data.py → Raw SQL Tables
 - **API Queries**: `sql/queries/` templates called by FastAPI endpoints
 
 ### **Database Operations** (`src/ticker_converter/database/`):
-- `connection.get_database_connection()` → SQLite/PostgreSQL connection
+- `connection.get_database_connection()` → PostgreSQL connection
 - `schema.create_schema()` → Execute DDL scripts
 - `queries.execute_sql_file()` → Run SQL scripts from files
 
