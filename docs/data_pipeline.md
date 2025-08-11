@@ -6,7 +6,7 @@ This document describes the simplified SQL-centric ETL pipeline for the ticker-c
 
 The pipeline is designed as a **SQL-first** ETL process that demonstrates core data engineering principles without unnecessary complexity:
 
-**Scope**: NYSE stocks (5-10 symbols), daily OHLCV data, USD/GBP currency conversion
+**Scope**: NYSE stock exchance spreads for a selection of specific companies from the previous day, daily OHLCV data, USD/GBP currency conversion
 **Architecture**: Star schema dimensional model with direct SQL operations
 **Orchestration**: Apache Airflow with SQL operators (not Python operators)
 
