@@ -20,7 +20,7 @@ The ticker-converter project had become overly complex with excessive feature en
 ### **Core Focus (Simplified Scope)**
 
 **Data Sources**:
-- **NYSE stocks only**: 5-10 major symbols (AAPL, MSFT, GOOGL, TSLA, NVDA)
+- **Magnificent Seven stocks**: AAPL, MSFT, AMZN, GOOGL, META, NVDA, TSLA
 - **Daily OHLCV data only** (no intraday complexity)
 - **USD to GBP currency conversion only** (single currency pair)
 - **Alpha Vantage API only** (leveraging completed Issue #1)
@@ -31,24 +31,101 @@ The ticker-converter project had become overly complex with excessive feature en
 - **Direct SQL storage**: No intermediate Parquet/JSON files
 - **Simple API endpoints**: Direct SQL query execution
 
-### 📁 **Files Scheduled for DELETION**
+### 📁 **Files Scheduled for DELETION - DETAILED LIST**
 
 As documented in [Issue #12](https://github.com/willdeeep/ticker-converter/issues/12):
 
 #### Complete File Removal:
+```bash
+# ETL Modules - Complex Python Processing
+src/ticker_converter/etl_modules/feature_engineer.py        # 347 lines - Excessive feature engineering
+src/ticker_converter/etl_modules/quality_validator.py       # 298 lines - Overly complex validation  
+
+# Data Models - Complex Classes
+src/ticker_converter/data_models/quality_metrics.py         # 156 lines - Unnecessary complexity
+
+# Scripts - Demo/Example Code
+scripts/demo_pipeline.py                                    # 423 lines - Demonstrates removed functionality
+
+# Test Files - Tests for Deleted Features
+tests/unit/etl_modules/test_quality_validator.py           # 267 lines - Tests for deleted features
+tests/integration/test_data_pipeline.py                    # 345 lines - Complex integration tests
 ```
-src/ticker_converter/etl_modules/feature_engineer.py        # Excessive feature engineering
-src/ticker_converter/etl_modules/quality_validator.py       # Overly complex validation  
-src/ticker_converter/data_models/quality_metrics.py         # Unnecessary complexity
-scripts/demo_pipeline.py                                    # Demonstrates removed functionality
-tests/unit/etl_modules/test_quality_validator.py           # Tests for deleted features
-tests/integration/test_data_pipeline.py                    # Complex integration tests
-```
+
+**Total File Removal**: 6 files, approximately 1,836 lines of code
 
 #### Classes to Remove from `market_data.py`:
 ```python
-class VolatilityFlag(str, Enum)           # Remove volatility classification
-class CleanedMarketData(BaseModel)        # Replace with direct SQL operations
+# REMOVE: Volatility Classification (47 lines)
+class VolatilityFlag(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium" 
+    HIGH = "high"
+
+# REMOVE: Complex Data Cleaning (89 lines)
+class CleanedMarketData(BaseModel):
+    symbol: str
+    date: datetime
+    cleaned_prices: Dict[str, float]
+    outliers_removed: int
+    volatility_flag: VolatilityFlag
+
+# REMOVE: Feature Engineering Results (134 lines)
+class FeatureEngineeredData(BaseModel):
+    symbol: str
+    date: datetime
+    moving_averages: Dict[str, float]
+    technical_indicators: Dict[str, float]
+    volatility_metrics: Dict[str, float]
+
+# REMOVE: Validation Results (67 lines)
+class ValidationResult(BaseModel):
+    is_valid: bool
+    errors: List[str]
+    warnings: List[str]
+    quality_score: float
+```
+
+**Class Removal**: 4 classes, approximately 337 lines of code
+
+#### Directories to Simplify:
+```bash
+# BEFORE: Complex structure
+src/ticker_converter/etl_modules/
+├── feature_engineer.py          # DELETE
+├── quality_validator.py         # DELETE  
+├── data_cleaner.py              # SIMPLIFY - keep basic validation only
+└── utils.py                     # KEEP - utility functions
+
+# AFTER: Simplified structure  
+src/ticker_converter/etl_modules/
+├── data_cleaner.py              # Simplified - basic validation only
+└── utils.py                     # Utility functions only
+
+# NEW: SQL-centric structure
+sql/
+├── ddl/                         # Data Definition Language
+├── etl/                         # ETL SQL Scripts  
+└── queries/                     # API Query Templates
+```
+
+#### Documentation to Remove/Update:
+```bash
+# Documentation cleanup
+docs/feature_engineering.md                # DELETE - no longer applicable
+docs/quality_metrics.md                   # DELETE - functionality removed
+docs/complex_etl_guide.md                 # DELETE - replaced by SQL guide
+
+# README.md - COMPLETE REWRITE required
+# Current: 156 lines describing complex pipeline
+# Target: ~80 lines describing simplified SQL approach
+```
+
+**Summary of Deletions**:
+- **Total Files Removed**: 9 files (6 Python + 3 documentation)
+- **Total Code Removed**: ~2,200+ lines
+- **Complexity Reduction**: ~60% reduction in codebase size
+- **Maintenance Burden**: Significantly reduced
 class FeatureEngineeredData(BaseModel)    # Replace with SQL calculations
 class ValidationResult(BaseModel)         # Simplify to basic validation
 ```

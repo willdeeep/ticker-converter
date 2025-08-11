@@ -13,7 +13,7 @@ The ticker-converter implements a simplified SQL-first ETL pipeline for NYSE sto
 - **Minimal Python logic** for data ingestion only
 
 ### 2. Simplified Scope
-- **5-10 NYSE stocks maximum** (AAPL, MSFT, GOOGL, TSLA, NVDA)
+- **Magnificent Seven stocks** (AAPL, MSFT, AMZN, GOOGL, META, NVDA, TSLA)
 - **Daily OHLCV data only** (no intraday complexity)
 - **USD → GBP conversion only** (single currency pair)
 - **PostgreSQL as single database** (no dual database complexity)
@@ -67,7 +67,8 @@ The star schema consists of three dimension tables and two fact tables:
 
 #### Dimension Tables
 
-**dim_stocks** - Master reference for stock symbols
+**Purpose**: Master reference for all stock symbols in the system.
+**Scope**: The Magnificent Seven stocks (AAPL, MSFT, AMZN, GOOGL, META, NVDA, TSLA).
 ```sql
 CREATE TABLE dim_stocks (
     stock_id SERIAL PRIMARY KEY,
@@ -260,5 +261,5 @@ dags/
 - [ ] **API endpoints execute SQL directly** via views
 - [ ] **Airflow uses SQL operators only**
 - [ ] **PostgreSQL as single database solution**
-- [ ] **Focus on 5-10 NYSE stocks maximum**
+- ✅ **Focus on Magnificent Seven stocks** (AAPL, MSFT, AMZN, GOOGL, META, NVDA, TSLA)
 - [ ]**Daily data only** (no intraday complexity)
