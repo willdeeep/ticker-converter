@@ -1,14 +1,14 @@
-# SQL Database Schema Documentation
+# PostgreSQL Database Schema Documentation
 
 ## Overview
 
-The ticker-converter project implements a star schema dimensional model optimized for NYSE stock market data analytics with USD/GBP currency conversion capabilities.
+The ticker-converter project implements a star schema dimensional model in PostgreSQL, optimized for NYSE stock market data analytics with USD/GBP currency conversion capabilities.
 
 ## Schema Design
 
 ### Dimensional Model Architecture
 
-The database follows a star schema pattern with clearly separated dimension and fact tables, enabling efficient analytical queries and maintaining data integrity through proper normalization.
+The PostgreSQL database follows a star schema pattern with clearly separated dimension and fact tables, enabling efficient analytical queries and maintaining data integrity through proper normalization.
 
 ## Dimension Tables
 
