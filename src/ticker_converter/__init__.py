@@ -1,8 +1,5 @@
-"""Financial Market Data Analytics Pipeline for SCSK."""
+"""Ticker Converter - SQL-first stock data and currency conversion."""
 
-__version__ = "0.1.2"
+__version__ = "0.3.0"
 __author__ = "Will Huntley-Clarke"
-
-from .core import FinancialDataPipeline
-
-__all__ = ["FinancialDataPipeline"]
+__description__ = "SQL-first stock data ETL and currency conversion for the Magnificent Seven"
