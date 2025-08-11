@@ -42,7 +42,9 @@ class TestAlphaVantageClient:
             ):
                 AlphaVantageClient()
 
-    def test_client_uses_config_api_key(self, mock_config):  # pylint: disable=unused-argument
+    def test_client_uses_config_api_key(
+        self, mock_config
+    ):  # pylint: disable=unused-argument
         """Test client uses config API key when none provided."""
         client = AlphaVantageClient()
         assert client.api_key == "test_api_key"

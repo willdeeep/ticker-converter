@@ -172,7 +172,9 @@ def mock_requests_session():
 
 
 @pytest.fixture
-def alpha_vantage_client(test_api_config: APIConfig) -> AlphaVantageClient:  # pylint: disable=redefined-outer-name
+def alpha_vantage_client(
+    test_api_config: APIConfig,
+) -> AlphaVantageClient:  # pylint: disable=redefined-outer-name
     """Alpha Vantage client instance for testing."""
     return AlphaVantageClient(api_key="test_api_key", config=test_api_config)
 
