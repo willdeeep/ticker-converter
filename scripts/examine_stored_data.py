@@ -1,9 +1,52 @@
 #!/usr/bin/env python3
 """Utility to examine existing stored data without making API calls."""
 
+import json
 from pathlib import Path
 
-from ticker_converter.storage import StorageFactory
+import pandas as pd
+
+
+def process_file(file_path: Path, base_path: Path) -> None:
+    """Process a single stored data file and display its information."""
+    print(f"\n📄 Examining: {file_path.relative_to(base_path)}")
+
+    try:
+        # Load based on file extension
+        if file_path.suffix == ".json":
+            with open(file_path, encoding="utf-8") as f:
+                data = json.load(f)
+            df = pd.DataFrame(data)
+        else:  # .parquet
+            df = pd.read_parquet(file_path)
+
+        # Show file stats
+        file_size_kb = file_path.stat().st_size / 1024
+        print(f"   Records: {len(df)}")
+        print(f"   📅 Date range: {df['Date'].min()} to {df['Date'].max()}")
+        print(f"   💾 File size: {file_size_kb:.1f} KB")
+        print(f"   📋 Columns: {list(df.columns)}")
+
+        # Show latest values if numeric columns exist
+        numeric_cols = df.select_dtypes(include=["number"]).columns
+        if len(numeric_cols) > 0:
+            display_latest_values(df)
+
+    except (FileNotFoundError, ValueError, KeyError) as e:
+        print(f"   Error loading file: {e}")
+
+
+def display_latest_values(df) -> None:
+    """Display the latest values for financial columns."""
+    latest_row = df.iloc[-1]
+    print("   💰 Latest values:")
+    for col in ["Close", "Open", "High", "Low", "Volume"]:
+        if col in latest_row:
+            value = latest_row[col]
+            if col == "Volume":
+                print(f"      {col}: {value:,.0f}")
+            else:
+                print(f"      {col}: ${value:.2f}")
 
 
 def examine_stored_data():
@@ -29,43 +72,7 @@ def examine_stored_data():
 
     # Examine each file
     for file_path in sorted(json_files + parquet_files):
-        print(f"\n📄 Examining: {file_path.relative_to(base_path)}")
-
-        try:
-            # Load based on file extension
-            if file_path.suffix == ".json":
-                storage = StorageFactory.create_storage(
-                    "json", base_path=base_path.parent
-                )
-                df = storage.load(file_path)
-            else:  # .parquet
-                storage = StorageFactory.create_storage(
-                    "parquet", base_path=base_path.parent
-                )
-                df = storage.load(file_path)
-
-            # Show file stats
-            file_size_kb = file_path.stat().st_size / 1024
-            print(f"   Records: {len(df)}")
-            print(f"   📅 Date range: {df['Date'].min()} to {df['Date'].max()}")
-            print(f"   💾 File size: {file_size_kb:.1f} KB")
-            print(f"   📋 Columns: {list(df.columns)}")
-
-            # Show latest values if numeric columns exist
-            numeric_cols = df.select_dtypes(include=["number"]).columns
-            if len(numeric_cols) > 0:
-                latest_row = df.iloc[-1]
-                print("   💰 Latest values:")
-                for col in ["Close", "Open", "High", "Low", "Volume"]:
-                    if col in latest_row:
-                        value = latest_row[col]
-                        if col == "Volume":
-                            print(f"      {col}: {value:,.0f}")
-                        else:
-                            print(f"      {col}: ${value:.2f}")
-
-        except Exception as e:
-            print(f"   Error loading file: {e}")
+        process_file(file_path, base_path)
 
     print("\nStored data examination complete!")
     print("This used 0 API calls - all data loaded from local files")

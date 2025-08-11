@@ -1,6 +1,6 @@
 # Financial Market Data Analytics Pipeline
 
-A Python-based ETL pipeline for financial market data analysis, built with Apache Airflow and designed to align with SCSK's Financial IT Business Segment requirements.
+A Python-based ETL pipeline for financial market data analysis, built with Apache Airflow and designed to align with Interviewing Company's Financial IT Business Segment requirements.
 
 ## Project Overview
 
@@ -125,9 +125,9 @@ mypy src/
 pytest tests/
 ```
 
-## Relevance to SCSK
+## Relevance to Interviewing Company
 
-This project aligns with SCSK's Financial IT Business Segment, which provides:
+This project aligns with Interviewing Company's Financial IT Business Segment, which provides:
 - Systems development for financial institutions
 - AML (Anti-Money Laundering) projects
 - Securities industry development projects

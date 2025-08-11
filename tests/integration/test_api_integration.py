@@ -10,8 +10,10 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src.ticker_converter.api_client import AlphaVantageAPIError, AlphaVantageClient
-from src.ticker_converter.core import FinancialDataPipeline
+from src.ticker_converter.api_clients.api_client import (
+    AlphaVantageAPIError,
+    AlphaVantageClient,
+)
 
 # Skip integration tests unless explicitly enabled
 INTEGRATION_ENABLED = os.getenv("INTEGRATION_TEST", "false").lower() == "true"
@@ -79,17 +81,17 @@ class TestAPIIntegration:
             client.get_daily_stock_data("INVALID_SYMBOL_12345")
 
     @integration_test
-    def test_pipeline_integration(self):
-        """Test full pipeline integration with real API."""
-        pipeline = FinancialDataPipeline(REAL_API_KEY)
+    def test_api_client_integration(self):
+        """Test API client integration with real API."""
+        client = AlphaVantageClient(REAL_API_KEY)
 
         # Test daily data
-        daily_data = pipeline.fetch_stock_data("MSFT", "1mo")
+        daily_data = client.get_daily_stock_data("MSFT", "compact")
         assert isinstance(daily_data, pd.DataFrame)
         assert len(daily_data) > 0
 
         # Test company info
-        company_info = pipeline.get_company_info("MSFT")
+        company_info = client.get_company_overview("MSFT")
         assert isinstance(company_info, dict)
         assert company_info.get("Symbol") == "MSFT"
 
@@ -98,7 +100,7 @@ class TestMockedIntegration:
     """Integration tests using mocked responses (always run)."""
 
     def test_end_to_end_data_flow(self, sample_daily_response, sample_company_overview):
-        """Test complete data flow from API to pipeline."""
+        """Test complete data flow from API client."""
         with patch("requests.Session") as mock_session_class:
             # Mock the session and response
             mock_session = mock_session_class.return_value
@@ -109,22 +111,22 @@ class TestMockedIntegration:
                 sample_company_overview,
             ]
 
-            # Create pipeline and test full flow
-            pipeline = FinancialDataPipeline("test_key")
+            # Create client and test full flow
+            client = AlphaVantageClient("test_key")
 
             # Fetch stock data
-            stock_data = pipeline.fetch_stock_data("AAPL", "1mo")
+            stock_data = client.get_daily_stock_data("AAPL", "compact")
             assert isinstance(stock_data, pd.DataFrame)
             assert len(stock_data) == 2
             assert stock_data["Symbol"].iloc[0] == "AAPL"
 
             # Fetch company info
-            company_info = pipeline.get_company_info("AAPL")
+            company_info = client.get_company_overview("AAPL")
             assert company_info["Name"] == "Apple Inc"
             assert company_info["Sector"] == "TECHNOLOGY"
 
     def test_error_recovery_flow(self):
-        """Test error handling across the full pipeline."""
+        """Test error handling in the API client."""
         with patch("requests.Session") as mock_session_class:
             # Mock API error
             mock_session = mock_session_class.return_value
@@ -132,12 +134,11 @@ class TestMockedIntegration:
             mock_response.raise_for_status.return_value = None
             mock_response.json.return_value = {"Error Message": "Invalid API call"}
 
-            pipeline = FinancialDataPipeline("test_key")
+            client = AlphaVantageClient("test_key")
 
             # Should handle error gracefully
-            result = pipeline.fetch_stock_data("INVALID")
-            assert isinstance(result, pd.DataFrame)
-            assert len(result) == 0
+            with pytest.raises(AlphaVantageAPIError):
+                client.get_daily_stock_data("INVALID", "compact")
 
     def test_data_consistency(self, sample_daily_response):
         """Test data consistency across multiple calls."""
@@ -147,11 +148,11 @@ class TestMockedIntegration:
             mock_response.raise_for_status.return_value = None
             mock_response.json.return_value = sample_daily_response
 
-            pipeline = FinancialDataPipeline("test_key")
+            client = AlphaVantageClient("test_key")
 
             # Fetch same data twice
-            data1 = pipeline.fetch_stock_data("AAPL", "1mo")
-            data2 = pipeline.fetch_stock_data("AAPL", "1mo")
+            data1 = client.get_daily_stock_data("AAPL", "compact")
+            data2 = client.get_daily_stock_data("AAPL", "compact")
 
             # Should be identical
             pd.testing.assert_frame_equal(data1, data2)
