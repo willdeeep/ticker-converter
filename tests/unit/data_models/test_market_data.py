@@ -207,7 +207,7 @@ class TestCurrencyRate:
             from_currency="USD",
             to_currency="GBP",
             rate=0.8,
-            source="test_api"
+            source="test_api",
         )
 
         assert rate.from_currency == "USD"
@@ -222,7 +222,7 @@ class TestCurrencyRate:
             from_currency="usd",
             to_currency="gbp",
             rate=0.8,
-            source="test_api"
+            source="test_api",
         )
 
         assert rate.from_currency == "USD"
@@ -236,5 +236,5 @@ class TestCurrencyRate:
                 from_currency="USD",
                 to_currency="GBP",
                 rate=-0.8,  # Negative rate should fail
-                source="test_api"
+                source="test_api",
             )

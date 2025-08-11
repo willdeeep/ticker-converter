@@ -32,6 +32,9 @@ src/ticker_converter/etl_modules/feature_engineer.py
 # Overly complex validation removed  
 src/ticker_converter/etl_modules/quality_validator.py
 
+# Complex data cleaning removed (replaced by SQL)
+src/ticker_converter/etl_modules/data_cleaner.py
+
 # Unnecessary quality metrics removed
 src/ticker_converter/data_models/quality_metrics.py
 

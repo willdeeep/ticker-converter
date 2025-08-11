@@ -99,7 +99,7 @@ class FinancialDataPipeline:
 
     def transform(self, data: pd.DataFrame, symbol: str = "UNKNOWN") -> pd.DataFrame:
         """Transform raw financial data with basic formatting.
-        
+
         Note: In the SQL-first architecture, complex transformations are done in PostgreSQL.
         This method provides basic DataFrame formatting only.
 
@@ -112,33 +112,33 @@ class FinancialDataPipeline:
         """
         if data.empty:
             return data
-        
+
         # Basic data formatting - ensure required columns exist
         result = data.copy()
-        
+
         # Ensure Symbol column exists
         if "Symbol" not in result.columns:
             result["Symbol"] = symbol
-        
+
         # Ensure basic column names are standardized
         column_mapping = {
             "1. open": "Open",
-            "2. high": "High", 
+            "2. high": "High",
             "3. low": "Low",
             "4. close": "Close",
-            "5. volume": "Volume"
+            "5. volume": "Volume",
         }
-        
+
         # Apply column mapping if needed
         for old_col, new_col in column_mapping.items():
             if old_col in result.columns:
                 result = result.rename(columns={old_col: new_col})
-        
+
         # Basic validation - ensure required columns exist
         required_columns = ["Open", "High", "Low", "Close", "Volume"]
         missing_columns = [col for col in required_columns if col not in result.columns]
-        
+
         if missing_columns:
             logger.warning(f"Missing required columns for {symbol}: {missing_columns}")
-        
+
         return result

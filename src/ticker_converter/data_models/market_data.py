@@ -1,7 +1,6 @@
 """Market data models using Pydantic for validation."""
 
 from datetime import datetime
-from typing import Optional
 
 import pandas as pd
 from pydantic import (
@@ -102,8 +101,12 @@ class CurrencyRate(BaseModel):
     """Currency exchange rate data."""
 
     timestamp: datetime = Field(..., description="Rate timestamp")
-    from_currency: str = Field(..., min_length=3, max_length=3, description="Source currency code")
-    to_currency: str = Field(..., min_length=3, max_length=3, description="Target currency code")
+    from_currency: str = Field(
+        ..., min_length=3, max_length=3, description="Source currency code"
+    )
+    to_currency: str = Field(
+        ..., min_length=3, max_length=3, description="Target currency code"
+    )
     rate: float = Field(..., gt=0, description="Exchange rate")
     source: str = Field(..., description="Data source")
     retrieved_at: datetime = Field(default_factory=datetime.utcnow)
