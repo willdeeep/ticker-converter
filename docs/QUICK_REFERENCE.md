@@ -67,8 +67,8 @@ fact_currency_rates (date_id, from_currency_id, to_currency_id, exchange_rate)
 
 -- Views
 v_stock_performance  # Daily returns via SQL window functions
-v_stocks_gbp        # Prices in GBP via JOINs
-v_top_performers    # Top 5 stocks ORDER BY LIMIT 5
+v_stocks_gbp         # Prices in GBP via JOINs
+v_top_performers     # Top 5 stocks ORDER BY LIMIT 5
 ```
 
 ## API ENDPOINTS (SQL-Powered)
