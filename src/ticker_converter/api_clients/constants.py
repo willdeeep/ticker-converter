@@ -1,9 +1,11 @@
-"""Constants for Alpha Vantage API client."""
+"""Constants and configuration for Alpha Vantage API client."""
 
 import os
+from dataclasses import dataclass
+from enum import Enum
 
 
-class AlphaVantageFunction:
+class AlphaVantageFunction(str, Enum):
     """Alpha Vantage API function names."""
 
     TIME_SERIES_DAILY = "TIME_SERIES_DAILY"
@@ -14,7 +16,7 @@ class AlphaVantageFunction:
     DIGITAL_CURRENCY_DAILY = "DIGITAL_CURRENCY_DAILY"
 
 
-class AlphaVantageResponseKey:
+class AlphaVantageResponseKey(str, Enum):
     """Alpha Vantage API response keys."""
 
     TIME_SERIES_DAILY = "Time Series (Daily)"
@@ -23,7 +25,7 @@ class AlphaVantageResponseKey:
     NOTE = "Note"
 
 
-class AlphaVantageValueKey:
+class AlphaVantageValueKey(str, Enum):
     """Alpha Vantage time series value keys."""
 
     OPEN = "1. open"
@@ -35,22 +37,55 @@ class AlphaVantageValueKey:
     LAST_REFRESHED = "6. Last Refreshed"
 
 
-class OutputSize:
+class OutputSize(str, Enum):
     """Output size options for Alpha Vantage API."""
 
     COMPACT = "compact"
     FULL = "full"
 
 
-class Config:
+@dataclass(frozen=True)
+class APIConfig:
     """Configuration for Alpha Vantage API client."""
 
-    ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY", "")
-    ALPHA_VANTAGE_BASE_URL = "https://www.alphavantage.co/query"
-    API_TIMEOUT = 30
-    MAX_RETRIES = 3
-    RATE_LIMIT_DELAY = 12  # Alpha Vantage free tier allows 5 requests per minute
+    api_key: str
+    base_url: str
+    timeout: int
+    max_retries: int
+    rate_limit_delay: int
 
 
-# Global config instance
-config = Config()
+def get_api_config() -> APIConfig:
+    """Get API configuration from environment variables.
+
+    Returns:
+        APIConfig instance with environment-based configuration
+
+    Raises:
+        ValueError: If required environment variables are missing
+    """
+    api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "")
+    if not api_key:
+        raise ValueError("ALPHA_VANTAGE_API_KEY environment variable is required")
+
+    return APIConfig(
+        api_key=api_key,
+        base_url="https://www.alphavantage.co/query",
+        timeout=30,
+        max_retries=3,
+        rate_limit_delay=12,  # Alpha Vantage free tier allows 5 requests per minute
+    )
+
+
+# Default configuration instance
+try:
+    config = get_api_config()
+except ValueError:
+    # Use demo config for testing when API key is not available
+    config = APIConfig(
+        api_key="demo",
+        base_url="https://www.alphavantage.co/query",
+        timeout=30,
+        max_retries=3,
+        rate_limit_delay=12,
+    )

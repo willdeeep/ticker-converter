@@ -11,65 +11,47 @@ This DAG orchestrates the complete ETL process using SQL operators:
 """
 
 from datetime import datetime, timedelta
+from typing import List
 
 from airflow import DAG
 from airflow.providers.standard.operators.empty import EmptyOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 
-# Default arguments for the DAG
-default_args = {
-    "owner": "ticker-converter",
-    "depends_on_past": False,
-    "start_date": datetime(2024, 1, 1),
-    "email_on_failure": False,
-    "email_on_retry": False,
-    "retries": 1,
-    "retry_delay": timedelta(minutes=5),
-}
 
-# Create the DAG
-dag = DAG(
-    "ticker_converter_daily_etl",
-    default_args=default_args,
-    description="Daily ETL pipeline for stock data and currency conversion",
-    schedule="0 6 * * *",  # Run daily at 6 AM UTC
-    catchup=False,
-    max_active_runs=1,
-    tags=["ticker-converter", "etl", "stocks", "currencies"],
-)
+class DAGConfig:
+    """Configuration for the ETL DAG."""
 
-# Start task
-start_task = EmptyOperator(
-    task_id="start_etl",
-    dag=dag,
-)
+    # DAG metadata
+    DAG_ID = "ticker_converter_daily_etl"
+    DESCRIPTION = "Daily ETL pipeline for stock data and currency conversion"
+    SCHEDULE = "0 6 * * *"  # Run daily at 6 AM UTC
+    TAGS = ["ticker-converter", "etl", "stocks", "currencies"]
 
-# Load dimension data
-load_stock_dimension = SQLExecuteQueryOperator(
-    task_id="load_stock_dimension",
-    conn_id="postgres_default",
-    sql="sql/etl/load_stock_dimension.sql",
-    dag=dag,
-)
+    # Default arguments
+    DEFAULT_ARGS = {
+        "owner": "ticker-converter",
+        "depends_on_past": False,
+        "start_date": datetime(2024, 1, 1),
+        "email_on_failure": False,
+        "email_on_retry": False,
+        "retries": 1,
+        "retry_delay": timedelta(minutes=5),
+    }
 
-load_date_dimension = SQLExecuteQueryOperator(
-    task_id="load_date_dimension",
-    conn_id="postgres_default",
-    sql="sql/etl/load_date_dimension.sql",
-    dag=dag,
-)
+    # Database connection
+    POSTGRES_CONN_ID = "postgres_default"
 
-load_currency_dimension = SQLExecuteQueryOperator(
-    task_id="load_currency_dimension",
-    conn_id="postgres_default",
-    sql="sql/etl/load_currency_dimension.sql",
-    dag=dag,
-)
+    # SQL file paths
+    SQL_DIR = "sql/etl"
+    DIMENSION_TABLES = [
+        "load_stock_dimension.sql",
+        "load_date_dimension.sql", 
+        "load_currency_dimension.sql"
+    ]
 
 
-# Data extraction tasks (these would be Python operators calling APIs)
-def extract_stock_prices():
+def extract_stock_prices() -> None:
     """Extract stock prices from Alpha Vantage API.
 
     This function would call the Alpha Vantage API for each stock
@@ -80,7 +62,7 @@ def extract_stock_prices():
     print("Extracting stock prices from Alpha Vantage API")
 
 
-def extract_exchange_rates():
+def extract_exchange_rates() -> None:
     """Extract exchange rates from exchangerate-api.io.
 
     This function would call the exchange rate API
@@ -91,72 +73,144 @@ def extract_exchange_rates():
     print("Extracting exchange rates from API")
 
 
-extract_stock_data = PythonOperator(
-    task_id="extract_stock_data",
-    python_callable=extract_stock_prices,
-    dag=dag,
+def create_dimension_load_tasks(dag_instance: DAG) -> List[SQLExecuteQueryOperator]:
+    """Create dimension loading tasks.
+
+    Args:
+        dag_instance: Airflow DAG instance
+        
+    Returns:
+        List of dimension loading tasks
+    """
+    tasks = []
+
+    for sql_file in DAGConfig.DIMENSION_TABLES:
+        task_id = sql_file.replace(".sql", "")
+        task = SQLExecuteQueryOperator(
+            task_id=task_id,
+            conn_id=DAGConfig.POSTGRES_CONN_ID,
+            sql=f"{DAGConfig.SQL_DIR}/{sql_file}",
+            dag=dag_instance,
+        )
+        tasks.append(task)
+
+    return tasks
+
+
+def create_extraction_tasks(dag_instance: DAG) -> List[PythonOperator]:
+    """Create data extraction tasks.
+
+    Args:
+        dag_instance: Airflow DAG instance
+        
+    Returns:
+        List of extraction tasks
+    """
+    stock_data_task = PythonOperator(
+        task_id="extract_stock_data",
+        python_callable=extract_stock_prices,
+        dag=dag_instance,
+    )
+
+    currency_data_task = PythonOperator(
+        task_id="extract_currency_data",
+        python_callable=extract_exchange_rates,
+        dag=dag_instance,
+    )
+
+    return [stock_data_task, currency_data_task]
+
+
+def create_transformation_tasks(dag_instance: DAG) -> List[SQLExecuteQueryOperator]:
+    """Create transformation and quality check tasks.
+
+    Args:
+        dag_instance: Airflow DAG instance
+        
+    Returns:
+        List of transformation tasks
+    """
+    daily_transforms_task = SQLExecuteQueryOperator(
+        task_id="run_daily_transforms",
+        conn_id=DAGConfig.POSTGRES_CONN_ID,
+        sql=f"{DAGConfig.SQL_DIR}/daily_transforms.sql",
+        dag=dag_instance,
+    )
+
+    quality_checks_task = SQLExecuteQueryOperator(
+        task_id="run_data_quality_checks",
+        conn_id=DAGConfig.POSTGRES_CONN_ID,
+        sql=f"{DAGConfig.SQL_DIR}/data_quality_checks.sql",
+        dag=dag_instance,
+    )
+
+    cleanup_task = SQLExecuteQueryOperator(
+        task_id="cleanup_old_data",
+        conn_id=DAGConfig.POSTGRES_CONN_ID,
+        sql=f"{DAGConfig.SQL_DIR}/cleanup_old_data.sql",
+        dag=dag_instance,
+    )
+
+    return [daily_transforms_task, quality_checks_task, cleanup_task]
+
+
+# Create the DAG
+dag = DAG(
+    DAGConfig.DAG_ID,
+    default_args=DAGConfig.DEFAULT_ARGS,
+    description=DAGConfig.DESCRIPTION,
+    schedule=DAGConfig.SCHEDULE,
+    catchup=False,
+    max_active_runs=1,
+    tags=DAGConfig.TAGS,
 )
 
-extract_currency_data = PythonOperator(
-    task_id="extract_currency_data",
-    python_callable=extract_exchange_rates,
-    dag=dag,
-)
+# Create control tasks
+start_task = EmptyOperator(task_id="start_etl", dag=dag)
+end_task = EmptyOperator(task_id="end_etl", dag=dag)
 
-# Daily transformations
-run_daily_transforms = SQLExecuteQueryOperator(
-    task_id="run_daily_transforms",
-    conn_id="postgres_default",
-    sql="sql/etl/daily_transforms.sql",
-    dag=dag,
-)
+# Create task groups
+dimension_tasks = create_dimension_load_tasks(dag)
+extraction_tasks = create_extraction_tasks(dag)
+transformation_tasks = create_transformation_tasks(dag)
 
-# Data quality checks
-run_data_quality_checks = SQLExecuteQueryOperator(
-    task_id="run_data_quality_checks",
-    conn_id="postgres_default",
-    sql="sql/etl/data_quality_checks.sql",
-    dag=dag,
-)
+# Extract individual tasks for easier reference
+# Dimension tasks (3 tasks as defined in DIMENSION_TABLES)
+load_stock_dimension = dimension_tasks[0]
+load_date_dimension = dimension_tasks[1]
+load_currency_dimension = dimension_tasks[2]
 
-# Cleanup old data
-cleanup_old_data = SQLExecuteQueryOperator(
-    task_id="cleanup_old_data",
-    conn_id="postgres_default",
-    sql="sql/etl/cleanup_old_data.sql",
-    dag=dag,
-)
+# Extraction tasks (2 tasks)
+extract_stock_data = extraction_tasks[0]
+extract_currency_data = extraction_tasks[1]
 
-# End task
-end_task = EmptyOperator(
-    task_id="end_etl",
-    dag=dag,
-)
+# Transformation tasks (3 tasks)
+run_daily_transforms = transformation_tasks[0]
+run_data_quality_checks = transformation_tasks[1]
+cleanup_old_data = transformation_tasks[2]
 
-# Define task dependencies
-# Start with dimension loading in parallel
-start_task >> load_stock_dimension
-start_task >> load_date_dimension
-start_task >> load_currency_dimension
+# Define task dependencies using a more declarative approach
+def setup_dependencies() -> None:
+    """Setup task dependencies in a clear, maintainable way."""
 
-# Wait for all dimensions to load before extracting data
-load_stock_dimension >> extract_stock_data
-load_date_dimension >> extract_stock_data
-load_currency_dimension >> extract_stock_data
+    # Start with dimension loading in parallel
+    start_task >> dimension_tasks
 
-load_stock_dimension >> extract_currency_data
-load_date_dimension >> extract_currency_data
-load_currency_dimension >> extract_currency_data
+    # Wait for all dimensions to load before extracting data
+    for dim_task in dimension_tasks:
+        for extract_task in extraction_tasks:
+            dim_task >> extract_task
 
-# Run transformations after data extraction
-extract_stock_data >> run_daily_transforms
-extract_currency_data >> run_daily_transforms
+    # Run transformations after data extraction
+    for extract_task in extraction_tasks:
+        extract_task >> run_daily_transforms
 
-# Run quality checks after transformations
-run_daily_transforms >> run_data_quality_checks
+    # Sequential quality and cleanup operations
+    run_daily_transforms >> run_data_quality_checks >> cleanup_old_data
 
-# Cleanup after quality checks
-run_data_quality_checks >> cleanup_old_data
+    # End the DAG
+    cleanup_old_data >> end_task
 
-# End the DAG
-cleanup_old_data >> end_task
+
+# Setup all dependencies
+setup_dependencies()

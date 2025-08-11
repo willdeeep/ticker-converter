@@ -26,21 +26,26 @@ class TestAlphaVantageClient:
         assert client.rate_limit_delay == 12  # Alpha Vantage free tier rate limit
         assert client.session is not None
 
-    def test_client_initialization_without_api_key_raises_error(self, mock_config):
+    def test_client_initialization_without_api_key_raises_error(self):
         """Test client raises error when no API key provided."""
-        mock_config.ALPHA_VANTAGE_API_KEY = None
+        # Mock config to return empty API key
+        with patch(
+            "src.ticker_converter.api_clients.api_client.get_api_config"
+        ) as mock_get_config:
+            mock_get_config.side_effect = ValueError(
+                "ALPHA_VANTAGE_API_KEY environment variable is required"
+            )
 
-        with pytest.raises(
-            AlphaVantageAPIError, match="Alpha Vantage API key is required"
-        ):
-            AlphaVantageClient()
+            with pytest.raises(
+                ValueError,
+                match="ALPHA_VANTAGE_API_KEY environment variable is required",
+            ):
+                AlphaVantageClient()
 
-    def test_client_uses_config_api_key(self, mock_config):
+    def test_client_uses_config_api_key(self, mock_config):  # pylint: disable=unused-argument
         """Test client uses config API key when none provided."""
-        mock_config.ALPHA_VANTAGE_API_KEY = "config_key"
-
         client = AlphaVantageClient()
-        assert client.api_key == "config_key"
+        assert client.api_key == "test_api_key"
 
     @patch("time.sleep")
     def test_make_request_success(

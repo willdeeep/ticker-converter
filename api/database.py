@@ -1,11 +1,16 @@
 """Database connection and configuration."""
 
 import logging
-from typing import Any
+from contextlib import asynccontextmanager
+from typing import Any, AsyncGenerator
 
 import asyncpg
 
 logger = logging.getLogger(__name__)
+
+
+class DatabaseError(Exception):
+    """Custom exception for database-related errors."""
 
 
 class DatabaseConnection:
@@ -27,13 +32,30 @@ class DatabaseConnection:
             logger.info("Database connection pool created successfully")
         except Exception as e:
             logger.error("Failed to create database connection pool: %s", e)
-            raise
+            raise DatabaseError(f"Failed to initialize database: {e}") from e
 
     async def close(self) -> None:
         """Close connection pool."""
         if self._pool:
             await self._pool.close()
+            self._pool = None
             logger.info("Database connection pool closed")
+
+    @asynccontextmanager
+    async def _get_connection(self) -> AsyncGenerator[asyncpg.Connection, None]:
+        """Get a database connection from the pool.
+        
+        Yields:
+            Database connection
+
+        Raises:
+            DatabaseError: If pool is not initialized
+        """
+        if not self._pool:
+            raise DatabaseError("Database connection not initialized")
+
+        async with self._pool.acquire() as connection:
+            yield connection
 
     async def execute_query(
         self, query: str, params: list[Any] | None = None
@@ -46,11 +68,11 @@ class DatabaseConnection:
 
         Returns:
             List of dictionaries representing rows
-        """
-        if not self._pool:
-            raise RuntimeError("Database connection not initialized")
 
-        async with self._pool.acquire() as connection:
+        Raises:
+            DatabaseError: On query execution failure
+        """
+        async with self._get_connection() as connection:
             try:
                 if params:
                     result = await connection.fetch(query, *params)
@@ -62,7 +84,7 @@ class DatabaseConnection:
                 logger.error("Query execution failed: %s", e)
                 logger.error("Query: %s", query)
                 logger.error("Params: %s", params)
-                raise
+                raise DatabaseError(f"Query execution failed: {e}") from e
 
     async def execute_command(
         self, command: str, params: list[Any] | None = None
@@ -72,11 +94,11 @@ class DatabaseConnection:
         Args:
             command: SQL command string
             params: Command parameters
-        """
-        if not self._pool:
-            raise RuntimeError("Database connection not initialized")
 
-        async with self._pool.acquire() as connection:
+        Raises:
+            DatabaseError: On command execution failure
+        """
+        async with self._get_connection() as connection:
             try:
                 if params:
                     await connection.execute(command, *params)
@@ -86,7 +108,30 @@ class DatabaseConnection:
                 logger.error("Command execution failed: %s", e)
                 logger.error("Command: %s", command)
                 logger.error("Params: %s", params)
-                raise
+                raise DatabaseError(f"Command execution failed: {e}") from e
+
+    async def execute_transaction(
+        self, commands: list[tuple[str, list[Any] | None]]
+    ) -> None:
+        """Execute multiple commands in a transaction.
+        
+        Args:
+            commands: List of (command, params) tuples
+
+        Raises:
+            DatabaseError: On transaction failure
+        """
+        async with self._get_connection() as connection:
+            async with connection.transaction():
+                try:
+                    for command, params in commands:
+                        if params:
+                            await connection.execute(command, *params)
+                        else:
+                            await connection.execute(command)
+                except Exception as e:
+                    logger.error("Transaction failed: %s", e)
+                    raise DatabaseError(f"Transaction failed: {e}") from e
 
 
 class DatabaseManager:
@@ -102,10 +147,10 @@ class DatabaseManager:
             Database connection instance
 
         Raises:
-            RuntimeError: If database is not initialized
+            DatabaseError: If database is not initialized
         """
         if cls._db_connection is None:
-            raise RuntimeError("Database connection not initialized")
+            raise DatabaseError("Database connection not initialized")
         return cls._db_connection
 
     @classmethod
