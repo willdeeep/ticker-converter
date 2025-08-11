@@ -1,7 +1,9 @@
 """Feature engineering module for market data."""
 
+from __future__ import annotations
+
 import logging
-from typing import Optional
+from typing import Any
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -70,7 +72,7 @@ class FeatureConfig(BaseModel):
 class FeatureEngineer:
     """Creates features for market data analysis."""
 
-    def __init__(self, config: Optional[FeatureConfig] = None):
+    def __init__(self, config: FeatureConfig | None = None):
         """Initialize the feature engineer.
 
         Args:
@@ -199,7 +201,7 @@ class FeatureEngineer:
 
         return df
 
-    def _calculate_true_range(self, df: pd.DataFrame) -> pd.Series:
+    def _calculate_true_range(self, df: pd.DataFrame) -> pd.Series[Any]:
         """Calculate True Range for ATR."""
         return FeatureEngineering.calculate_true_range(df)
 
