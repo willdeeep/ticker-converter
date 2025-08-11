@@ -4,10 +4,9 @@
 import importlib.util
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 
-def find_python_files(root_path: Path) -> List[Path]:
+def find_python_files(root_path: Path) -> list[Path]:
     """Find all Python files in the project."""
     python_files = []
 
@@ -32,7 +31,7 @@ def find_python_files(root_path: Path) -> List[Path]:
     return sorted(python_files)
 
 
-def test_file_import(file_path: Path, project_root: Path) -> Dict[str, any]:
+def test_file_import(file_path: Path, project_root: Path) -> dict[str, any]:
     """Test if a Python file can be imported without fatal errors."""
     result = {
         "file": str(file_path.relative_to(project_root)),
