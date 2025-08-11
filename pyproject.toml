@@ -258,7 +258,12 @@ disable = [
 ]
 
 [tool.pylint.typecheck]
-generated-members = ["pydantic.*"]
+generated-members = [
+    "pydantic.*",
+    "src.ticker_converter.data_models.quality_metrics.DataQualityMetrics.*",
+    "src.ticker_converter.data_models.quality_metrics.DataQualityReport.*",
+]
+ignored-classes = ["FieldInfo"]
 
 [tool.pylint.design]
 max-args = 10

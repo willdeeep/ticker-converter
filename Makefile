@@ -190,6 +190,19 @@ ci-quality: check-all ## Run CI quality checks
 ci-full: ci-setup ci-quality test ## Run full CI pipeline
 	@echo "$(GREEN)Full CI pipeline completed$(NC)"
 
+# Act (GitHub Actions Local Testing)
+act-pr: ## Run GitHub Actions PR workflow locally with Act
+	@echo "$(BLUE)Running GitHub Actions PR workflow locally...$(NC)"
+	act pull_request --container-architecture linux/amd64
+
+act-push: ## Run GitHub Actions push workflow locally with Act
+	@echo "$(BLUE)Running GitHub Actions push workflow locally...$(NC)"
+	act push --container-architecture linux/amd64
+
+act-list: ## List available Act workflows
+	@echo "$(BLUE)Available GitHub Actions workflows:$(NC)"
+	act --list --container-architecture linux/amd64
+
 # Build and Package
 clean: ## Clean build artifacts
 	@echo "$(YELLOW)Cleaning build artifacts...$(NC)"

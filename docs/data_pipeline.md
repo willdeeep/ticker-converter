@@ -1,320 +1,325 @@
-# Data Cleaning and Feature Engineering Pipeline
+# Simplified SQL-Centric ETL Pipeline
 
-This document describes the data cleaning and feature engineering pipeline implemented for the Financial Market Data Analytics Pipeline.
+This document describes the simplified SQL-centric ETL pipeline for the ticker-converter project, focusing on NYSE stocks and USD/GBP conversion with Apache Airflow orchestration.
 
 ## Overview
 
-The pipeline consists of three main components:
+The pipeline is designed as a **SQL-first** ETL process that demonstrates core data engineering principles without unnecessary complexity:
 
-1. **DataCleaner**: Cleans and validates raw market data
-2. **FeatureEngineer**: Creates engineered features for analysis
-3. **QualityValidator**: Validates data quality and generates reports
+**Scope**: NYSE stocks (5-10 symbols), daily OHLCV data, USD/GBP currency conversion
+**Architecture**: Star schema dimensional model with direct SQL operations
+**Orchestration**: Apache Airflow with SQL operators (not Python operators)
 
-## Architecture
+## Simplified Architecture
 
 ```
-Raw Market Data → Data Cleaning → Feature Engineering → Quality Validation
-                     ↓               ↓                    ↓
-                 CleanedData    FeatureEngineeredData  QualityReport
+Alpha Vantage API → Raw Data Ingestion → SQL Transformations → Star Schema → API Queries
+                        ↓                       ↓               ↓           ↓
+                   Raw Tables           Dimensional Model   Fact Tables   REST API
 ```
 
-## Data Models
+## Airflow DAG Structure
 
-### MarketDataPoint
-Represents a single market data observation with validation:
-- `timestamp`: Date and time of the observation
-- `symbol`: Stock ticker symbol
-- `open`, `high`, `low`, `close`: OHLC prices (validated for relationships)
-- `volume`: Trading volume (non-negative)
+### DAG: `daily_market_data_pipeline`
 
-### RawMarketData
-Collection of market data points with metadata:
-- `data_points`: List of MarketDataPoint objects
-- `source`: Data source (e.g., "alpha_vantage")
-- `symbol`: Primary symbol for the dataset
-- `data_type`: Type of data (e.g., "daily", "intraday")
+**Schedule**: Daily at 6:00 PM EST (after market close)
+**Catchup**: False
+**Max Active Runs**: 1
 
-### CleanedMarketData
-Result of data cleaning operations:
-- `raw_data`: Original raw data
-- `cleaning_applied`: List of cleaning operations performed
-- `outliers_removed`: Count of outliers removed
-- `missing_values_filled`: Count of missing values filled
+#### Task Dependencies
 
-### FeatureEngineeredData
-Result of feature engineering:
-- `cleaned_data`: Source cleaned data
-- `features_created`: List of engineered features
-- `ma_periods`: Moving average periods used
-- Volatility thresholds configuration
+```
+start_pipeline
+    ↓
+extract_stock_data (Alpha Vantage API calls)
+    ↓
+extract_currency_rates (USD/GBP conversion)
+    ↓
+load_raw_data (Insert into staging tables)
+    ↓
+transform_dimensions (Populate dim_stocks, dim_dates)
+    ↓
+transform_facts (Calculate and load fact_stock_prices, fact_currency_rates)
+    ↓
+data_quality_checks (SQL validation queries)
+    ↓
+refresh_views (Update analytical views)
+    ↓
+end_pipeline
+```
 
-## Data Cleaning Operations
+#### Task Details
 
-### 1. Type Consistency
-- Ensures numeric columns are proper numeric types
-- Converts Volume to integer
-- Standardizes Symbol as string
-
-### 2. Duplicate Removal
-- Removes duplicate records based on date and symbol
-- Keeps the first occurrence of duplicates
-
-### 3. Price Relationship Validation
-- Removes rows where High < Low
-- Removes rows where Close is outside High/Low range
-- Removes rows with non-positive prices
-
-### 4. Missing Value Handling
-Methods available:
-- `forward_fill`: Forward fill missing values
-- `backward_fill`: Backward fill missing values
-- `interpolate`: Linear interpolation
-- `mean`: Fill with column mean
-
-### 5. Outlier Detection and Removal
-Methods available:
-- `iqr`: Interquartile Range method
-- `zscore`: Z-score method
-
-Configuration parameters:
-- `outlier_threshold`: Multiplier for outlier detection (default: 1.5 for IQR)
-
-## Feature Engineering
-
-### Price-Based Features
-
-#### Returns
-- `Daily_Return`: Daily percentage return
-- `Log_Return`: Logarithmic return
-- `Cumulative_Return`: Cumulative return from start
-
-#### Moving Averages
-- `MA_N`: N-period moving average (configurable periods)
-- `Price_to_MA_N_Ratio`: Current price to moving average ratio
-
-#### Price Patterns
-- `Gap_Up`: Boolean flag for gap up patterns
-- `Gap_Down`: Boolean flag for gap down patterns
-- `Is_Doji`: Boolean flag for doji candlestick patterns
-- `Price_Momentum_N`: N-period price momentum
-
-### Volatility Features
-
-#### Basic Volatility
-- `Volatility`: Rolling standard deviation of returns
-- `True_Range`: True Range calculation
-- `ATR`: Average True Range
-- `HL_Range_Pct`: High-Low range as percentage of close
-
-#### Volatility Classification
-- `Volatility_Flag`: Categorical volatility classification
-- `Is_Low_Volatility`: Boolean flag for low volatility
-- `Is_Moderate_Volatility`: Boolean flag for moderate volatility
-- `Is_High_Volatility`: Boolean flag for high volatility
-- `Is_Extreme_Volatility`: Boolean flag for extreme volatility
-
-Thresholds (configurable):
-- Low: < 2%
-- Moderate: 2-5%
-- High: 5-10%
-- Extreme: > 10%
-
-### Technical Indicators
-
-#### RSI (Relative Strength Index)
-- `RSI`: RSI value (0-100)
-- `RSI_Oversold`: Boolean flag for RSI < 30
-- `RSI_Overbought`: Boolean flag for RSI > 70
-
-#### Bollinger Bands
-- `BB_Middle`: Middle band (SMA)
-- `BB_Upper`: Upper band
-- `BB_Lower`: Lower band
-- `BB_Width`: Band width
-- `BB_Position`: Position within bands (0-1)
-- `BB_Squeeze`: Boolean flag for band squeeze
-
-### Volume Features
-- `Volume_MA_20`: 20-period volume moving average
-- `Volume_Ratio`: Current volume to average ratio
-- `High_Volume`: Boolean flag for high volume days
-
-## Quality Validation
-
-### Validation Checks
-
-#### Completeness
-- Measures percentage of non-null values
-- Configurable threshold (default: 95%)
-
-#### Consistency
-- Validates price relationships
-- Checks for duplicate records
-- Ensures consistent symbols
-
-#### Validity
-- Validates price ranges
-- Checks for negative values
-- Detects extreme price movements
-
-#### Timeliness
-- Checks data freshness
-- Identifies date gaps in time series
-
-### Quality Metrics
-
-#### Scores (0-1 scale)
-- `completeness_score`: Data completeness ratio
-- `consistency_score`: Data consistency measure
-- `validity_score`: Data validity measure
-- `overall_quality_score`: Weighted average of all scores
-
-#### Detailed Metrics
-- `total_records`: Total number of records
-- `complete_records`: Records with no missing values
-- `missing_value_count`: Total missing values
-- `duplicate_count`: Number of duplicates
-- `outlier_count`: Number of outliers
-- `negative_prices`: Count of negative price values
-- `price_anomalies`: Count of price anomalies
-
-## Configuration
-
-### CleaningConfig
+##### 1. Extract Tasks (Python Operators)
 ```python
-CleaningConfig(
-    remove_duplicates=True,
-    fill_missing_values=True,
-    missing_value_method="forward_fill",
-    remove_outliers=True,
-    outlier_method="iqr",
-    outlier_threshold=1.5,
-    validate_price_relationships=True,
-    ensure_consistent_types=True,
-    sort_by_date=True
+# extract_stock_data
+symbols = ["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA"]
+for symbol in symbols:
+    data = alpha_vantage_client.get_daily_data(symbol)
+    insert_raw_stock_data(data)
+
+# extract_currency_rates  
+rates = currency_api.get_usd_gbp_rate()
+insert_raw_currency_data(rates)
+```
+
+##### 2. Transform Tasks (SQL Operators)
+```sql
+-- load_dimensions.sql
+INSERT INTO dim_stocks (symbol, company_name, sector)
+SELECT DISTINCT symbol, company_name, sector 
+FROM raw_stock_data 
+WHERE symbol NOT IN (SELECT symbol FROM dim_stocks);
+
+-- daily_transform.sql
+INSERT INTO fact_stock_prices (stock_id, date_id, opening_price, closing_price, high_price, low_price, volume)
+SELECT 
+    ds.stock_id,
+    dd.date_id,
+    rsd.open_price,
+    rsd.close_price,
+    rsd.high_price,
+    rsd.low_price,
+    rsd.volume
+FROM raw_stock_data rsd
+JOIN dim_stocks ds ON rsd.symbol = ds.symbol
+JOIN dim_dates dd ON DATE(rsd.timestamp) = dd.date
+WHERE DATE(rsd.timestamp) = CURRENT_DATE;
+```
+
+##### 3. Quality Check Tasks (SQL Sensors)
+```sql
+-- data_quality_checks.sql
+SELECT 
+    COUNT(*) as records_loaded,
+    MIN(date_id) as min_date,
+    MAX(date_id) as max_date,
+    COUNT(DISTINCT stock_id) as unique_stocks
+FROM fact_stock_prices 
+WHERE date_id = (SELECT date_id FROM dim_dates WHERE date = CURRENT_DATE);
+
+-- Expect: records_loaded >= 5, unique_stocks = 5
+```
+
+## Simplified Data Models
+
+### Core Python Models (Pydantic)
+
+#### MarketDataPoint
+Basic market data representation:
+```python
+class MarketDataPoint(BaseModel):
+    timestamp: datetime
+    symbol: str = Field(min_length=1, max_length=10)
+    open: Decimal = Field(gt=0)
+    high: Decimal = Field(gt=0) 
+    low: Decimal = Field(gt=0)
+    close: Decimal = Field(gt=0)
+    volume: int = Field(ge=0)
+```
+
+#### RawMarketData
+Collection container:
+```python
+class RawMarketData(BaseModel):
+    symbol: str
+    data_points: List[MarketDataPoint]
+    source: str = "alpha_vantage"
+    retrieved_at: datetime
+```
+
+#### CurrencyRate
+Currency conversion data:
+```python
+class CurrencyRate(BaseModel):
+    from_currency: str = "USD"
+    to_currency: str = "GBP" 
+    rate: Decimal = Field(gt=0)
+    timestamp: datetime
+```
+
+## SQL Schema (Star Schema)
+
+### Dimension Tables
+
+#### dim_stocks
+```sql
+CREATE TABLE dim_stocks (
+    stock_id INTEGER PRIMARY KEY,
+    symbol VARCHAR(10) UNIQUE NOT NULL,
+    company_name VARCHAR(255),
+    sector VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### dim_dates
+```sql
+CREATE TABLE dim_dates (
+    date_id INTEGER PRIMARY KEY,
+    date DATE UNIQUE NOT NULL,
+    year INTEGER,
+    month INTEGER,
+    day INTEGER,
+    day_of_week INTEGER,
+    is_weekend BOOLEAN
+);
+```
+
+### Fact Tables
+
+#### fact_stock_prices
+```sql
+CREATE TABLE fact_stock_prices (
+    price_id INTEGER PRIMARY KEY,
+    stock_id INTEGER REFERENCES dim_stocks(stock_id),
+    date_id INTEGER REFERENCES dim_dates(date_id),
+    opening_price DECIMAL(10,2),
+    closing_price DECIMAL(10,2),
+    high_price DECIMAL(10,2),
+    low_price DECIMAL(10,2),
+    volume BIGINT,
+    daily_return DECIMAL(8,4),
+    price_change DECIMAL(10,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### fact_currency_rates
+```sql
+CREATE TABLE fact_currency_rates (
+    rate_id INTEGER PRIMARY KEY,
+    date_id INTEGER REFERENCES dim_dates(date_id),
+    from_currency VARCHAR(3) DEFAULT 'USD',
+    to_currency VARCHAR(3) DEFAULT 'GBP',
+    exchange_rate DECIMAL(10,6),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## API Integration
+
+### FastAPI Endpoints (SQL-Powered)
+
+```python
+@app.get("/api/stocks/top-performers")
+async def get_top_performers(limit: int = 5):
+    """Execute SQL query for top daily performers."""
+    query = load_sql_query("top_performers.sql")
+    return execute_query(query, {"limit": limit})
+
+@app.get("/api/stocks/{symbol}/gbp")  
+async def get_stock_price_gbp(symbol: str):
+    """Get stock price converted to GBP."""
+    query = load_sql_query("currency_conversion.sql")
+    return execute_query(query, {"symbol": symbol})
+
+@app.get("/api/stocks/price-range")
+async def filter_by_price_range(min_price: float, max_price: float):
+    """Filter stocks by price range using SQL."""
+    query = load_sql_query("price_ranges.sql")
+    return execute_query(query, {"min_price": min_price, "max_price": max_price})
+```
+
+### SQL Query Templates
+
+#### top_performers.sql
+```sql
+SELECT 
+    ds.symbol,
+    ds.company_name,
+    fs.closing_price,
+    fs.daily_return,
+    fs.price_change
+FROM fact_stock_prices fs
+JOIN dim_stocks ds ON fs.stock_id = ds.stock_id
+JOIN dim_dates dd ON fs.date_id = dd.date_id
+WHERE dd.date = CURRENT_DATE
+ORDER BY fs.daily_return DESC
+LIMIT %(limit)s;
+```
+
+#### currency_conversion.sql
+```sql
+SELECT 
+    ds.symbol,
+    fs.closing_price as usd_price,
+    fcr.exchange_rate,
+    (fs.closing_price * fcr.exchange_rate) as gbp_price,
+    dd.date
+FROM fact_stock_prices fs
+JOIN dim_stocks ds ON fs.stock_id = ds.stock_id  
+JOIN dim_dates dd ON fs.date_id = dd.date_id
+JOIN fact_currency_rates fcr ON dd.date_id = fcr.date_id
+WHERE ds.symbol = %(symbol)s
+  AND dd.date = CURRENT_DATE;
+```
+
+## Airflow DAG Implementation
+
+### DAG Configuration
+```python
+default_args = {
+    'owner': 'data_engineer',
+    'depends_on_past': False,
+    'start_date': datetime(2024, 1, 1),
+    'email_on_failure': False,
+    'email_on_retry': False,
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5)
+}
+
+dag = DAG(
+    'daily_market_data_pipeline',
+    default_args=default_args,
+    description='Simplified SQL-centric market data ETL',
+    schedule_interval='0 18 * * 1-5',  # 6 PM weekdays
+    catchup=False,
+    max_active_runs=1
 )
 ```
 
-### FeatureConfig
+### Key Tasks
 ```python
-FeatureConfig(
-    moving_averages=[7, 30],
-    calculate_returns=True,
-    calculate_volatility=True,
-    volatility_window=20,
-    volatility_threshold_low=0.02,
-    volatility_threshold_moderate=0.05,
-    volatility_threshold_high=0.10,
-    calculate_rsi=True,
-    rsi_period=14,
-    calculate_bollinger_bands=True,
-    bollinger_period=20,
-    bollinger_std=2.0
+# SQL-based transformations
+load_dimensions = SQLExecuteQueryOperator(
+    task_id='load_dimensions',
+    sql='sql/etl/load_dimensions.sql',
+    dag=dag
+)
+
+daily_transform = SQLExecuteQueryOperator(
+    task_id='daily_transform', 
+    sql='sql/etl/daily_transform.sql',
+    dag=dag
+)
+
+quality_checks = SQLCheckOperator(
+    task_id='data_quality_checks',
+    sql='sql/etl/data_quality_checks.sql',
+    dag=dag
 )
 ```
 
-### ValidationConfig
-```python
-ValidationConfig(
-    check_completeness=True,
-    check_consistency=True,
-    check_validity=True,
-    check_timeliness=True,
-    min_completeness_score=0.95,
-    min_consistency_score=0.90,
-    min_validity_score=0.95,
-    max_daily_price_change=0.20,
-    min_price_value=0.01,
-    max_price_value=100000.0,
-    max_data_age_days=7
-)
-```
+## Success Criteria
 
-## Usage Examples
+### Technical Requirements Met
+- **SQL-First**: All transformations in SQL, not Python
+- **Star Schema**: Proper dimensional modeling implemented  
+- **Direct Queries**: API endpoints execute SQL directly
+- **Airflow Integration**: SQL operators, not Python operators
+- **Simplified Scope**: NYSE stocks only, USD/GBP only
 
-### Basic Pipeline Usage
-```python
-from src.ticker_converter.etl_modules import DataCleaner, FeatureEngineer, QualityValidator
-from src.ticker_converter.data_models.market_data import RawMarketData
+### Performance Targets
+- **Pipeline Runtime**: < 10 minutes end-to-end
+- **API Response Time**: < 200ms per query
+- **Data Freshness**: Updated daily by 7:00 PM EST
+- **Data Quality**: 100% successful loads, no data loss
 
-# Initialize components
-cleaner = DataCleaner()
-engineer = FeatureEngineer()
-validator = QualityValidator()
+### Maintainability Goals
+- **Clear Separation**: Extract (Python) vs Transform (SQL) vs Load (SQL)
+- **Testable Components**: Each SQL file independently testable
+- **Documentation**: Complete SQL schema and query documentation
+- **Monitoring**: Quality checks on every pipeline run
 
-# Process data
-cleaned_data = cleaner.clean(raw_market_data)
-feature_data = engineer.engineer_features(cleaned_data)
-
-# Validate quality
-df = raw_market_data.to_dataframe()
-validation_result = validator.validate(df, "AAPL")
-quality_report = validator.generate_quality_report(df, "AAPL")
-```
-
-### Custom Configuration
-```python
-from src.ticker_converter.etl_modules.data_cleaner import CleaningConfig
-from src.ticker_converter.etl_modules.feature_engineer import FeatureConfig
-
-# Custom cleaning configuration
-cleaning_config = CleaningConfig(
-    outlier_method="zscore",
-    outlier_threshold=2.0,
-    missing_value_method="interpolate"
-)
-
-# Custom feature configuration
-feature_config = FeatureConfig(
-    moving_averages=[5, 10, 20, 50],
-    volatility_threshold_low=0.01,
-    rsi_period=21
-)
-
-cleaner = DataCleaner(cleaning_config)
-engineer = FeatureEngineer(feature_config)
-```
-
-### Integration with Core Pipeline
-```python
-from src.ticker_converter.core import FinancialDataPipeline
-
-pipeline = FinancialDataPipeline()
-df = pipeline.fetch_stock_data("AAPL", "1mo")
-
-# Enhanced transform with cleaning and feature engineering
-transformed_df = pipeline.transform(df, symbol="AAPL")
-```
-
-## Error Handling and Logging
-
-The pipeline includes comprehensive error handling and logging:
-
-- **Validation Errors**: Captured in ValidationResult objects
-- **Processing Warnings**: Logged but don't stop processing
-- **Exception Handling**: Graceful degradation with informative error messages
-- **Progress Logging**: Detailed logging of operations performed
-
-## Performance Considerations
-
-- **Idempotent Operations**: All transformations are designed to be idempotent
-- **Memory Efficient**: Uses pandas operations optimized for performance
-- **Configurable Processing**: Can disable expensive operations if not needed
-- **Batch Processing**: Designed to handle large datasets efficiently
-
-## Testing
-
-Comprehensive test suite includes:
-
-- **Unit Tests**: Individual component testing
-- **Integration Tests**: End-to-end pipeline testing
-- **Performance Tests**: Large dataset handling
-- **Error Handling Tests**: Edge case validation
-
-Test coverage includes:
-- Data model validation
-- Cleaning operations
-- Feature engineering algorithms
-- Quality validation logic
-- Configuration management
-- Error scenarios
+This simplified approach demonstrates core ETL skills while maintaining professional standards and clear separation of concerns.
