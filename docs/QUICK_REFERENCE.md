@@ -41,7 +41,7 @@ Add:
 ## SIMPLIFIED SCOPE
 
 **Data Focus**:
-- NYSE stocks: AAPL, MSFT, GOOGL, TSLA, NVDA (5-10 max)
+- Magnificent Seven stocks: AAPL, MSFT, AMZN, GOOGL, META, NVDA, TSLA
 - Daily OHLCV data only
 - USD → GBP conversion only
 - Alpha Vantage API (Issue #1 complete)
