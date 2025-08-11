@@ -1,16 +1,12 @@
 """FastAPI main application with SQL-powered endpoints."""
 
-from fastapi import FastAPI, Depends, HTTPException, Query
-from typing import List, Optional
+
 import asyncpg
-from .database import get_database_connection
-from .models import (
-    StockPerformance,
-    StockSummary,
-    CurrencyConversion,
-    DailySummary
-)
-from .dependencies import get_sql_query
+from fastapi import Depends, FastAPI, HTTPException, Query
+
+from .database import DatabaseConnection, get_database
+from .dependencies import get_sql_query, get_db
+from .models import CurrencyConversion, DailySummary, StockPerformance
 
 app = FastAPI(
     title="NYSE Stock Analytics API",
@@ -23,16 +19,16 @@ async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": "nyse-stock-api"}
 
-@app.get("/api/top-performers", response_model=List[StockPerformance])
+@app.get("/top-performers")
 async def get_top_performers(
-    limit: int = Query(5, ge=1, le=10),
-    db: asyncpg.Connection = Depends(get_database_connection)
+    limit: int = Query(default=10, description="Number of top performers to return"),
+    db: DatabaseConnection = Depends(get_db)
 ):
     """Get top performing stocks by daily return."""
     try:
         query = get_sql_query("top_performers.sql")
-        rows = await db.fetch(query)
-        
+        rows = await db.execute_query(query, [limit])
+
         return [
             StockPerformance(
                 symbol=row["symbol"],
@@ -47,22 +43,23 @@ async def get_top_performers(
             for row in rows[:limit]
         ]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
 
-@app.get("/api/stocks/price-range", response_model=List[StockPerformance])
-async def get_stocks_by_price_range(
-    min_price: float = Query(..., ge=0),
-    max_price: float = Query(..., ge=0),
-    db: asyncpg.Connection = Depends(get_database_connection)
+@app.get("/price-ranges")
+async def get_price_ranges(
+    min_price: float = Query(description="Minimum price in USD"),
+    max_price: float = Query(description="Maximum price in USD"),
+    period_days: int = Query(default=30, description="Number of days to analyze"),
+    db: DatabaseConnection = Depends(get_db)
 ):
     """Get stocks within specified price range."""
     if min_price > max_price:
         raise HTTPException(status_code=400, detail="min_price must be less than max_price")
-    
+
     try:
         query = get_sql_query("price_ranges.sql")
-        rows = await db.fetch(query, min_price, max_price)
-        
+        rows = await db.execute_query(query, [min_price, max_price, period_days])
+
         return [
             StockPerformance(
                 symbol=row["symbol"],
@@ -76,18 +73,20 @@ async def get_stocks_by_price_range(
             for row in rows
         ]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
 
-@app.get("/api/currency/convert", response_model=List[CurrencyConversion])
-async def get_currency_conversion(
-    symbol: Optional[str] = Query(None),
-    db: asyncpg.Connection = Depends(get_database_connection)
+@app.get("/currency-conversion")
+async def currency_conversion(
+    symbol: str = Query(description="Stock symbol"),
+    from_currency: str = Query(default="USD", description="Source currency code"),
+    to_currency: str = Query(default="GBP", description="Target currency code"),
+    db: DatabaseConnection = Depends(get_db)
 ):
     """Get USD to GBP price conversion for stocks."""
     try:
         query = get_sql_query("currency_conversion.sql")
-        rows = await db.fetch(query, symbol)
-        
+        rows = await db.execute_query(query, [symbol, from_currency, to_currency])
+
         return [
             CurrencyConversion(
                 symbol=row["symbol"],
@@ -100,18 +99,19 @@ async def get_currency_conversion(
             for row in rows
         ]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
 
-@app.get("/api/summary", response_model=List[DailySummary])
-async def get_daily_summary(
-    days: int = Query(7, ge=1, le=30),
-    db: asyncpg.Connection = Depends(get_database_connection)
+@app.get("/stock-summary/{symbol}")
+async def get_stock_summary(
+    symbol: str,
+    days: int = Query(default=30, description="Number of days to summarize"),
+    db: DatabaseConnection = Depends(get_db)
 ):
     """Get daily summary statistics for stocks."""
     try:
         query = get_sql_query("stock_summary.sql")
-        rows = await db.fetch(query)
-        
+        rows = await db.execute_query(query, [symbol, days])
+
         return [
             DailySummary(
                 summary_date=row["summary_date"],
@@ -130,7 +130,8 @@ async def get_daily_summary(
             for row in rows[:days]
         ]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}") from e
+
 
 if __name__ == "__main__":
     import uvicorn

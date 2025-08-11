@@ -1,13 +1,37 @@
 """API dependencies and configuration."""
 
 import os
-from typing import AsyncGenerator
-from api.database import get_database, DatabaseConnection
+from collections.abc import AsyncGenerator
+from pathlib import Path
+
+from api.database import DatabaseConnection, get_database
+
+
+def get_sql_query(filename: str) -> str:
+    """Load SQL query from file.
+
+    Args:
+        filename: Name of the SQL file (e.g., 'top_performers.sql')
+
+    Returns:
+        SQL query string
+
+    Raises:
+        FileNotFoundError: If SQL file doesn't exist
+    """
+    # Get the project root (parent of api directory)
+    project_root = Path(__file__).parent.parent
+    sql_file = project_root / "sql" / "queries" / filename
+    
+    if not sql_file.exists():
+        raise FileNotFoundError(f"SQL file not found: {sql_file}")
+    
+    return sql_file.read_text()
 
 
 async def get_db() -> AsyncGenerator[DatabaseConnection, None]:
     """FastAPI dependency to get database connection.
-    
+
     Yields:
         Database connection instance
     """
@@ -21,10 +45,10 @@ async def get_db() -> AsyncGenerator[DatabaseConnection, None]:
 
 def get_database_url() -> str:
     """Get database URL from environment variables.
-    
+
     Returns:
         PostgreSQL connection URL
-        
+
     Raises:
         ValueError: If required environment variables are missing
     """
@@ -32,14 +56,14 @@ def get_database_url() -> str:
     database_url = os.getenv("DATABASE_URL")
     if database_url:
         return database_url
-    
+
     # Build from individual components
     host = os.getenv("POSTGRES_HOST", "localhost")
     port = os.getenv("POSTGRES_PORT", "5432")
     database = os.getenv("POSTGRES_DB", "ticker_converter")
     user = os.getenv("POSTGRES_USER", "postgres")
     password = os.getenv("POSTGRES_PASSWORD", "")
-    
+
     if password:
         return f"postgresql://{user}:{password}@{host}:{port}/{database}"
     else:
@@ -48,7 +72,7 @@ def get_database_url() -> str:
 
 def get_api_settings() -> dict:
     """Get API configuration settings.
-    
+
     Returns:
         Dictionary of API settings
     """

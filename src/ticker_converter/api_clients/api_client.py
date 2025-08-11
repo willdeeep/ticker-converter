@@ -1,14 +1,14 @@
 """Alpha Vantage API client for financial data."""
 
 import time
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 import requests
 
 from .constants import (
     AlphaVantageFunction,
-    AlphaVantageResponseKey, 
+    AlphaVantageResponseKey,
     AlphaVantageValueKey,
     OutputSize,
     config,
@@ -22,7 +22,7 @@ class AlphaVantageAPIError(Exception):
 class AlphaVantageClient:
     """Client for Alpha Vantage financial data API."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """Initialize the Alpha Vantage client.
 
         Args:
@@ -98,7 +98,7 @@ class AlphaVantageClient:
         self,
         time_series: dict[str, dict[str, str]],
         datetime_key: str = "Date",
-        additional_columns: Optional[dict[str, Any]] = None,
+        additional_columns: dict[str, Any] | None = None,
     ) -> pd.DataFrame:
         """Convert Alpha Vantage time series data to DataFrame.
 

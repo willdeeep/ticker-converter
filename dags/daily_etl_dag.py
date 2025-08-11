@@ -11,11 +11,11 @@ This DAG orchestrates the complete ETL process using SQL operators:
 """
 
 from datetime import datetime, timedelta
-from airflow import DAG
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.operators.python import PythonOperator
-from airflow.operators.dummy import DummyOperator
 
+from airflow import DAG
+from airflow.operators.dummy import DummyOperator
+from airflow.operators.python import PythonOperator
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 
 # Default arguments for the DAG
 default_args = {
@@ -125,7 +125,8 @@ end_task = DummyOperator(
 # Define task dependencies
 start_task >> [load_stock_dimension, load_date_dimension, load_currency_dimension]
 
-[load_stock_dimension, load_date_dimension, load_currency_dimension] >> [extract_stock_data, extract_currency_data]
+dependencies = [load_stock_dimension, load_date_dimension, load_currency_dimension]
+dependencies >> [extract_stock_data, extract_currency_data]
 
 [extract_stock_data, extract_currency_data] >> run_daily_transforms
 

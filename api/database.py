@@ -1,24 +1,25 @@
 """Database connection and configuration."""
 
-import asyncpg
-from typing import Any, Dict, List, Optional
 import logging
+from typing import Any
+
+import asyncpg
 
 logger = logging.getLogger(__name__)
 
 
 class DatabaseConnection:
     """PostgreSQL database connection manager."""
-    
+
     def __init__(self, database_url: str):
         """Initialize database connection.
-        
+
         Args:
             database_url: PostgreSQL connection URL
         """
         self.database_url = database_url
-        self._pool: Optional[asyncpg.Pool] = None
-    
+        self._pool: asyncpg.Pool | None = None
+
     async def initialize(self) -> None:
         """Initialize connection pool."""
         try:
@@ -27,50 +28,50 @@ class DatabaseConnection:
         except Exception as e:
             logger.error(f"Failed to create database connection pool: {e}")
             raise
-    
+
     async def close(self) -> None:
         """Close connection pool."""
         if self._pool:
             await self._pool.close()
             logger.info("Database connection pool closed")
-    
-    async def execute_query(self, query: str, params: Optional[List[Any]] = None) -> List[Dict[str, Any]]:
+
+    async def execute_query(self, query: str, params: list[Any] | None = None) -> list[dict[str, Any]]:
         """Execute a SQL query and return results.
-        
+
         Args:
             query: SQL query string
             params: Query parameters
-            
+
         Returns:
             List of dictionaries representing rows
         """
         if not self._pool:
             raise RuntimeError("Database connection not initialized")
-        
+
         async with self._pool.acquire() as connection:
             try:
                 if params:
                     result = await connection.fetch(query, *params)
                 else:
                     result = await connection.fetch(query)
-                
+
                 return [dict(row) for row in result]
             except Exception as e:
                 logger.error(f"Query execution failed: {e}")
                 logger.error(f"Query: {query}")
                 logger.error(f"Params: {params}")
                 raise
-    
-    async def execute_command(self, command: str, params: Optional[List[Any]] = None) -> None:
+
+    async def execute_command(self, command: str, params: list[Any] | None = None) -> None:
         """Execute a SQL command (INSERT, UPDATE, DELETE).
-        
+
         Args:
             command: SQL command string
             params: Command parameters
         """
         if not self._pool:
             raise RuntimeError("Database connection not initialized")
-        
+
         async with self._pool.acquire() as connection:
             try:
                 if params:
@@ -85,15 +86,15 @@ class DatabaseConnection:
 
 
 # Global database instance
-db_connection: Optional[DatabaseConnection] = None
+db_connection: DatabaseConnection | None = None
 
 
 def get_database() -> DatabaseConnection:
     """Get the database connection instance.
-    
+
     Returns:
         Database connection instance
-        
+
     Raises:
         RuntimeError: If database is not initialized
     """
@@ -104,7 +105,7 @@ def get_database() -> DatabaseConnection:
 
 async def initialize_database(database_url: str) -> None:
     """Initialize the global database connection.
-    
+
     Args:
         database_url: PostgreSQL connection URL
     """

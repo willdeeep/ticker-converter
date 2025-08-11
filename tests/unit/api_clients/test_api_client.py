@@ -6,7 +6,10 @@ import pandas as pd
 import pytest
 import requests
 
-from src.ticker_converter.api_clients.api_client import AlphaVantageAPIError, AlphaVantageClient
+from src.ticker_converter.api_clients.api_client import (
+    AlphaVantageAPIError,
+    AlphaVantageClient,
+)
 
 
 class TestAlphaVantageClient:
@@ -20,7 +23,7 @@ class TestAlphaVantageClient:
         assert client.base_url == "https://www.alphavantage.co/query"
         assert client.timeout == 30
         assert client.max_retries == 3
-        assert client.rate_limit_delay == 1.0
+        assert client.rate_limit_delay == 12  # Alpha Vantage free tier rate limit
         assert client.session is not None
 
     def test_client_initialization_without_api_key_raises_error(self, mock_config):
@@ -59,7 +62,9 @@ class TestAlphaVantageClient:
             )
 
         assert result == sample_daily_response
-        mock_sleep.assert_called_once_with(1.0)  # Rate limiting
+        mock_sleep.assert_called_once_with(
+            12
+        )  # Rate limiting (12 seconds for free tier)
 
     @patch("time.sleep")
     def test_make_request_api_error(

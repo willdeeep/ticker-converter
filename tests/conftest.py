@@ -7,8 +7,7 @@ from unittest.mock import Mock, patch
 import pandas as pd
 import pytest
 
-from src.ticker_converter.api_client import AlphaVantageClient
-from src.ticker_converter.core import FinancialDataPipeline
+from src.ticker_converter.api_clients.api_client import AlphaVantageClient
 
 
 # Safety check to prevent accidental real API usage
@@ -38,12 +37,12 @@ def pytest_configure(config):
 @pytest.fixture
 def mock_config():
     """Mock configuration for testing."""
-    with patch("src.ticker_converter.api_client.config") as mock_cfg:
+    with patch("src.ticker_converter.api_clients.api_client.config") as mock_cfg:
         mock_cfg.ALPHA_VANTAGE_API_KEY = "test_api_key"
         mock_cfg.ALPHA_VANTAGE_BASE_URL = "https://www.alphavantage.co/query"
         mock_cfg.API_TIMEOUT = 30
         mock_cfg.MAX_RETRIES = 3
-        mock_cfg.RATE_LIMIT_DELAY = 1.0
+        mock_cfg.RATE_LIMIT_DELAY = 12
         yield mock_cfg
 
 
@@ -142,13 +141,7 @@ def mock_requests_session():
 @pytest.fixture
 def alpha_vantage_client(mock_config):  # pylint: disable=redefined-outer-name
     """Alpha Vantage client instance for testing."""
-    return AlphaVantageClient(mock_config.ALPHA_VANTAGE_API_KEY)
-
-
-@pytest.fixture
-def financial_pipeline(mock_config):  # pylint: disable=redefined-outer-name
-    """Financial data pipeline instance for testing."""
-    return FinancialDataPipeline(mock_config.ALPHA_VANTAGE_API_KEY)
+    return AlphaVantageClient("test_api_key")
 
 
 @pytest.fixture

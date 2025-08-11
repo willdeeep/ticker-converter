@@ -101,7 +101,6 @@ python -m pytest tests/integration/
 
 ### Unit Tests (API-Safe)
 - `tests/unit/` - All tests in this directory are mocked
-- `tests/test_forex_crypto.py` - Uses `@responses.activate`
 - Never make real HTTP requests
 - Safe to run unlimited times
 

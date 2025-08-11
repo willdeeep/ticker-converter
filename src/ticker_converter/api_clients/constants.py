@@ -5,6 +5,7 @@ import os
 
 class AlphaVantageFunction:
     """Alpha Vantage API function names."""
+
     TIME_SERIES_DAILY = "TIME_SERIES_DAILY"
     TIME_SERIES_INTRADAY = "TIME_SERIES_INTRADAY"
     OVERVIEW = "OVERVIEW"
@@ -15,6 +16,7 @@ class AlphaVantageFunction:
 
 class AlphaVantageResponseKey:
     """Alpha Vantage API response keys."""
+
     TIME_SERIES_DAILY = "Time Series (Daily)"
     ERROR_MESSAGE = "Error Message"
     NOTE = "Note"
@@ -22,6 +24,7 @@ class AlphaVantageResponseKey:
 
 class AlphaVantageValueKey:
     """Alpha Vantage time series value keys."""
+
     OPEN = "1. open"
     HIGH = "2. high"
     LOW = "3. low"
@@ -31,13 +34,14 @@ class AlphaVantageValueKey:
 
 class OutputSize:
     """Output size options for Alpha Vantage API."""
+
     COMPACT = "compact"
     FULL = "full"
 
 
 class Config:
     """Configuration for Alpha Vantage API client."""
-    
+
     ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY", "")
     ALPHA_VANTAGE_BASE_URL = "https://www.alphavantage.co/query"
     API_TIMEOUT = 30
