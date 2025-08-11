@@ -253,6 +253,7 @@ api/
 dags/
 └── nyse_stock_etl.py       # Airflow DAG with SQL Operators
 ```
+**See (Final Project Structure)[docs/FINAL_PROJECT_STRUCTURE.md] for full folder structure**
 
 ## Success Metrics
 
@@ -261,5 +262,5 @@ dags/
 - [ ] **API endpoints execute SQL directly** via views
 - [ ] **Airflow uses SQL operators only**
 - [ ] **PostgreSQL as single database solution**
-- ✅ **Focus on Magnificent Seven stocks** (AAPL, MSFT, AMZN, GOOGL, META, NVDA, TSLA)
+- [x] **Focus on Magnificent Seven stocks** (AAPL, MSFT, AMZN, GOOGL, META, NVDA, TSLA)
 - [ ]**Daily data only** (no intraday complexity)
