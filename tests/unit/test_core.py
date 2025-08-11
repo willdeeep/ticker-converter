@@ -138,12 +138,18 @@ class TestFinancialDataPipeline:
         captured = capsys.readouterr()
         assert "Error fetching company info for INVALID: API Error" in captured.out
 
-    def test_transform_placeholder(self, financial_pipeline, sample_dataframe):
-        """Test transform method (currently a placeholder)."""
-        result = financial_pipeline.transform(sample_dataframe)
+    def test_transform_with_pipeline(self, financial_pipeline, sample_dataframe):
+        """Test transform method with data cleaning and feature engineering."""
+        result = financial_pipeline.transform(sample_dataframe, symbol="AAPL")
 
-        # Currently just returns the input data
-        pd.testing.assert_frame_equal(result, sample_dataframe)
+        # Should return a DataFrame
+        assert isinstance(result, pd.DataFrame)
+        # Should have some rows
+        assert len(result) > 0
+        # Should have basic required columns
+        required_columns = ["Symbol", "Open", "High", "Low", "Close", "Volume"]
+        for col in required_columns:
+            assert col in result.columns
 
     def test_period_mapping(self, financial_pipeline, sample_dataframe):
         """Test that periods are correctly mapped to outputsize."""

@@ -12,7 +12,7 @@ def examine_stored_data():
     base_path = Path("raw_data_output")
 
     if not base_path.exists():
-        print("❌ No stored data found in 'raw_data_output' directory")
+        print("No stored data found in 'raw_data_output' directory")
         print("   Run 'python examine_data.py' first to fetch and store data")
         return
 
@@ -46,7 +46,7 @@ def examine_stored_data():
 
             # Show file stats
             file_size_kb = file_path.stat().st_size / 1024
-            print(f"   📊 Records: {len(df)}")
+            print(f"   Records: {len(df)}")
             print(f"   📅 Date range: {df['Date'].min()} to {df['Date'].max()}")
             print(f"   💾 File size: {file_size_kb:.1f} KB")
             print(f"   📋 Columns: {list(df.columns)}")
@@ -65,10 +65,10 @@ def examine_stored_data():
                             print(f"      {col}: ${value:.2f}")
 
         except Exception as e:
-            print(f"   ❌ Error loading file: {e}")
+            print(f"   Error loading file: {e}")
 
-    print("\n✅ Stored data examination complete!")
-    print("💡 This used 0 API calls - all data loaded from local files")
+    print("\nStored data examination complete!")
+    print("This used 0 API calls - all data loaded from local files")
 
 
 if __name__ == "__main__":
