@@ -1,5 +1,6 @@
 """Pytest configuration and shared fixtures."""
 
+import os
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -8,6 +9,30 @@ import pytest
 
 from src.ticker_converter.api_client import AlphaVantageClient
 from src.ticker_converter.core import FinancialDataPipeline
+
+
+# Safety check to prevent accidental real API usage
+def pytest_configure(config):
+    """Configure pytest with safety checks for API usage."""
+    # Set a mock API key if none is set or if it's a real-looking key
+    api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "")
+
+    # Check if we're running integration tests
+    integration_enabled = os.getenv("INTEGRATION_TEST", "false").lower() == "true"
+
+    if not integration_enabled:
+        # Force a mock API key for unit tests to prevent accidents
+        os.environ["ALPHA_VANTAGE_API_KEY"] = "test_mock_key_do_not_use_for_real_calls"
+        print("\n🔒 Safety: API key set to mock value for unit tests")
+    elif (
+        api_key
+        and len(api_key) > 10
+        and api_key != "test_mock_key_do_not_use_for_real_calls"
+    ):
+        print(
+            f"\n⚠️  WARNING: Integration tests enabled with real API key (length: {len(api_key)})"
+        )
+        print("This will consume your Alpha Vantage API quota!")
 
 
 @pytest.fixture
@@ -115,15 +140,15 @@ def mock_requests_session():
 
 
 @pytest.fixture
-def alpha_vantage_client(mock_config):
+def alpha_vantage_client(mock_config):  # pylint: disable=redefined-outer-name
     """Alpha Vantage client instance for testing."""
-    return AlphaVantageClient("test_api_key")
+    return AlphaVantageClient(mock_config.ALPHA_VANTAGE_API_KEY)
 
 
 @pytest.fixture
-def financial_pipeline(mock_config):
+def financial_pipeline(mock_config):  # pylint: disable=redefined-outer-name
     """Financial data pipeline instance for testing."""
-    return FinancialDataPipeline("test_api_key")
+    return FinancialDataPipeline(mock_config.ALPHA_VANTAGE_API_KEY)
 
 
 @pytest.fixture
