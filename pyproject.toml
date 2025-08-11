@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ticker-converter"
 version = "0.3.0"
-description = "Financial Market Data Analytics Pipeline for SCSK"
+description = "Financial Market Data Analytics Pipeline for Interview Task"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
@@ -59,6 +59,10 @@ api = [
     "uvicorn[standard]>=0.23.0",
     "httpx>=0.24.0",           # For testing FastAPI
 ]
+airflow = [
+    "apache-airflow>=2.7.0",   # Workflow orchestration
+    "apache-airflow-providers-postgres>=5.6.0",  # PostgreSQL provider
+]
 dev = [
     # Additional testing tools
     "pytest-asyncio>=0.21.0",
@@ -69,6 +73,10 @@ dev = [
 # Convenience groups
 all = [
     "ticker-converter[database,api,dev]"
+]
+# Full development including Airflow
+full = [
+    "ticker-converter[database,api,airflow,dev]"
 ]
 
 [project.scripts]
