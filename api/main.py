@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException, Query
 
 from .database import DatabaseConnection
-from .dependencies import get_sql_query, get_db
+from .dependencies import get_db, get_sql_query
 from .models import CurrencyConversion, DailySummary, StockPerformance
 
 app = FastAPI(
@@ -20,7 +20,7 @@ def _build_stock_performance(row: dict[str, Any]) -> StockPerformance:
 
     Args:
         row: Database row as dictionary
-        
+
     Returns:
         StockPerformance model instance
     """
@@ -32,7 +32,9 @@ def _build_stock_performance(row: dict[str, Any]) -> StockPerformance:
         daily_return=float(row["daily_return"]) if row["daily_return"] else None,
         volume=int(row["volume"]),
         trade_date=row["trade_date"],
-        performance_rank=int(row["performance_rank"]) if row.get("performance_rank") else None,
+        performance_rank=(
+            int(row["performance_rank"]) if row.get("performance_rank") else None
+        ),
     )
 
 
@@ -41,7 +43,7 @@ def _build_currency_conversion(row: dict[str, Any]) -> CurrencyConversion:
 
     Args:
         row: Database row as dictionary
-        
+
     Returns:
         CurrencyConversion model instance
     """
@@ -60,7 +62,7 @@ def _build_daily_summary(row: dict[str, Any]) -> DailySummary:
 
     Args:
         row: Database row as dictionary
-        
+
     Returns:
         DailySummary model instance
     """
@@ -71,19 +73,13 @@ def _build_daily_summary(row: dict[str, Any]) -> DailySummary:
         min_closing_price_usd=float(row["min_closing_price_usd"]),
         max_closing_price_usd=float(row["max_closing_price_usd"]),
         avg_daily_return_pct=(
-            float(row["avg_daily_return_pct"])
-            if row["avg_daily_return_pct"]
-            else None
+            float(row["avg_daily_return_pct"]) if row["avg_daily_return_pct"] else None
         ),
         min_daily_return_pct=(
-            float(row["min_daily_return_pct"])
-            if row["min_daily_return_pct"]
-            else None
+            float(row["min_daily_return_pct"]) if row["min_daily_return_pct"] else None
         ),
         max_daily_return_pct=(
-            float(row["max_daily_return_pct"])
-            if row["max_daily_return_pct"]
-            else None
+            float(row["max_daily_return_pct"]) if row["max_daily_return_pct"] else None
         ),
         total_volume=int(row["total_volume"]),
         avg_volume=int(row["avg_volume"]),
@@ -107,10 +103,10 @@ async def _execute_query_with_error_handling(
         db: Database connection
         query: SQL query string
         params: Query parameters
-        
+
     Returns:
         Query results
-        
+
     Raises:
         HTTPException: On database errors
     """
