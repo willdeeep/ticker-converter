@@ -1,7 +1,9 @@
 """Common utilities for ETL operations."""
 
+from __future__ import annotations
+
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -79,7 +81,7 @@ class PriceValidator:
 
     @staticmethod
     def check_price_validity(
-        df: pd.DataFrame, config: Optional[dict[str, Any]] = None
+        df: pd.DataFrame, config: dict[str, Any] | None = None
     ) -> dict[str, int]:
         """Check price validity and return violation counts.
 
@@ -181,7 +183,9 @@ class OutlierDetector:
     """Utility class for outlier detection methods."""
 
     @staticmethod
-    def detect_outliers_iqr(series: pd.Series, threshold: float = 1.5) -> pd.Series:
+    def detect_outliers_iqr(
+        series: pd.Series[Any], threshold: float = 1.5
+    ) -> pd.Series[Any]:
         """Detect outliers using IQR method.
 
         Args:
@@ -202,7 +206,9 @@ class OutlierDetector:
         return (series < lower_bound) | (series > upper_bound)
 
     @staticmethod
-    def detect_outliers_zscore(series: pd.Series, threshold: float = 2.0) -> pd.Series:
+    def detect_outliers_zscore(
+        series: pd.Series[Any], threshold: float = 2.0
+    ) -> pd.Series[Any]:
         """Detect outliers using Z-score method.
 
         Args:
@@ -277,7 +283,7 @@ class FeatureEngineering:
         df = df.copy()
 
         # Daily returns
-        df["Daily_Return"] = df[price_col].pct_change()
+        df["Daily_Return"] = df[price_col].pct_change(fill_method=None)
 
         # Log returns
         df["Log_Return"] = np.log(df[price_col] / df[price_col].shift(1))
@@ -290,7 +296,7 @@ class FeatureEngineering:
     @staticmethod
     def calculate_moving_average(
         df: pd.DataFrame, column: str, period: int
-    ) -> pd.Series:
+    ) -> pd.Series[Any]:
         """Calculate moving average for a column.
 
         Args:
@@ -304,7 +310,7 @@ class FeatureEngineering:
         return df[column].rolling(window=period, min_periods=1).mean()
 
     @staticmethod
-    def calculate_true_range(df: pd.DataFrame) -> pd.Series:
+    def calculate_true_range(df: pd.DataFrame) -> pd.Series[Any]:
         """Calculate True Range for ATR calculation.
 
         Args:

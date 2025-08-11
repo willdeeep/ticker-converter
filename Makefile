@@ -266,6 +266,19 @@ update-deps: ## Update dependencies
 	$(PIP) install --upgrade pip
 	$(PIP) install --upgrade -e ".[dev]"
 
+# Act - Local GitHub Actions Testing
+act-pr: ## Test GitHub Actions PR workflow locally
+	@echo "$(BLUE)Running GitHub Actions PR workflow locally with Act...$(NC)"
+	act pull_request --container-architecture linux/amd64
+
+act-push: ## Test GitHub Actions push workflow locally
+	@echo "$(BLUE)Running GitHub Actions push workflow locally with Act...$(NC)"
+	act push --container-architecture linux/amd64
+
+act-list: ## List available GitHub Actions workflows
+	@echo "$(BLUE)Available GitHub Actions workflows:$(NC)"
+	act --list --container-architecture linux/amd64
+
 # Aliases for common workflows
 quick-test: test-fast ## Alias for test-fast
 quality: check-all ## Alias for check-all
