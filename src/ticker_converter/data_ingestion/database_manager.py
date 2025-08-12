@@ -112,8 +112,8 @@ class DatabaseManager:
                 inserted_count = cursor.rowcount
             else:
                 # PostgreSQL bulk insert
-                from psycopg2.extras import (
-                    execute_values,  # pylint: disable=import-outside-toplevel
+                from psycopg2.extras import (  # pylint: disable=import-outside-toplevel
+                    execute_values,
                 )
 
                 # Convert dict records to tuple values
