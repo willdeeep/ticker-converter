@@ -79,7 +79,7 @@ class AlphaVantageClient:
                 )
                 response.raise_for_status()
 
-                data = response.json()
+                data: dict[str, Any] = response.json()
 
                 # Check for API errors
                 if AlphaVantageResponseKey.ERROR_MESSAGE.value in data:

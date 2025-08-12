@@ -134,14 +134,16 @@ class DatabaseManager:
         """
         try:
             # Check for stock data
-            stock_count = self.execute_query(
+            stock_result = self.execute_query(
                 "SELECT COUNT(*) as count FROM raw_stock_data"
-            )[0]["count"]
+            )
+            stock_count = int(stock_result[0]["count"]) if stock_result else 0
 
             # Check for currency data
-            currency_count = self.execute_query(
+            currency_result = self.execute_query(
                 "SELECT COUNT(*) as count FROM raw_currency_data"
-            )[0]["count"]
+            )
+            currency_count = int(currency_result[0]["count"]) if currency_result else 0
 
             is_empty = stock_count == 0 and currency_count == 0
             self.logger.info(
@@ -179,7 +181,7 @@ class DatabaseManager:
 
             if isinstance(latest_date, str):
                 return datetime.strptime(latest_date, "%Y-%m-%d")
-            if latest_date:
+            if isinstance(latest_date, datetime):
                 return latest_date
 
         except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
@@ -201,7 +203,7 @@ class DatabaseManager:
 
             if isinstance(latest_date, str):
                 return datetime.strptime(latest_date, "%Y-%m-%d")
-            if latest_date:
+            if isinstance(latest_date, datetime):
                 return latest_date
 
         except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
