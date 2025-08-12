@@ -256,9 +256,7 @@ def sample_currency_data():
 class TestIntegration:
     """Integration tests for data ingestion components."""
 
-    def test_end_to_end_data_flow(
-        self, sample_stock_data, sample_currency_data
-    ):  # pylint: disable=redefined-outer-name
+    def test_end_to_end_data_flow(self, sample_stock_data, sample_currency_data):  # pylint: disable=redefined-outer-name
         """Test complete data flow from fetch to SQL preparation."""
         # Test NYSE fetcher
         nyse_fetcher = NYSEDataFetcher()

@@ -69,7 +69,7 @@ def init_database_command(days: int = 30) -> None:
 
 def smart_init_database_command() -> None:
     """Smart database initialization that uses local data when available.
-    
+
     Priority:
     1. Real data from raw_data/ (use all)
     2. Dummy data (use one day for testing)
@@ -82,19 +82,25 @@ def smart_init_database_command() -> None:
         orchestrator = DataIngestionOrchestrator()
         results = orchestrator.perform_smart_initial_setup()
 
-        print(f"Database initialization completed using: {results.get('data_source', 'unknown')}")
+        print(
+            f"Database initialization completed using: {results.get('data_source', 'unknown')}"
+        )
         print(f"Total records inserted: {results.get('total_records_inserted', 0)}")
 
         if results.get("stock_data"):
             stock_data = results["stock_data"]
-            print(f"Stock data: {stock_data['records_inserted']} records (source: {stock_data.get('source', 'unknown')})")
-            if 'symbol' in stock_data:
+            print(
+                f"Stock data: {stock_data['records_inserted']} records (source: {stock_data.get('source', 'unknown')})"
+            )
+            if "symbol" in stock_data:
                 print(f"  Symbol: {stock_data['symbol']}")
 
         if results.get("currency_data"):
             currency_data = results["currency_data"]
-            print(f"Currency data: {currency_data['records_inserted']} records (source: {currency_data.get('source', 'unknown')})")
-            if 'pair' in currency_data:
+            print(
+                f"Currency data: {currency_data['records_inserted']} records (source: {currency_data.get('source', 'unknown')})"
+            )
+            if "pair" in currency_data:
                 print(f"  Pair: {currency_data['pair']}")
 
         if results.get("errors"):
@@ -109,7 +115,7 @@ def smart_init_database_command() -> None:
 
 def schema_only_command() -> None:
     """Initialize database schema only (no data loading).
-    
+
     Creates tables, views, indexes, etc. from DDL files but doesn't load any data.
     """
     print("Initializing database schema only (no data)...")
@@ -119,13 +125,15 @@ def schema_only_command() -> None:
         results = orchestrator.perform_schema_only_setup()
 
         print(f"Schema initialization completed: {results.get('success', False)}")
-        
+
         schema_info = results.get("schema_creation", {})
         ddl_files = schema_info.get("ddl_files_executed", [])
         if ddl_files:
             print(f"DDL files executed: {', '.join(ddl_files)}")
-        
-        print(f"Total records inserted: {results.get('total_records_inserted', 0)} (schema only)")
+
+        print(
+            f"Total records inserted: {results.get('total_records_inserted', 0)} (schema only)"
+        )
 
         if results.get("errors"):
             print("Warnings/Errors:")
@@ -143,16 +151,16 @@ def schema_only_command() -> None:
 
 def teardown_database_command() -> None:
     """Teardown database schema and all objects.
-    
+
     WARNING: This will permanently delete all database tables, views, and data!
     """
     print("WARNING: This will permanently delete all database objects and data!")
     confirmation = input("Type 'yes' to confirm database teardown: ")
-    
-    if confirmation.lower() != 'yes':
+
+    if confirmation.lower() != "yes":
         print("Database teardown cancelled")
         return
-    
+
     print("Starting database teardown...")
 
     try:
@@ -160,14 +168,14 @@ def teardown_database_command() -> None:
         results = orchestrator.perform_database_teardown()
 
         print(f"Database teardown completed: {results.get('success', False)}")
-        
+
         teardown_info = results.get("schema_teardown", {})
         objects_dropped = teardown_info.get("objects_dropped", [])
         if objects_dropped:
             print(f"Objects dropped: {len(objects_dropped)}")
             for obj in objects_dropped:
                 print(f"  - {obj}")
-        
+
         if results.get("errors"):
             print("Warnings/Errors:")
             for error in results["errors"]:
@@ -185,28 +193,29 @@ def teardown_database_command() -> None:
 def airflow_setup_command() -> None:
     """Setup Apache Airflow with database initialization, user creation, and service startup."""
     print("Starting Apache Airflow setup...")
-    print("This will initialize the Airflow database, create admin user, and start services.")
+    print(
+        "This will initialize the Airflow database, create admin user, and start services."
+    )
 
     try:
         orchestrator = DataIngestionOrchestrator()
         results = orchestrator.perform_airflow_setup()
 
         print(f"Airflow setup completed: {results.get('success', False)}")
-        
-        airflow_info = results.get("airflow_setup", {})
+
         services_started = results.get("services_started", [])
         if services_started:
             print(f"Operations completed: {', '.join(services_started)}")
-        
+
         # Show admin user info
         if results.get("success"):
             print("\n=== Airflow Access Information ===")
             print("Webserver URL: http://localhost:8080")
-            
+
             # Try to get admin user info from environment
             admin_username = os.getenv("AIRFLOW_ADMIN_USERNAME", "admin")
             admin_password = os.getenv("AIRFLOW_ADMIN_PASSWORD", "admin123")
-            
+
             print(f"Admin Username: {admin_username}")
             print(f"Admin Password: {admin_password}")
             print("\nNote: Services are running in the background")
@@ -234,7 +243,7 @@ def airflow_teardown_command() -> None:
         results = orchestrator.perform_airflow_teardown()
 
         print(f"Airflow teardown completed: {results.get('success', False)}")
-        
+
         services_stopped = results.get("services_stopped", [])
         if services_stopped:
             print(f"Operations completed: {', '.join(services_stopped)}")
@@ -264,14 +273,14 @@ def airflow_status_command() -> None:
         results = orchestrator.get_airflow_status()
 
         if results.get("success"):
-            status = results.get("airflow_status", {})
-            
-            print(f"Webserver running: {status.get('webserver_running', False)}")
-            print(f"Scheduler running: {status.get('scheduler_running', False)}")
-            print(f"Airflow home: {status.get('airflow_home', 'unknown')}")
-            print(f"Admin user: {status.get('admin_user', 'unknown')}")
-            
-            processes = status.get("processes", [])
+            airflow_status = results.get("airflow_status", {})
+
+            print(f"Webserver running: {airflow_status.get('webserver_running', False)}")
+            print(f"Scheduler running: {airflow_status.get('scheduler_running', False)}")
+            print(f"Airflow home: {airflow_status.get('airflow_home', 'unknown')}")
+            print(f"Admin user: {airflow_status.get('admin_user', 'unknown')}")
+
+            processes = airflow_status.get("processes", [])
             if processes:
                 print(f"Running processes: {len(processes)}")
                 for proc in processes:
@@ -319,34 +328,38 @@ def main_argparse() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-        # Command group - either init, smart-init, schema-only, teardown, airflow commands, or daily
+    # Command group - either init, smart-init, schema-only, teardown, airflow commands, or daily
     command_group = parser.add_mutually_exclusive_group(required=True)
     command_group.add_argument(
-        "--init", action="store_true", help="Initialize database with historical data from API"
+        "--init",
+        action="store_true",
+        help="Initialize database with historical data from API",
     )
     command_group.add_argument(
-        "--smart-init", action="store_true", 
-        help="Smart initialization: use local data if available, minimal API fetch otherwise"
+        "--smart-init",
+        action="store_true",
+        help="Smart initialization: use local data if available, minimal API fetch otherwise",
     )
     command_group.add_argument(
-        "--schema-only", action="store_true",
-        help="Initialize database schema only (no data loading)"
+        "--schema-only",
+        action="store_true",
+        help="Initialize database schema only (no data loading)",
     )
     command_group.add_argument(
-        "--teardown", action="store_true",
-        help="Teardown database schema and all objects (WARNING: deletes all data!)"
+        "--teardown",
+        action="store_true",
+        help="Teardown database schema and all objects (WARNING: deletes all data!)",
     )
     command_group.add_argument(
-        "--airflow-setup", action="store_true",
-        help="Setup Apache Airflow (database, user, and start services)"
+        "--airflow-setup",
+        action="store_true",
+        help="Setup Apache Airflow (database, user, and start services)",
     )
     command_group.add_argument(
-        "--airflow-teardown", action="store_true",
-        help="Stop Apache Airflow services"
+        "--airflow-teardown", action="store_true", help="Stop Apache Airflow services"
     )
     command_group.add_argument(
-        "--airflow-status", action="store_true",
-        help="Check Apache Airflow status"
+        "--airflow-status", action="store_true", help="Check Apache Airflow status"
     )
     command_group.add_argument(
         "--daily",
@@ -368,17 +381,17 @@ def main_argparse() -> None:
     # Execute appropriate command
     if args.init:
         init_database_command(args.days)
-    elif getattr(args, 'smart_init', False):
+    elif getattr(args, "smart_init", False):
         smart_init_database_command()
-    elif getattr(args, 'schema_only', False):
+    elif getattr(args, "schema_only", False):
         schema_only_command()
-    elif getattr(args, 'teardown', False):
+    elif getattr(args, "teardown", False):
         teardown_database_command()
-    elif getattr(args, 'airflow_setup', False):
+    elif getattr(args, "airflow_setup", False):
         airflow_setup_command()
-    elif getattr(args, 'airflow_teardown', False):
+    elif getattr(args, "airflow_teardown", False):
         airflow_teardown_command()
-    elif getattr(args, 'airflow_status', False):
+    elif getattr(args, "airflow_status", False):
         airflow_status_command()
     elif args.daily:
         daily_collection_command()
@@ -582,26 +595,28 @@ def status(output: click.File) -> None:
 
             # Database Status
             db_health = status_info.get("database_health", {})
-            db_status = db_health.get('status', 'unknown')
-            if db_status == 'online':
-                db_url = db_health.get('database_url', 'unknown')
+            db_status = db_health.get("status", "unknown")
+            if db_status == "online":
+                db_url = db_health.get("database_url", "unknown")
                 click.echo(f"Database status: online ({db_url})")
-            elif db_status == 'offline':
-                db_url = db_health.get('database_url', 'unknown')
+            elif db_status == "offline":
+                db_url = db_health.get("database_url", "unknown")
                 click.echo(f"Database status: offline ({db_url})")
             else:
                 click.echo(f"Database status: {db_status}")
-                if 'error' in db_health:
+                if "error" in db_health:
                     click.echo(f"Database error: {db_health['error']}")
 
             # Airflow Status
             airflow_status = status_info.get("airflow_status", {})
-            if airflow_status.get('webserver_running'):
-                webserver_url = airflow_status.get('webserver_url', 'http://localhost:8080')
+            if airflow_status.get("webserver_running"):
+                webserver_url = airflow_status.get(
+                    "webserver_url", "http://localhost:8080"
+                )
                 click.echo(f"Airflow status: online ({webserver_url})")
             else:
                 click.echo("Airflow status: offline")
-            
+
             click.echo(f"Stock records: {db_health.get('stock_records', 0)}")
             click.echo(f"Currency records: {db_health.get('currency_records', 0)}")
             click.echo(
@@ -640,8 +655,14 @@ if __name__ == "__main__":
     # If called as python -m ticker_converter.cli_ingestion with argparse flags,
     # use argparse interface (for Makefile compatibility)
     argparse_flags = [
-        "--init", "--daily", "--smart-init", "--schema-only", "--teardown",
-        "--airflow-setup", "--airflow-teardown", "--airflow-status"
+        "--init",
+        "--daily",
+        "--smart-init",
+        "--schema-only",
+        "--teardown",
+        "--airflow-setup",
+        "--airflow-teardown",
+        "--airflow-status",
     ]
     if any(flag in sys.argv for flag in argparse_flags):
         main_argparse()

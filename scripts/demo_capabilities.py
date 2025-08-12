@@ -190,8 +190,7 @@ class DemoRunner:
                     pair_key = f"{from_curr}/{to_curr}"
                     rates[pair_key] = rate
                     print(
-                        f"[SUCCESS] {pair_key}: "
-                        f"{rate:.{DEMO_CONFIG.RATE_PRECISION}f}"
+                        f"[SUCCESS] {pair_key}: {rate:.{DEMO_CONFIG.RATE_PRECISION}f}"
                     )
 
             # Show crypto vs fiat comparison
