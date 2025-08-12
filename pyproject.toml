@@ -24,11 +24,6 @@ classifiers = [
 ]
 
 dependencies = [
-    # Core FastAPI and web framework
-    "fastapi>=0.104.0",
-    "uvicorn[standard]>=0.24.0",
-    "pydantic>=2.4.0",
-
     # Database and data processing
     "psycopg2-binary>=2.9.7",
     "pandas>=2.1.0",
@@ -52,6 +47,7 @@ api = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.4.0",
+    "asyncpg>=0.28.0",  # Async PostgreSQL driver for API layer
 ]
 
 test = [
@@ -71,8 +67,6 @@ dev = [
 
     # Development tools
     "pre-commit>=3.4.0",
-    "ipython>=8.0.0",
-    "jupyter>=1.0.0",
 ]
 
 [project.urls]

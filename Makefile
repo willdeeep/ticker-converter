@@ -102,16 +102,16 @@ lint-dags: ## Run pylint specifically for Airflow DAGs
 	@echo "$(GREEN)DAG linting completed$(NC)"
 
 act-pr: ## Run GitHub Actions CI locally using act (simulates pull request)
-	@echo "$(BLUE)Running GitHub Actions CI workflow locally...$(NC)"
-	@echo "$(YELLOW)This simulates the CI checks that run on pull requests$(NC)"
+	@echo -e "$(BLUE)Running GitHub Actions CI workflow locally...$(NC)"
+	@echo -e "$(YELLOW)This simulates the CI checks that run on pull requests$(NC)"
 	@if [[ "$$(uname -m)" == "arm64" ]]; then \
-		echo "$(CYAN)Detected Apple Silicon (M1/M2) - using linux/amd64 architecture$(NC)"; \
+		echo -e "$(CYAN)Detected Apple Silicon (M1/M2) - using linux/amd64 architecture$(NC)"; \
 		act pull_request --container-architecture linux/amd64 --platform ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest; \
 	else \
-		echo "$(CYAN)Using default architecture$(NC)"; \
+		echo -e "$(CYAN)Using default architecture$(NC)"; \
 		act pull_request; \
 	fi
-	@echo "$(GREEN)Local CI simulation completed$(NC)"
+	@echo -e "$(GREEN)Local CI simulation completed$(NC)"
 
 clean: ## Clean build artifacts and cache files
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"
