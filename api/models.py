@@ -90,8 +90,14 @@ class StockPerformanceDetails(BaseModel):
     daily_return: float | None = Field(None, description="Daily return percentage")
     volume: int = Field(..., description="Current trading volume")
     trade_date: date = Field(..., description="Trading date")
-    avg_price_30d_usd: float | None = Field(None, description="30-day average price in USD")
+    avg_price_30d_usd: float | None = Field(
+        None, description="30-day average price in USD"
+    )
     avg_volume_30d: int | None = Field(None, description="30-day average volume")
-    price_change_30d_pct: float | None = Field(None, description="30-day price change percentage")
-    volatility_30d: float | None = Field(None, description="30-day volatility (standard deviation)")
+    price_change_30d_pct: float | None = Field(
+        None, description="30-day price change percentage"
+    )
+    volatility_30d: float | None = Field(
+        None, description="30-day volatility (standard deviation)"
+    )
     performance_rank: int | None = Field(None, description="Performance ranking")
