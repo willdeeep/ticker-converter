@@ -14,8 +14,8 @@ This repository develops and manages **ETL pipelines** using **Python** and **Ap
 
 ### Important Project Documentation References
 
-*   **Project Structure**: See [`docs/FINAL_PROJECT_STRUCTURE.md`](docs/FINAL_PROJECT_STRUCTURE.md) for the target simplified SQL-centric pipeline architecture and directory structure.
-*   **Refactoring Guidelines**: Follow the refactoring best practices outlined in [`docs/python-refactoring.md`](docs/python-refactoring.md) when making code improvements or simplifications.
+*   **Project Structure**: See [`PROPOSED_STRUCTURE.md`](my_docs/PROPOSED_STRUCTURE.md) for the target simplified SQL-centric pipeline architecture and directory structure.
+*   **Refactoring Guidelines**: Follow the refactoring best practices outlined in [`my_docs/python-refactoring.md`](my_docs/python-refactoring.md) when making code improvements or simplifications.
 
 ## Build and Validation Instructions
 
