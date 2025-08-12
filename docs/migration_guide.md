@@ -176,10 +176,10 @@ class FeatureEngineer:
 class QualityValidator:
     def validate_price_consistency(self, data: pd.DataFrame) -> ValidationResult:
         # Complex validation logic...
-        
+
     def detect_outliers(self, data: pd.DataFrame) -> List[OutlierReport]:
         # Advanced outlier detection...
-        
+
     def generate_quality_report(self, data: pd.DataFrame) -> QualityReport:
         # Comprehensive quality metrics...
 ```

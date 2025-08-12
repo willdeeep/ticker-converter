@@ -66,7 +66,7 @@ def fetch_nyse_stock_data(**context):
     for symbol in symbols:
         # Fetch data from API
         stock_data = fetcher.get_daily_data(symbol)
-        
+
         # Insert raw data directly into staging table
         insert_sql = """
             INSERT INTO staging_stock_data (symbol, date, open_usd, high_usd, low_usd, close_usd, volume, created_at)
@@ -79,7 +79,7 @@ def fetch_nyse_stock_data(**context):
                 volume = EXCLUDED.volume,
                 updated_at = NOW()
         """
-        
+
         for data_point in stock_data:
             postgres_hook.run(insert_sql, parameters=(
                 symbol,
@@ -351,10 +351,10 @@ cleanup_staging = PostgresOperator(
         -- Clean up staging tables older than 7 days
         DELETE FROM staging_stock_data 
         WHERE created_at < NOW() - INTERVAL '7 days';
-        
+
         DELETE FROM staging_currency_rates 
         WHERE created_at < NOW() - INTERVAL '7 days';
-        
+
         -- Log cleanup action
         INSERT INTO etl_log (dag_id, task_id, message, log_time)
         VALUES ('nyse_stock_etl', 'cleanup_staging', 'Staging tables cleaned', NOW());
