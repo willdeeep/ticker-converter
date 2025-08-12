@@ -47,16 +47,20 @@ def init_database_command(days: int = 30) -> None:
         orchestrator = DataIngestionOrchestrator()
         results = orchestrator.perform_initial_setup(days_back=days)
 
-        print("Database initialization completed successfully")
+        print(f"Database initialization completed successfully")
         print(f"Total records inserted: {results.get('total_records_inserted', 0)}")
 
         if results.get("stock_data"):
             stock_data = results["stock_data"]
-            print(f"Stock data: {stock_data['records_inserted']} records for {len(stock_data['companies'])} companies")
+            print(
+                f"Stock data: {stock_data['records_inserted']} records for {len(stock_data['companies'])} companies"
+            )
 
         if results.get("currency_data"):
             currency_data = results["currency_data"]
-            print(f"Currency data: {currency_data['records_inserted']} records for {currency_data['currency_pair']}")
+            print(
+                f"Currency data: {currency_data['records_inserted']} records for {currency_data['currency_pair']}"
+            )
 
     except Exception as e:
         print(f"Database initialization failed: {e}", file=sys.stderr)
@@ -80,7 +84,9 @@ def daily_collection_command() -> None:
 
         if results.get("currency_updates"):
             currency_updates = results["currency_updates"]
-            print(f"Currency updates: {currency_updates['records_inserted']} new records")
+            print(
+                f"Currency updates: {currency_updates['records_inserted']} new records"
+            )
 
     except Exception as e:
         print(f"Daily data collection failed: {e}", file=sys.stderr)
@@ -96,7 +102,9 @@ def main_argparse() -> None:
 
     # Command group - either init or daily
     command_group = parser.add_mutually_exclusive_group(required=True)
-    command_group.add_argument("--init", action="store_true", help="Initialize database with historical data")
+    command_group.add_argument(
+        "--init", action="store_true", help="Initialize database with historical data"
+    )
     command_group.add_argument(
         "--daily",
         action="store_true",
@@ -132,7 +140,9 @@ def ingestion(ctx: click.Context, verbose: bool) -> None:
 
 
 @ingestion.command()
-@click.option("--days", "-d", default=10, help="Number of days of historical data to fetch")
+@click.option(
+    "--days", "-d", default=10, help="Number of days of historical data to fetch"
+)
 @click.option("--output", "-o", type=click.File("w"), help="Output results to file")
 def setup(days: int, output: click.File) -> None:
     """Perform initial database setup with historical data.
@@ -154,7 +164,9 @@ def setup(days: int, output: click.File) -> None:
         else:
             click.echo("\n=== Setup Results ===")
             click.echo(f"Success: {results.get('success', False)}")
-            click.echo(f"Total records inserted: {results.get('total_records_inserted', 0)}")
+            click.echo(
+                f"Total records inserted: {results.get('total_records_inserted', 0)}"
+            )
 
             if results.get("stock_data"):
                 stock_data = results["stock_data"]
@@ -215,7 +227,9 @@ def update(output: click.File | None) -> None:
 
             if results.get("currency_updates"):
                 currency_updates = results["currency_updates"]
-                click.echo(f"Currency updates: {currency_updates['records_inserted']} new records")
+                click.echo(
+                    f"Currency updates: {currency_updates['records_inserted']} new records"
+                )
 
             if results.get("errors"):
                 click.echo(f"Errors: {results['errors']}")
@@ -253,20 +267,28 @@ def run(output: click.File) -> None:
         else:
             click.echo("\n=== Ingestion Results ===")
             click.echo(f"Database was empty: {results.get('was_empty', 'unknown')}")
-            click.echo(f"Operation performed: {results.get('operation_performed', 'none')}")
+            click.echo(
+                f"Operation performed: {results.get('operation_performed', 'none')}"
+            )
             click.echo(f"Success: {results.get('success', False)}")
 
             operation_results = results.get("results", {})
             if operation_results:
-                click.echo(f"Total records inserted: {operation_results.get('total_records_inserted', 0)}")
+                click.echo(
+                    f"Total records inserted: {operation_results.get('total_records_inserted', 0)}"
+                )
 
                 if operation_results.get("stock_data"):
                     stock_data = operation_results["stock_data"]
-                    click.echo(f"Stock data: {stock_data.get('records_inserted', 0)} records")
+                    click.echo(
+                        f"Stock data: {stock_data.get('records_inserted', 0)} records"
+                    )
 
                 if operation_results.get("currency_data"):
                     currency_data = operation_results["currency_data"]
-                    click.echo(f"Currency data: {currency_data.get('records_inserted', 0)} records")
+                    click.echo(
+                        f"Currency data: {currency_data.get('records_inserted', 0)} records"
+                    )
 
                 if operation_results.get("errors"):
                     click.echo(f"Errors: {operation_results['errors']}")
@@ -310,8 +332,12 @@ def status(output: click.File) -> None:
             click.echo(f"Database status: {db_health.get('status', 'unknown')}")
             click.echo(f"Stock records: {db_health.get('stock_records', 0)}")
             click.echo(f"Currency records: {db_health.get('currency_records', 0)}")
-            click.echo(f"Latest stock date: {db_health.get('latest_stock_date', 'none')}")
-            click.echo(f"Latest currency date: {db_health.get('latest_currency_date', 'none')}")
+            click.echo(
+                f"Latest stock date: {db_health.get('latest_stock_date', 'none')}"
+            )
+            click.echo(
+                f"Latest currency date: {db_health.get('latest_currency_date', 'none')}"
+            )
 
             companies = status_info.get("companies_tracked", [])
             click.echo(f"Companies tracked: {', '.join(companies)}")

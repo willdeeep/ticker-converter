@@ -7,7 +7,7 @@ name = "ticker-converter"
 version = "1.0.0"
 description = "Stock ticker conversion and analysis pipeline"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
     {name = "Will Huntley-Clarke", email = "23581815+willdeeep@users.noreply.github.com"}
@@ -17,30 +17,30 @@ classifiers = [
     "Intended Audience :: Financial and Insurance Industry",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
 
 dependencies = [
     # Core FastAPI and web framework
-    "fastapi>=0.95.0",
+    "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
-    "pydantic>=2.0.0",
-    "email-validator>=1.0.5,<2.0.0",  # Compatible with Airflow constraints
+    "pydantic>=2.4.0",
 
     # Database and data processing
     "psycopg2-binary>=2.9.7",
-    "sqlalchemy>=1.4.36",
+    "sqlalchemy>=2.0.0",
     "pandas>=2.1.0",
 
     # HTTP client and utilities
     "requests>=2.31.0",
     "python-dotenv>=1.0.0",
-]
 
-# Note: Avoid cadwyn package - requires FastAPI >=0.112.4 which conflicts with Airflow compatibility
-# See: https://github.com/apache/airflow/issues/32311 for Airflow/Pydantic 2.0+ compatibility issues
-# Email-validator is constrained to <2.0.0 to maintain compatibility with flask-appbuilder in Airflow environments
+    # Workflow orchestration
+    "apache-airflow>=2.7.0",
+]
 
 [project.optional-dependencies]
 test = [
@@ -48,15 +48,6 @@ test = [
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
     "httpx>=0.24.0",
-]
-
-airflow = [
-    # Workflow orchestration with compatibility constraints
-    "apache-airflow>=2.7.0,<2.9.0",
-    "pydantic>=1.10.0,<2.0.0",  # Override for Airflow compatibility
-    "fastapi>=0.95.0,<0.104.0",  # Override for Airflow compatibility
-    "sqlalchemy>=1.4.36,<2.0",  # Override for Airflow compatibility
-    "email-validator>=1.0.5,<2.0.0",  # Required for FastAPI/Airflow compatibility
 ]
 
 dev = [
@@ -86,14 +77,14 @@ where = ["src"]
 
 # Tool configurations
 [tool.black]
-line-length = 120
-target-version = ['py311', 'py312']
+line-length = 88
+target-version = ['py39', 'py310', 'py311', 'py312']
 include = '\.pyi?$'
 
 [tool.isort]
 profile = "black"
 multi_line_output = 3
-line_length = 120
+line_length = 88
 known_first_party = ["ticker_converter"]
 
 [tool.pylint.master]
@@ -113,12 +104,11 @@ disable = [
 max-line-length = 120
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 ignore_missing_imports = true
-disable_error_code = ["syntax"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

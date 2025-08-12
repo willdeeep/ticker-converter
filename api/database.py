@@ -58,7 +58,9 @@ class DatabaseConnection:
         async with self._pool.acquire() as connection:
             yield connection
 
-    async def execute_query(self, query: str, params: list[Any] | None = None) -> list[dict[str, Any]]:
+    async def execute_query(
+        self, query: str, params: list[Any] | None = None
+    ) -> list[dict[str, Any]]:
         """Execute a SQL query and return results.
 
         Args:
@@ -85,7 +87,9 @@ class DatabaseConnection:
                 logger.error("Params: %s", params)
                 raise DatabaseError(f"Query execution failed: {e}") from e
 
-    async def execute_command(self, command: str, params: list[Any] | None = None) -> None:
+    async def execute_command(
+        self, command: str, params: list[Any] | None = None
+    ) -> None:
         """Execute a SQL command (INSERT, UPDATE, DELETE).
 
         Args:
@@ -107,7 +111,9 @@ class DatabaseConnection:
                 logger.error("Params: %s", params)
                 raise DatabaseError(f"Command execution failed: {e}") from e
 
-    async def execute_transaction(self, commands: list[tuple[str, list[Any] | None]]) -> None:
+    async def execute_transaction(
+        self, commands: list[tuple[str, list[Any] | None]]
+    ) -> None:
         """Execute multiple commands in a transaction.
 
         Args:

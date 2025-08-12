@@ -11,47 +11,11 @@ YELLOW := \033[0;33m
 CYAN := \033[0;36m
 NC := \033[0m
 
-.PHONY: help install install-test install-dev setup init-db run airflow serve test test-unit test-int test-ci test-fast test-full lint lint-fix act-pr clean
+.PHONY: help install install-test install-dev init-db run airflow serve test lint lint-fix clean
 
 help: ## Show this help message
-	@echo "$(CYAN)================== TICKER CONVERTER COMMANDS ==================$(NC)"
-	@echo ""
-	@echo "$(YELLOW)📦 SETUP & INSTALLATION$(NC)"
-	@echo "  $(CYAN)setup$(NC)           Interactive setup - configure API keys and credentials"
-	@echo "  $(CYAN)install$(NC)         Install production dependencies only"
-	@echo "  $(CYAN)install-test$(NC)    Install production + testing dependencies"
-	@echo "  $(CYAN)install-dev$(NC)     Install full development environment"
-	@echo ""
-	@echo "$(YELLOW)🚀 OPERATIONS & EXECUTION$(NC)"
-	@echo "  $(CYAN)init-db$(NC)         Initialize database with last 30 trading days of data"
-	@echo "  $(CYAN)run$(NC)             Run daily data collection for previous trading day"
-	@echo "  $(CYAN)airflow$(NC)         Start Apache Airflow instance with default user"
-	@echo "  $(CYAN)serve$(NC)           Start FastAPI development server"
-	@echo ""
-	@echo "$(YELLOW)🧪 TESTING$(NC)"
-	@echo "  $(CYAN)test$(NC)            Run test suite with coverage (legacy alias for test-full)"
-	@echo "  $(CYAN)test-unit$(NC)       Run unit tests only (fast)"
-	@echo "  $(CYAN)test-int$(NC)        Run integration tests only"
-	@echo "  $(CYAN)test-ci$(NC)         Run CI pipeline tests (unit + basic coverage)"
-	@echo "  $(CYAN)test-fast$(NC)       Run all tests quickly (no coverage reports)"
-	@echo "  $(CYAN)test-full$(NC)       Run comprehensive test suite with full coverage"
-	@echo ""
-	@echo "$(YELLOW)✨ CODE QUALITY$(NC)"
-	@echo "  $(CYAN)lint$(NC)            Run all code quality checks"
-	@echo "  $(CYAN)lint-fix$(NC)        Auto-fix code quality issues (black, isort)"
-	@echo "  $(CYAN)act-pr$(NC)          Validate codebase for pull request (GitHub Actions locally)"
-	@echo ""
-	@echo "$(YELLOW)🧹 MAINTENANCE$(NC)"
-	@echo "  $(CYAN)clean$(NC)           Clean build artifacts and cache files"
-	@echo "  $(CYAN)help$(NC)            Show this help message"
-	@echo ""
-	@echo "$(CYAN)============================================================$(NC)"
-
-# Setup and installation commands
-setup: ## Interactive setup - configure API keys and credentials
-	@echo "$(BLUE)Starting interactive setup...$(NC)"
-	$(PYTHON) scripts/setup.py
-	@echo "$(GREEN)Setup completed$(NC)"
+	@echo "Available commands:"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-15s$(NC) %s\n", $$1, $$2}'
 
 # Installation commands
 install: ## Install production dependencies only
@@ -87,31 +51,18 @@ airflow: ## Start Apache Airflow instance with default user
 	@echo "$(YELLOW)Setting up Airflow database...$(NC)"
 	airflow db init
 	@echo "$(YELLOW)Creating default admin user...$(NC)"
-	@if [ -f .env ]; then \
-		source .env && airflow users create \
-			--username $${AIRFLOW_ADMIN_USERNAME:-admin} \
-			--firstname $${AIRFLOW_ADMIN_FIRSTNAME:-Admin} \
-			--lastname $${AIRFLOW_ADMIN_LASTNAME:-User} \
-			--role Admin \
-			--email $${AIRFLOW_ADMIN_EMAIL:-admin@ticker-converter.local} \
-			--password $${AIRFLOW_ADMIN_PASSWORD:-admin123} 2>/dev/null || echo "User already exists"; \
-	else \
-		airflow users create \
-			--username admin \
-			--firstname Admin \
-			--lastname User \
-			--role Admin \
-			--email admin@ticker-converter.local \
-			--password admin123 2>/dev/null || echo "User already exists"; \
-	fi
+	airflow users create \
+		--username admin \
+		--firstname Admin \
+		--lastname User \
+		--role Admin \
+		--email admin@ticker-converter.local \
+		--password admin123 2>/dev/null || echo "User already exists"
 	@echo "$(GREEN)Starting Airflow webserver...$(NC)"
 	@echo "$(CYAN)=== AIRFLOW CONNECTION DETAILS ===$(NC)"
 	@echo "$(GREEN)URL: http://localhost:8080$(NC)"
-	@if [ -f .env ]; then \
-		source .env && echo "$(GREEN)Username: $${AIRFLOW_ADMIN_USERNAME:-admin}$(NC)" && echo "$(GREEN)Password: $${AIRFLOW_ADMIN_PASSWORD:-admin123}$(NC)"; \
-	else \
-		echo "$(GREEN)Username: admin$(NC)" && echo "$(GREEN)Password: admin123$(NC)"; \
-	fi
+	@echo "$(GREEN)Username: admin$(NC)"
+	@echo "$(GREEN)Password: admin123$(NC)"
 	@echo "$(CYAN)=================================$(NC)"
 	airflow webserver --port 8080
 
@@ -126,65 +77,24 @@ serve: ## Start FastAPI development server
 	$(PYTHON) run_api.py
 
 # Quality and testing commands
-test: test-full ## Run test suite with coverage (legacy alias for test-full)
-
-test-unit: ## Run unit tests only (fast)
-	@echo "$(BLUE)Running unit tests...$(NC)"
-	pytest tests/unit/ -v --tb=short --no-cov
-	@echo "$(GREEN)Unit tests completed$(NC)"
-
-test-int: ## Run integration tests only
-	@echo "$(BLUE)Running integration tests...$(NC)"
-	@echo "$(YELLOW)Note: Integration tests require valid API keys and INTEGRATION_TEST=true$(NC)"
-	INTEGRATION_TEST=true pytest tests/integration/ -v --tb=short --no-cov
-	@echo "$(GREEN)Integration tests completed$(NC)"
-
-test-ci: ## Run CI pipeline tests (unit + basic coverage)
-	@echo "$(BLUE)Running CI test suite...$(NC)"
-	pytest tests/unit/ --cov=src/$(PACKAGE_NAME) --cov-report=term-missing --cov-fail-under=35
-	@echo "$(GREEN)CI test suite completed$(NC)"
-
-test-fast: ## Run all tests quickly (no coverage reports)
-	@echo "$(BLUE)Running all tests (fast mode)...$(NC)"
-	pytest tests/ -v --tb=short -x --no-cov
-	@echo "$(GREEN)Fast test suite completed$(NC)"
-
-test-full: ## Run comprehensive test suite with full coverage
-	@echo "$(BLUE)Running comprehensive test suite...$(NC)"
-	pytest tests/ --cov=src/$(PACKAGE_NAME) --cov-report=html --cov-report=term-missing --cov-report=xml --cov-fail-under=35 -v
-	@echo "$(GREEN)Comprehensive test suite completed$(NC)"
-	@echo "$(CYAN)Coverage reports generated:$(NC)"
-	@echo "  $(GREEN)HTML: htmlcov/index.html$(NC)"
-	@echo "  $(GREEN)XML: coverage.xml$(NC)"
+test: ## Run test suite with coverage
+	@echo "$(BLUE)Running test suite...$(NC)"
+	pytest tests/ --cov=src/$(PACKAGE_NAME) --cov-report=html --cov-report=term-missing
+	@echo "$(GREEN)Test suite completed$(NC)"
 
 lint: ## Run all code quality checks
 	@echo "$(BLUE)Running code quality checks...$(NC)"
 	pylint src/$(PACKAGE_NAME)/ api/ run_api.py
-	black --check src/$(PACKAGE_NAME)/ api/ tests/ run_api.py || (echo "Code formatting issues found. Run 'make lint-fix' to fix them." && exit 1)
-	isort --check-only src/$(PACKAGE_NAME)/ api/ tests/ run_api.py || (echo "Import sorting issues found. Run 'make lint-fix' to fix them." && exit 1)
-	mypy src/$(PACKAGE_NAME)/ api/ || true
+	black --check src/$(PACKAGE_NAME)/ api/ tests/ run_api.py
+	isort --check-only src/$(PACKAGE_NAME)/ api/ tests/ run_api.py
+	mypy src/$(PACKAGE_NAME)/ api/
 	@echo "$(GREEN)Code quality checks completed$(NC)"
 
-lint-fix: ## Auto-fix code quality issues (black first, then isort)
+lint-fix: ## Auto-fix code quality issues
 	@echo "$(BLUE)Auto-fixing code quality issues...$(NC)"
-	@echo "$(YELLOW)Step 1: Running black formatter...$(NC)"
 	black src/$(PACKAGE_NAME)/ api/ tests/ run_api.py
-	@echo "$(YELLOW)Step 2: Running isort import sorter...$(NC)"
 	isort src/$(PACKAGE_NAME)/ api/ tests/ run_api.py
 	@echo "$(GREEN)Code formatting applied$(NC)"
-
-act-pr: ## Validate codebase for pull request (GitHub Actions locally)
-	@echo "$(BLUE)Running GitHub Actions locally with act...$(NC)"
-	@echo "$(YELLOW)This will simulate the CI pipeline on your local machine$(NC)"
-	@if ! command -v act &> /dev/null; then \
-		echo "$(YELLOW)⚠️  'act' not found. Installing act...$(NC)"; \
-		echo "$(CYAN)On macOS: brew install act$(NC)"; \
-		echo "$(CYAN)On Linux: curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash$(NC)"; \
-		echo "$(CYAN)Or visit: https://github.com/nektos/act$(NC)"; \
-		exit 1; \
-	fi
-	act pull_request --container-architecture linux/amd64
-	@echo "$(GREEN)Local CI validation completed$(NC)"
 
 clean: ## Clean build artifacts and cache files
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"

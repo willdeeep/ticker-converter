@@ -63,13 +63,17 @@ class RawMarketData(BaseModel):
 
     @field_validator("data_points")
     @classmethod
-    def validate_consistent_symbol(cls, v: list[MarketDataPoint], info: ValidationInfo) -> list[MarketDataPoint]:
+    def validate_consistent_symbol(
+        cls, v: list[MarketDataPoint], info: ValidationInfo
+    ) -> list[MarketDataPoint]:
         """Ensure all data points have the same symbol."""
         if info.data and "symbol" in info.data:
             expected_symbol = info.data["symbol"]
             for point in v:
                 if point.symbol != expected_symbol:
-                    raise ValueError(f"All data points must have symbol {expected_symbol}")
+                    raise ValueError(
+                        f"All data points must have symbol {expected_symbol}"
+                    )
         return v
 
     def to_dataframe(self) -> pd.DataFrame:
@@ -97,8 +101,12 @@ class CurrencyRate(BaseModel):
     """Currency exchange rate data."""
 
     timestamp: datetime = Field(..., description="Rate timestamp")
-    from_currency: str = Field(..., min_length=3, max_length=3, description="Source currency code")
-    to_currency: str = Field(..., min_length=3, max_length=3, description="Target currency code")
+    from_currency: str = Field(
+        ..., min_length=3, max_length=3, description="Source currency code"
+    )
+    to_currency: str = Field(
+        ..., min_length=3, max_length=3, description="Target currency code"
+    )
     rate: float = Field(..., gt=0, description="Exchange rate")
     source: str = Field(..., description="Data source")
     retrieved_at: datetime = Field(default_factory=datetime.utcnow)

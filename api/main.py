@@ -35,7 +35,9 @@ def _build_top_performer_stock(row: dict[str, Any]) -> TopPerformerStock:
         daily_return=float(row["daily_return"]) if row["daily_return"] else None,
         volume=int(row["volume"]),
         trade_date=row["trade_date"],
-        performance_rank=(int(row["performance_rank"]) if row.get("performance_rank") else None),
+        performance_rank=(
+            int(row["performance_rank"]) if row.get("performance_rank") else None
+        ),
     )
 
 
@@ -56,11 +58,23 @@ def _build_stock_performance_details(row: dict[str, Any]) -> StockPerformanceDet
         daily_return=float(row["daily_return"]) if row["daily_return"] else None,
         volume=int(row["volume"]),
         trade_date=row["trade_date"],
-        avg_price_30d_usd=(float(row["avg_price_30d_usd"]) if row.get("avg_price_30d_usd") else None),
-        avg_volume_30d=(int(row["avg_volume_30d"]) if row.get("avg_volume_30d") else None),
-        price_change_30d_pct=(float(row["price_change_30d_pct"]) if row.get("price_change_30d_pct") else None),
-        volatility_30d=(float(row["volatility_30d"]) if row.get("volatility_30d") else None),
-        performance_rank=(int(row["performance_rank"]) if row.get("performance_rank") else None),
+        avg_price_30d_usd=(
+            float(row["avg_price_30d_usd"]) if row.get("avg_price_30d_usd") else None
+        ),
+        avg_volume_30d=(
+            int(row["avg_volume_30d"]) if row.get("avg_volume_30d") else None
+        ),
+        price_change_30d_pct=(
+            float(row["price_change_30d_pct"])
+            if row.get("price_change_30d_pct")
+            else None
+        ),
+        volatility_30d=(
+            float(row["volatility_30d"]) if row.get("volatility_30d") else None
+        ),
+        performance_rank=(
+            int(row["performance_rank"]) if row.get("performance_rank") else None
+        ),
     )
 
 
@@ -123,7 +137,9 @@ async def get_top_performers(
     return [_build_top_performer_stock(row) for row in rows]
 
 
-@app.get("/api/stocks/performance-details", response_model=list[StockPerformanceDetails])
+@app.get(
+    "/api/stocks/performance-details", response_model=list[StockPerformanceDetails]
+)
 async def get_performance_details(
     db: DatabaseConnection = Depends(get_db),
 ) -> list[StockPerformanceDetails]:

@@ -26,14 +26,22 @@ def _configure_test_environment() -> None:
     """Configure test environment with safety checks."""
     config = TestConfig()
     api_key = os.getenv(config.api_key_env_var, "")
-    integration_enabled = os.getenv(config.integration_env_var, "false").lower() == "true"
+    integration_enabled = (
+        os.getenv(config.integration_env_var, "false").lower() == "true"
+    )
 
     if not integration_enabled:
         # Force a mock API key for unit tests to prevent accidents
         os.environ[config.api_key_env_var] = config.mock_api_key
         print("\n🔒 Safety: API key set to mock value for unit tests")
-    elif api_key and len(api_key) > config.min_real_key_length and api_key != config.mock_api_key:
-        print(f"\n⚠️  WARNING: Integration tests enabled with real API key (length: {len(api_key)})")
+    elif (
+        api_key
+        and len(api_key) > config.min_real_key_length
+        and api_key != config.mock_api_key
+    ):
+        print(
+            f"\n⚠️  WARNING: Integration tests enabled with real API key (length: {len(api_key)})"
+        )
         print("This will consume your Alpha Vantage API quota!")
 
 
@@ -57,7 +65,9 @@ def test_api_config() -> APIConfig:
 @pytest.fixture
 def mock_config():
     """Mock configuration for testing (backwards compatibility)."""
-    with patch("src.ticker_converter.api_clients.api_client.get_api_config") as mock_get_config:
+    with patch(
+        "src.ticker_converter.api_clients.api_client.get_api_config"
+    ) as mock_get_config:
         mock_cfg = APIConfig(
             api_key="test_api_key",
             base_url="https://www.alphavantage.co/query",

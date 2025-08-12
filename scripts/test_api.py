@@ -37,9 +37,7 @@ async def test_top_performers_endpoint(client: httpx.AsyncClient) -> bool:
             print("✅ Top performers endpoint works")
             print(f"   Returned {len(data)} stocks")
             if data:
-                print(
-                    f"   Top performer: {data[0]['symbol']} - {data[0]['company_name']}"
-                )
+                print(f"   Top performer: {data[0]['symbol']} - {data[0]['company_name']}")
                 print(f"   Daily return: {data[0]['daily_return']}%")
             return True
         if response.status_code == 404:
@@ -113,9 +111,7 @@ async def main():
             print("\nEndpoints available:")
             print(f"   - Health: {base_url}/health")
             print(f"   - Top Performers: {base_url}/api/stocks/top-performers")
-            print(
-                f"   - Performance Details: {base_url}/api/stocks/performance-details"
-            )
+            print(f"   - Performance Details: {base_url}/api/stocks/performance-details")
             print(f"   - API Docs: {base_url}/docs")
         else:
             print("❌ Some tests failed. Check the output above.")
