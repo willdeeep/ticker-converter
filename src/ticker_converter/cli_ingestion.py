@@ -2,8 +2,11 @@
 
 This module provides command-line interface for running data ingestion
 for the Magnificent Seven companies and USD/GBP currency data.
+
+Supports both Click-based commands and direct argparse-style flags for Makefile integration.
 """
 
+import argparse
 import json
 import logging
 import sqlite3
@@ -32,6 +35,92 @@ def setup_logging(verbose: bool = False) -> None:
     )
 
 
+def init_database_command(days: int = 30) -> None:
+    """Initialize database with historical data for Makefile integration.
+
+    Args:
+        days: Number of trading days to fetch historical data for
+    """
+    print(f"Initializing database with {days} days of historical data...")
+
+    try:
+        orchestrator = DataIngestionOrchestrator()
+        results = orchestrator.perform_initial_setup(days_back=days)
+
+        print(f"Database initialization completed successfully")
+        print(f"Total records inserted: {results.get('total_records_inserted', 0)}")
+
+        if results.get("stock_data"):
+            stock_data = results["stock_data"]
+            print(f"Stock data: {stock_data['records_inserted']} records for {len(stock_data['companies'])} companies")
+
+        if results.get("currency_data"):
+            currency_data = results["currency_data"]
+            print(f"Currency data: {currency_data['records_inserted']} records for {currency_data['currency_pair']}")
+
+    except Exception as e:
+        print(f"Database initialization failed: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def daily_collection_command() -> None:
+    """Run daily data collection for Makefile integration."""
+    print("Starting daily data collection...")
+
+    try:
+        orchestrator = DataIngestionOrchestrator()
+        results = orchestrator.perform_daily_update()
+
+        print("Daily data collection completed successfully")
+        print(f"Total new records: {results.get('total_records_inserted', 0)}")
+
+        if results.get("stock_updates"):
+            stock_updates = results["stock_updates"]
+            print(f"Stock updates: {stock_updates['records_inserted']} new records")
+
+        if results.get("currency_updates"):
+            currency_updates = results["currency_updates"]
+            print(f"Currency updates: {currency_updates['records_inserted']} new records")
+
+    except Exception as e:
+        print(f"Daily data collection failed: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def main_argparse() -> None:
+    """Main entry point for argparse-style CLI (used by Makefile)."""
+    parser = argparse.ArgumentParser(
+        description="Ticker Converter Data Ingestion CLI",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    # Command group - either init or daily
+    command_group = parser.add_mutually_exclusive_group(required=True)
+    command_group.add_argument("--init", action="store_true", help="Initialize database with historical data")
+    command_group.add_argument(
+        "--daily",
+        action="store_true",
+        help="Run daily data collection for previous trading day",
+    )
+
+    # Options for init command
+    parser.add_argument(
+        "--days",
+        type=int,
+        default=30,
+        help="Number of trading days for historical data (default: 30)",
+    )
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    # Execute appropriate command
+    if args.init:
+        init_database_command(args.days)
+    elif args.daily:
+        daily_collection_command()
+
+
 @click.group()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.pass_context
@@ -43,9 +132,7 @@ def ingestion(ctx: click.Context, verbose: bool) -> None:
 
 
 @ingestion.command()
-@click.option(
-    "--days", "-d", default=10, help="Number of days of historical data to fetch"
-)
+@click.option("--days", "-d", default=10, help="Number of days of historical data to fetch")
 @click.option("--output", "-o", type=click.File("w"), help="Output results to file")
 def setup(days: int, output: click.File) -> None:
     """Perform initial database setup with historical data.
@@ -67,9 +154,7 @@ def setup(days: int, output: click.File) -> None:
         else:
             click.echo("\n=== Setup Results ===")
             click.echo(f"Success: {results.get('success', False)}")
-            click.echo(
-                f"Total records inserted: {results.get('total_records_inserted', 0)}"
-            )
+            click.echo(f"Total records inserted: {results.get('total_records_inserted', 0)}")
 
             if results.get("stock_data"):
                 stock_data = results["stock_data"]
@@ -130,9 +215,7 @@ def update(output: click.File | None) -> None:
 
             if results.get("currency_updates"):
                 currency_updates = results["currency_updates"]
-                click.echo(
-                    f"Currency updates: {currency_updates['records_inserted']} new records"
-                )
+                click.echo(f"Currency updates: {currency_updates['records_inserted']} new records")
 
             if results.get("errors"):
                 click.echo(f"Errors: {results['errors']}")
@@ -170,28 +253,20 @@ def run(output: click.File) -> None:
         else:
             click.echo("\n=== Ingestion Results ===")
             click.echo(f"Database was empty: {results.get('was_empty', 'unknown')}")
-            click.echo(
-                f"Operation performed: {results.get('operation_performed', 'none')}"
-            )
+            click.echo(f"Operation performed: {results.get('operation_performed', 'none')}")
             click.echo(f"Success: {results.get('success', False)}")
 
             operation_results = results.get("results", {})
             if operation_results:
-                click.echo(
-                    f"Total records inserted: {operation_results.get('total_records_inserted', 0)}"
-                )
+                click.echo(f"Total records inserted: {operation_results.get('total_records_inserted', 0)}")
 
                 if operation_results.get("stock_data"):
                     stock_data = operation_results["stock_data"]
-                    click.echo(
-                        f"Stock data: {stock_data.get('records_inserted', 0)} records"
-                    )
+                    click.echo(f"Stock data: {stock_data.get('records_inserted', 0)} records")
 
                 if operation_results.get("currency_data"):
                     currency_data = operation_results["currency_data"]
-                    click.echo(
-                        f"Currency data: {currency_data.get('records_inserted', 0)} records"
-                    )
+                    click.echo(f"Currency data: {currency_data.get('records_inserted', 0)} records")
 
                 if operation_results.get("errors"):
                     click.echo(f"Errors: {operation_results['errors']}")
@@ -235,12 +310,8 @@ def status(output: click.File) -> None:
             click.echo(f"Database status: {db_health.get('status', 'unknown')}")
             click.echo(f"Stock records: {db_health.get('stock_records', 0)}")
             click.echo(f"Currency records: {db_health.get('currency_records', 0)}")
-            click.echo(
-                f"Latest stock date: {db_health.get('latest_stock_date', 'none')}"
-            )
-            click.echo(
-                f"Latest currency date: {db_health.get('latest_currency_date', 'none')}"
-            )
+            click.echo(f"Latest stock date: {db_health.get('latest_stock_date', 'none')}")
+            click.echo(f"Latest currency date: {db_health.get('latest_currency_date', 'none')}")
 
             companies = status_info.get("companies_tracked", [])
             click.echo(f"Companies tracked: {', '.join(companies)}")
@@ -266,3 +337,13 @@ def status(output: click.File) -> None:
     ) as e:
         click.echo(f"Status check failed: {e}", err=True)
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    # If called as python -m ticker_converter.cli_ingestion with --init or --daily flags,
+    # use argparse interface (for Makefile compatibility)
+    if "--init" in sys.argv or "--daily" in sys.argv:
+        main_argparse()
+    else:
+        # Otherwise use Click interface
+        ingestion.main(standalone_mode=False)

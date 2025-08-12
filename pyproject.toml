@@ -4,85 +4,63 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ticker-converter"
-version = "0.6.0"
-description = "Financial Market Data Analytics Pipeline for Interview Task"
+version = "1.0.0"
+description = "Stock ticker conversion and analysis pipeline"
 readme = "README.md"
-license = {file = "LICENSE"}
+requires-python = ">=3.11"
+license = {text = "MIT"}
 authors = [
     {name = "Will Huntley-Clarke", email = "23581815+willdeeep@users.noreply.github.com"}
 ]
-keywords = ["finance", "etl", "airflow", "data-pipeline", "analytics"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Financial and Insurance Industry",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
-    "Topic :: Office/Business :: Financial",
-    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Programming Language :: Python :: 3.12",
 ]
-requires-python = ">=3.11"
+
 dependencies = [
-    # Core Data Processing (minimal for SQL-first approach)
-    "pandas>=2.0.0",
-    "numpy>=1.24.0",
-    # API Clients for Financial Data
+    # Core FastAPI and web framework
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.4.0",
+
+    # Database and data processing
+    "psycopg2-binary>=2.9.7",
+    "sqlalchemy>=2.0.0",
+    "pandas>=2.1.0",
+
+    # HTTP client and utilities
     "requests>=2.31.0",
     "python-dotenv>=1.0.0",
-    # Data Models and Validation
-    "pydantic>=2.0.0",
-    # Storage for raw data
-    "pyarrow>=12.0.0",
-    # Testing Framework
-    "pytest>=7.4.0",
-    # Code Quality and Linting
-    "black>=23.7.0",
-    "ruff>=0.0.280",
-    "mypy>=1.5.0",
-    # Type stubs for mypy
-    "pandas-stubs>=2.0.0",
-    "types-requests>=2.31.0",
-    "types-psycopg2>=2.9.0",
-    "types-click>=7.1.0",
-    # Utility Libraries
-    "click>=8.1.0",
-    "python-dateutil>=2.8.0",
+
+    # Workflow orchestration
+    "apache-airflow>=2.7.0",
 ]
 
 [project.optional-dependencies]
-# SQL-first architecture dependencies
-database = [
-    "psycopg2-binary>=2.9.0",  # PostgreSQL adapter
-    "asyncpg>=0.28.0",         # Async PostgreSQL adapter
-]
-api = [
-    "fastapi>=0.100.0",        # Web Framework
-    "uvicorn[standard]>=0.23.0",
-    "httpx>=0.24.0",           # For testing FastAPI
-]
-airflow = [
-    "apache-airflow>=2.7.0",   # Workflow orchestration
-    "apache-airflow-providers-postgres>=5.6.0",  # PostgreSQL provider
-]
-dev = [
-    # Additional testing tools
+test = [
+    "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
-    "pytest-mock>=3.11.0",
-    "responses>=0.24.0",
-]
-# Convenience groups
-all = [
-    "ticker-converter[database,api,dev]"
-]
-# Full development including Airflow
-full = [
-    "ticker-converter[database,api,airflow,dev]"
+    "httpx>=0.24.0",
 ]
 
-[project.scripts]
-ticker-converter = "ticker_converter.cli:main"
+dev = [
+    "ticker-converter[test]",
+    # Code quality tools
+    "pylint>=3.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.5.0",
+
+    # Development tools
+    "pre-commit>=3.4.0",
+    "ipython>=8.0.0",
+    "jupyter>=1.0.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/willdeeep/ticker-converter"
@@ -95,139 +73,70 @@ where = ["src"]
 [tool.setuptools.package-dir]
 "" = "src"
 
-# Black code formatting
+# Tool configurations
 [tool.black]
-line-length = 88
-target-version = ['py311']
+line-length = 120
+target-version = ['py311', 'py312']
 include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
 
-# Ruff linting configuration
-[tool.ruff]
-target-version = "py311"
-line-length = 88
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 120
+known_first_party = ["ticker_converter"]
 
-[tool.ruff.lint]
-select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade
-]
-ignore = [
-    "E501",  # line too long, handled by black
-    "B008",  # do not perform function calls in argument defaults
-    "C901",  # too complex
+[tool.pylint.master]
+extension-pkg-whitelist = ["pydantic"]
+
+[tool.pylint.messages_control]
+disable = [
+    "too-few-public-methods",
+    "missing-module-docstring",
+    "broad-exception-caught",
+    "f-string-without-interpolation",
+    "invalid-name",
+    "line-too-long",
 ]
 
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]
-"tests/*" = ["B011"]
+[tool.pylint.format]
+max-line-length = 120
 
-# MyPy type checking
 [tool.mypy]
 python_version = "3.11"
-check_untyped_defs = true
-disallow_any_generics = true
-disallow_incomplete_defs = true
+warn_return_any = true
+warn_unused_configs = true
 disallow_untyped_defs = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_unreachable = false  # Disable unreachable warnings for now
-strict_equality = true
-
-[[tool.mypy.overrides]]
-module = [
-    "alpha_vantage.*",
-    "airflow.*",
-    "sqlalchemy.*",
-    "alembic.*",
-    "pyarrow.*",
-]
 ignore_missing_imports = true
+disable_error_code = ["syntax"]
 
-# Pytest configuration
 [tool.pytest.ini_options]
-minversion = "7.0"
-addopts = "-ra -q --strict-markers --strict-config"
 testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
+python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--disable-warnings",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
 markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
 ]
 
-# Coverage configuration
 [tool.coverage.run]
-source = ["src"]
+source = ["ticker_converter", "api"]
 omit = [
     "*/tests/*",
-    "*/test_*",
-    "*/__init__.py",
-    "*/setup.py",
+    "*/venv/*",
+    "*/.venv/*",
 ]
 
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
     "raise AssertionError",
     "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
 ]
-
-# Pylint configuration
-[tool.pylint.main]
-extension-pkg-allow-list = ["pydantic", "airflow"]
-
-[tool.pylint.messages_control]
-disable = [
-    "too-few-public-methods",
-    "too-many-arguments",
-    "too-many-instance-attributes",
-    "line-too-long",  # handled by black
-    "fixme",  # TODO comments are acceptable in development
-    "pointless-statement",  # Airflow task dependencies look like statements
-]
-
-[tool.pylint.typecheck]
-generated-members = [
-    "pydantic.*",
-    "airflow.*",
-]
-ignored-classes = ["FieldInfo", "DAG", "BaseOperator"]
-# Ignore Airflow-specific keyword argument issues
-ignored-modules = ["airflow.models.dag"]
-
-[tool.pylint.design]
-max-args = 10
-max-attributes = 15
-
-[tool.pylint.basic]
-# Allow constants in config classes to use UPPER_CASE
-const-rgx = "[A-Z_][A-Z0-9_]*"
-attr-rgx = "[a-z_][a-z0-9_]*|[A-Z_][A-Z0-9_]*"
