@@ -1,6 +1,7 @@
 # Financial Market Data Analytics Pipeline
 
-A modern Python-based stock ticker conversion and analysis pipeline with Makefile-driven workflow, featuring FastAPI endpoints, PostgreSQL integration, and comprehensive code quality tools.
+A modern Python-based stock ticker conversion and analysis pipeline with Makefile-driven workflow- psycopg2-binary >= 2.9.7 (PostgreSQL driver)
+- Apache Airflow >= 3.0.0 (Workflow orchestration)featuring FastAPI endpoints, PostgreSQL integration, and comprehensive code quality tools.
 
 ## Overview
 
