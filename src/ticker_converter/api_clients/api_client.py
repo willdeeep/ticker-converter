@@ -93,7 +93,7 @@ class AlphaVantageClient:
 
                 # Apply rate limiting and return data
                 time.sleep(self.config.rate_limit_delay)
-                return data
+                return dict(data)  # Ensure we return a proper dict
 
             except requests.RequestException as e:
                 if attempt < self.config.max_retries - 1:
