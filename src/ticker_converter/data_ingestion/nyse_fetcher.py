@@ -78,18 +78,14 @@ class NYSEDataFetcher:
             # Filter to the requested number of days
             df_filtered = df.head(days_back)
 
-            self.logger.info(
-                "Retrieved %d days of data for %s", len(df_filtered), symbol
-            )
+            self.logger.info("Retrieved %d days of data for %s", len(df_filtered), symbol)
             return df_filtered
 
         except (ValueError, KeyError, TypeError, pd.errors.ParserError) as e:
             self.logger.error("Error fetching data for %s: %s", symbol, e)
             return None
 
-    def fetch_magnificent_seven_data(
-        self, days_back: int = 10
-    ) -> dict[str, pd.DataFrame]:
+    def fetch_magnificent_seven_data(self, days_back: int = 10) -> dict[str, pd.DataFrame]:
         """Fetch daily data for all Magnificent Seven companies.
 
         Args:
@@ -100,9 +96,7 @@ class NYSEDataFetcher:
         """
         results = {}
 
-        self.logger.info(
-            "Fetching data for Magnificent Seven companies (%s days)", days_back
-        )
+        self.logger.info("Fetching data for Magnificent Seven companies (%s days)", days_back)
 
         for symbol in self.MAGNIFICENT_SEVEN:
             df = self.fetch_daily_data(symbol, days_back)
@@ -117,9 +111,7 @@ class NYSEDataFetcher:
         )
         return results
 
-    def prepare_for_sql_insert(
-        self, df: pd.DataFrame, symbol: str
-    ) -> list[dict[str, Any]]:
+    def prepare_for_sql_insert(self, df: pd.DataFrame, symbol: str) -> list[dict[str, Any]]:
         """Prepare DataFrame data for SQL insertion into raw_stock_data table.
 
         Args:
@@ -134,9 +126,7 @@ class NYSEDataFetcher:
         for _, row in df.iterrows():
             record = {
                 "symbol": symbol,
-                "data_date": (
-                    row["Date"].date() if hasattr(row["Date"], "date") else row["Date"]
-                ),
+                "data_date": (row["Date"].date() if hasattr(row["Date"], "date") else row["Date"]),
                 "open_price": float(row["Open"]),
                 "high_price": float(row["High"]),
                 "low_price": float(row["Low"]),
