@@ -351,16 +351,16 @@ dependencies = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.4.0",
-    
+
     # Database and data processing
     "psycopg2-binary>=2.9.7",
     "sqlalchemy>=2.0.0",
     "pandas>=2.1.0",
-    
+
     # HTTP client and utilities
     "requests>=2.31.0",
     "python-dotenv>=1.0.0",
-    
+
     # Workflow orchestration
     "apache-airflow>=2.7.0",
 ]
@@ -380,7 +380,7 @@ dev = [
     "black>=23.0.0",
     "isort>=5.12.0",
     "mypy>=1.5.0",
-    
+
     # Development tools
     "pre-commit>=3.4.0",
     "ipython>=8.0.0",
