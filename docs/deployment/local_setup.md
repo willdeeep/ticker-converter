@@ -1,24 +1,255 @@
-# FastAPI with Direct SQL Setup
+# Local Development Setup Guide
 
 ## Overview
 
-This document describes the FastAPI implementation for the ticker-converter project, featuring direct SQL query execution against PostgreSQL. This approach eliminates complex ORM layers and provides maximum performance for analytical queries.
+This guide provides step-by-step instructions for setting up the ticker-converter application on your local machine. The ticker-converter is a SQL-centric ETL pipeline for NYSE stock market data analysis featuring FastAPI, PostgreSQL, and optional Apache Airflow orchestration.
 
-## Architecture Principles
+## What You'll Build
 
-### Direct SQL Approach
-- **Raw SQL Queries**: Execute SQL directly against PostgreSQL using asyncpg
-- **No ORM**: Avoid SQLAlchemy complexity for analytical workloads
-- **Connection Pooling**: Efficient database connection management
-- **Async Operations**: Non-blocking database operations for high concurrency
-- **Type Safety**: Pydantic models for request/response validation
+By following this guide, you'll have a fully functional local environment that can:
+- **Fetch stock data** for the Magnificent Seven companies (AAPL, MSFT, AMZN, GOOGL, META, NVDA, TSLA)
+- **Convert USD prices to GBP** using real exchange rates
+- **Run SQL-based analytics** for performance analysis
+- **Serve data via REST API** with interactive documentation
+- **Orchestrate ETL pipelines** using Apache Airflow (optional)
 
-### API Design Philosophy
-- **RESTful Endpoints**: Clear, predictable URL structure
-- **Query Parameters**: Flexible filtering and pagination
-- **JSON Responses**: Consistent data format
-- **Error Handling**: Comprehensive error responses
-- **Documentation**: Auto-generated OpenAPI/Swagger docs
+## Prerequisites
+
+### System Requirements
+- **Operating System**: Windows 10+, macOS 10.15+, or Linux
+- **Python**: 3.11 or higher
+- **Git**: For cloning the repository
+- **Terminal/Command Prompt**: Basic command line knowledge helpful
+
+### API Keys (Free)
+- **Alpha Vantage**: Free stock data API ([get key here](https://www.alphavantage.co/support/#api-key))
+- **Exchange Rate API**: Free currency conversion ([get key here](https://exchangerate-api.com/))
+
+## Installation Guide
+
+### Step 1: Clone the Repository
+
+```bash
+# Clone the project
+git clone https://github.com/willdeeep/ticker-converter.git
+cd ticker-converter
+```
+
+### Step 2: Python Environment Setup
+
+#### For Windows Users:
+```powershell
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+.venv\Scripts\activate
+
+# Verify Python version
+python --version  # Should be 3.11+
+```
+
+#### For macOS/Linux Users:
+```bash
+# Create virtual environment
+python3 -m venv .venv
+
+# Activate virtual environment
+source .venv/bin/activate
+
+# Verify Python version
+python --version  # Should be 3.11+
+```
+
+### Step 3: Install Dependencies
+
+```bash
+# Install core application dependencies
+pip install -e .
+
+# Install development tools (optional but recommended)
+pip install -e ".[dev]"
+
+# Install all features including Airflow (optional)
+pip install -e ".[all]"
+```
+
+### Step 4: Database Setup
+
+You have two options for setting up PostgreSQL:
+
+#### Option A: Local PostgreSQL Installation (Recommended)
+
+**For Windows:**
+1. Download PostgreSQL from [postgresql.org](https://www.postgresql.org/download/windows/)
+2. Run the installer and follow the setup wizard
+3. Remember your password for the `postgres` user
+4. Ensure PostgreSQL service is running
+
+```powershell
+# Open Command Prompt as Administrator and create database
+psql -U postgres
+CREATE DATABASE ticker_converter;
+CREATE USER ticker_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE ticker_converter TO ticker_user;
+\q
+```
+
+**For macOS:**
+```bash
+# Install PostgreSQL using Homebrew
+brew install postgresql
+
+# Start PostgreSQL service
+brew services start postgresql
+
+# Create database and user
+createdb ticker_converter
+psql ticker_converter
+CREATE USER ticker_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE ticker_converter TO ticker_user;
+\q
+```
+
+**For Linux (Ubuntu/Debian):**
+```bash
+# Install PostgreSQL
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+
+# Start PostgreSQL service
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+
+# Create database and user
+sudo -u postgres psql
+CREATE DATABASE ticker_converter;
+CREATE USER ticker_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE ticker_converter TO ticker_user;
+\q
+```
+
+#### Option B: Docker PostgreSQL (Alternative)
+
+If you prefer using Docker:
+
+```bash
+# Run PostgreSQL in Docker container
+docker run --name ticker-postgres \
+  -e POSTGRES_DB=ticker_converter \
+  -e POSTGRES_USER=ticker_user \
+  -e POSTGRES_PASSWORD=your_password \
+  -p 5432:5432 \
+  -d postgres:14
+
+# Wait for container to start
+# Windows: timeout 10
+# macOS/Linux: sleep 10
+```
+
+### Step 5: Environment Configuration
+
+```bash
+# Copy the environment template
+cp .env.example .env
+```
+
+Edit the `.env` file with your configuration:
+
+```bash
+# Database Configuration
+DATABASE_URL=postgresql://ticker_user:your_password@localhost:5432/ticker_converter
+
+# API Keys (get these free from the services)
+ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
+CURRENCY_API_KEY=your_exchangerate_api_key
+
+# Application Settings
+ENVIRONMENT=development
+LOG_LEVEL=INFO
+
+# Optional: Airflow Configuration (if using Airflow)
+AIRFLOW_HOME=/path/to/your/airflow
+```
+
+### Step 6: Database Schema Setup
+
+Initialize the database with the required tables and views:
+
+```bash
+# Create all database objects using the included scripts
+python -m ticker_converter.cli setup-database
+
+# Or run SQL scripts manually
+psql $DATABASE_URL -f airflow/sql/ddl/001_create_dimensions.sql
+psql $DATABASE_URL -f airflow/sql/ddl/002_create_facts.sql
+psql $DATABASE_URL -f airflow/sql/ddl/003_create_views.sql
+psql $DATABASE_URL -f airflow/sql/ddl/004_create_indexes.sql
+```
+
+### Step 7: Verify Installation
+
+```bash
+# Test database connection
+python -c "
+from src.ticker_converter.database.connection import get_database_connection
+print('Database connection successful!')
+"
+
+# Test API dependencies
+python -c "
+from src.ticker_converter.api_clients.alpha_vantage import AlphaVantageClient
+print('API client dependencies loaded!')
+"
+```
+
+## Quick Start Guide
+
+### 1. Fetch Some Sample Data
+
+```bash
+# Fetch stock data for Apple
+python -m ticker_converter.cli fetch-stock --symbol AAPL --days 7
+
+# Fetch currency exchange rates
+python -m ticker_converter.cli fetch-currency --days 7
+
+# Check what data was loaded
+python -m ticker_converter.cli data-status
+```
+
+### 2. Start the API Server
+
+```bash
+# Start the FastAPI development server
+python tools/deployment/run_api.py
+
+# Or use uvicorn directly
+uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Open your browser to:
+- **API Documentation**: http://localhost:8000/docs
+- **Health Check**: http://localhost:8000/health
+- **Sample API Call**: http://localhost:8000/api/v1/stocks/AAPL/prices?limit=5
+
+### 3. Explore the API
+
+Try these sample API calls:
+
+```bash
+# Get Apple stock prices
+curl "http://localhost:8000/api/v1/stocks/AAPL/prices?limit=5"
+
+# Get prices converted to GBP
+curl "http://localhost:8000/api/v1/stocks/AAPL/prices/gbp?limit=5"
+
+# Get top performing stocks
+curl "http://localhost:8000/api/v1/analytics/top-performers?period=daily"
+
+# Get market summary
+curl "http://localhost:8000/api/v1/analytics/market-summary"
+```
 
 ## Project Structure
 
@@ -746,415 +977,323 @@ ORDER BY performance_metric DESC
 LIMIT $2;
 ```
 
-### 6. Health Check and Monitoring
+## Optional: Apache Airflow Setup
 
-**File: `src/api/routers/health.py`**
-```python
-from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime
-from ..database import DatabaseManager, get_database
-import asyncio
+If you want to set up the complete ETL orchestration:
 
-router = APIRouter()
+### 1. Install Airflow
+```bash
+# Install Airflow with PostgreSQL provider
+pip install apache-airflow[postgres]==2.8.1
 
-@router.get("/")
-async def health_check():
-    """Basic health check endpoint"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "service": "ticker-converter-api",
-        "version": "2.0.0"
-    }
-
-@router.get("/database")
-async def database_health(db: DatabaseManager = Depends(get_database)):
-    """Database connectivity health check"""
-    try:
-        start_time = datetime.now()
-
-        # Simple query to test database connectivity
-        result = await db.fetch_one("health/database_check.sql")
-
-        end_time = datetime.now()
-        response_time = (end_time - start_time).total_seconds() * 1000
-
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "response_time_ms": round(response_time, 2),
-            "timestamp": datetime.now().isoformat(),
-            "latest_data_date": result["latest_date"] if result else None,
-            "total_records": result["total_records"] if result else 0
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "unhealthy",
-                "database": "disconnected",
-                "error": str(e),
-                "timestamp": datetime.now().isoformat()
-            }
-        )
-
-@router.get("/data")
-async def data_health(db: DatabaseManager = Depends(get_database)):
-    """Data freshness and quality health check"""
-    try:
-        result = await db.fetch_one("health/data_quality_check.sql")
-
-        return {
-            "status": "healthy",
-            "data_quality": "good",
-            "latest_data_date": result["latest_date"],
-            "total_stocks": result["total_stocks"],
-            "total_records": result["total_records"],
-            "data_age_days": result["data_age_days"],
-            "timestamp": datetime.now().isoformat()
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "unhealthy",
-                "data_quality": "poor",
-                "error": str(e),
-                "timestamp": datetime.now().isoformat()
-            }
-        )
+# Set Airflow home directory
+export AIRFLOW_HOME=$(pwd)/airflow_home
 ```
 
-**File: `src/api/sql/health/database_check.sql`**
-```sql
--- Basic database connectivity and data check
+### 2. Initialize Airflow
+```bash
+# Initialize Airflow metadata database
+airflow db init
+
+# Create an admin user
+airflow users create \
+    --username admin \
+    --firstname Admin \
+    --lastname User \
+    --role Admin \
+    --email admin@ticker-converter.local \
+    --password admin123
+```
+
+### 3. Configure Airflow
+```bash
+# Copy DAGs to Airflow directory
+cp -r airflow/dags/* $AIRFLOW_HOME/dags/
+
+# Set up database connection in Airflow
+airflow connections add postgres_default \
+    --conn-type postgres \
+    --conn-host localhost \
+    --conn-schema ticker_converter \
+    --conn-login ticker_user \
+    --conn-password your_password \
+    --conn-port 5432
+```
+
+### 4. Start Airflow Services
+```bash
+# Terminal 1: Start the web server
+airflow webserver --port 8080
+
+# Terminal 2: Start the scheduler
+airflow scheduler
+```
+
+Access Airflow UI at http://localhost:8080 (admin/admin123)
+
+## Development Workflow
+
+### Daily Development Tasks
+
+```bash
+# Activate environment (run this each time you start working)
+source .venv/bin/activate  # macOS/Linux
+# or
+.venv\Scripts\activate     # Windows
+
+# Start the API server
+python tools/deployment/run_api.py
+
+# Run tests
+python -m pytest tests/
+
+# Check code quality
+python -m pylint src/
+python -m black src/
+```
+
+### Common Operations
+
+```bash
+# Fetch data for all Magnificent Seven stocks
+python -m ticker_converter.cli fetch-all --days 30
+
+# Run data quality checks
+python tools/data/examine_data.py
+
+# Clean up old data
+python tools/data/cleanup_data.py --days 90
+
+# Create sample data for testing
+python tools/data/create_dummy_data.py --symbols AAPL,MSFT --days 10
+```
+
+### Database Management
+
+```bash
+# Check database status
+python -c "
+from src.ticker_converter.database.connection import get_database_connection
+from src.ticker_converter.data_ingestion.database_manager import DatabaseManager
+dm = DatabaseManager()
+print('Database status:', dm.get_database_status())
+"
+
+# View recent data
+psql $DATABASE_URL -c "
+SELECT s.symbol, d.date, p.close_usd 
+FROM fact_stock_prices p 
+JOIN dim_stocks s ON p.stock_id = s.stock_id 
+JOIN dim_dates d ON p.date_id = d.date_id 
+ORDER BY d.date DESC, s.symbol 
+LIMIT 10;
+"
+
+# Check data freshness
+psql $DATABASE_URL -c "
 SELECT 
+    s.symbol,
     MAX(d.date) as latest_date,
     COUNT(*) as total_records
 FROM fact_stock_prices p
-JOIN dim_dates d ON p.date_id = d.date_id;
-```
-
-**File: `src/api/sql/health/data_quality_check.sql`**
-```sql
--- Comprehensive data quality check
-SELECT 
-    MAX(d.date) as latest_date,
-    COUNT(DISTINCT s.symbol) as total_stocks,
-    COUNT(*) as total_records,
-    CURRENT_DATE - MAX(d.date) as data_age_days
-FROM fact_stock_prices p
+JOIN dim_stocks s ON p.stock_id = s.stock_id
 JOIN dim_dates d ON p.date_id = d.date_id
-JOIN dim_stocks s ON p.stock_id = s.stock_id;
+GROUP BY s.symbol
+ORDER BY s.symbol;
+"
 ```
 
-## Configuration and Deployment
+## Testing Your Setup
 
-### 1. Environment Variables
-
-**File: `.env`**
+### 1. Run the Test Suite
 ```bash
-# Database Configuration
-DATABASE_URL=postgresql://ticker_user:password@localhost:5432/ticker_converter
-DATABASE_MIN_CONNECTIONS=5
-DATABASE_MAX_CONNECTIONS=20
+# Run all tests
+python -m pytest tests/ -v
 
-# API Configuration
-API_HOST=0.0.0.0
-API_PORT=8000
-API_WORKERS=4
-API_RELOAD=false
+# Run specific test categories
+python -m pytest tests/unit/ -v
+python -m pytest tests/integration/ -v
 
-# Security
-SECRET_KEY=your-secret-key-here
-ALLOWED_ORIGINS=["http://localhost:3000", "https://yourdomain.com"]
-
-# Logging
-LOG_LEVEL=INFO
-LOG_FORMAT=json
-
-# Monitoring
-ENABLE_METRICS=true
-METRICS_PORT=9090
+# Run with coverage report
+python -m pytest tests/ --cov=src --cov-report=html
 ```
 
-### 2. Docker Configuration
+### 2. Manual Testing
+```bash
+# Test API endpoints
+python tools/dev/test_connections.py
 
-**File: `Dockerfile`**
-```dockerfile
-FROM python:3.11-slim
+# Test data pipeline
+python tools/dev/demo_capabilities.py
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-
-# Create app directory
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
-COPY src/ ./src/
-COPY sql/ ./sql/
-
-# Create non-root user
-RUN adduser --disabled-password --gecos '' appuser
-RUN chown -R appuser:appuser /app
-USER appuser
-
-# Expose port
-EXPOSE 8000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-# Run application
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Test Airflow DAGs (if installed)
+airflow dags test daily_etl_dag 2025-08-12
 ```
 
-### 3. Development Setup
+### 3. Validate Data Quality
+```bash
+# Check data integrity
+python -c "
+from src.ticker_converter.data_ingestion.database_manager import DatabaseManager
+dm = DatabaseManager()
+results = dm.run_data_quality_checks()
+for check, result in results.items():
+    print(f'{check}: {\"PASS\" if result else \"FAIL\"}')'
+"
+```
 
-**File: `run_dev.py`**
-```python
-#!/usr/bin/env python3
-"""Development server runner"""
+## Troubleshooting
 
-import uvicorn
+### Common Issues and Solutions
+
+#### Database Connection Issues
+```bash
+# Check if PostgreSQL is running
+# Windows: 
+services.msc  # Look for PostgreSQL service
+
+# macOS:
+brew services list | grep postgres
+
+# Linux:
+sudo systemctl status postgresql
+
+# Test connection manually
+psql postgresql://ticker_user:your_password@localhost:5432/ticker_converter -c "SELECT 1;"
+```
+
+#### API Issues
+```bash
+# Check API server logs
+python tools/deployment/run_api.py --debug
+
+# Test specific endpoints
+curl -v http://localhost:8000/health
+
+# Check for port conflicts
+# Windows:
+netstat -an | findstr :8000
+
+# macOS/Linux:
+lsof -i :8000
+```
+
+#### Environment Issues
+```bash
+# Verify environment variables
+python -c "
 import os
-from pathlib import Path
+print('DATABASE_URL:', os.getenv('DATABASE_URL'))
+print('ALPHA_VANTAGE_API_KEY:', os.getenv('ALPHA_VANTAGE_API_KEY')[:10] + '...' if os.getenv('ALPHA_VANTAGE_API_KEY') else 'Not set')
+"
 
-if __name__ == "__main__":
-    # Load environment variables from .env file
-    from dotenv import load_dotenv
-    load_dotenv()
-
-    # Run development server
-    uvicorn.run(
-        "src.api.main:app",
-        host=os.getenv("API_HOST", "127.0.0.1"),
-        port=int(os.getenv("API_PORT", 8000)),
-        reload=True,
-        reload_dirs=["src"],
-        log_level=os.getenv("LOG_LEVEL", "info").lower()
-    )
+# Check Python environment
+python -c "
+import sys
+print('Python version:', sys.version)
+print('Virtual env:', sys.prefix)
+"
 ```
 
-### 4. Production Deployment
+#### Data Issues
+```bash
+# Check if tables exist
+psql $DATABASE_URL -c "\dt"
 
-**File: `gunicorn.conf.py`**
-```python
-"""Gunicorn configuration for production deployment"""
+# Check if data exists
+psql $DATABASE_URL -c "
+SELECT 
+    'dim_stocks' as table_name, COUNT(*) as rows FROM dim_stocks
+UNION ALL
+SELECT 
+    'fact_stock_prices' as table_name, COUNT(*) as rows FROM fact_stock_prices
+UNION ALL
+SELECT 
+    'fact_currency_rates' as table_name, COUNT(*) as rows FROM fact_currency_rates;
+"
 
-import os
-import multiprocessing
-
-# Server socket
-bind = f"{os.getenv('API_HOST', '0.0.0.0')}:{os.getenv('API_PORT', 8000)}"
-backlog = 2048
-
-# Worker processes
-workers = int(os.getenv('API_WORKERS', multiprocessing.cpu_count() * 2 + 1))
-worker_class = "uvicorn.workers.UvicornWorker"
-worker_connections = 1000
-max_requests = 1000
-max_requests_jitter = 50
-preload_app = True
-
-# Timeouts
-timeout = 30
-keepalive = 2
-
-# Logging
-accesslog = "-"
-errorlog = "-"
-loglevel = os.getenv('LOG_LEVEL', 'info').lower()
-access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s'
-
-# Process naming
-proc_name = 'ticker-converter-api'
-
-# Server mechanics
-daemon = False
-pidfile = '/tmp/gunicorn.pid'
-user = None
-group = None
-tmp_upload_dir = None
-
-# SSL (for production with HTTPS)
-# keyfile = '/path/to/keyfile'
-# certfile = '/path/to/certfile'
+# Reset database if needed
+python -c "
+from src.ticker_converter.data_ingestion.database_manager import DatabaseManager
+dm = DatabaseManager()
+dm.reset_database()  # WARNING: This deletes all data
+"
 ```
 
-## Performance Optimization
+## Performance Tips
 
-### 1. Connection Pooling
-```python
-# Optimized pool configuration
-self.pool = await asyncpg.create_pool(
-    database_url,
-    min_size=5,                    # Minimum connections
-    max_size=20,                   # Maximum connections
-    max_queries=50000,             # Queries per connection
-    max_inactive_connection_lifetime=300,  # 5 minutes
-    command_timeout=30,            # 30 second query timeout
-    server_settings={
-        'application_name': 'ticker-converter-api',
-        'tcp_keepalives_idle': '600',
-        'tcp_keepalives_interval': '30',
-        'tcp_keepalives_count': '3',
-    }
-)
-```
-
-### 2. Query Optimization
+### Database Optimization
 ```sql
--- Use appropriate indexes
-CREATE INDEX CONCURRENTLY idx_fact_stock_prices_symbol_date 
-ON fact_stock_prices(stock_id, date_id DESC);
+-- Update table statistics regularly
+ANALYZE fact_stock_prices;
+ANALYZE fact_currency_rates;
 
-CREATE INDEX CONCURRENTLY idx_fact_stock_prices_date 
-ON fact_stock_prices(date_id DESC);
+-- Check query performance
+EXPLAIN ANALYZE SELECT * FROM v_stock_performance WHERE symbol = 'AAPL';
 
--- Use query hints for complex queries
-/*+ IndexScan(p idx_fact_stock_prices_symbol_date) */
-SELECT ... FROM fact_stock_prices p ...
+-- Monitor database size
+SELECT 
+    schemaname,
+    tablename,
+    pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
+FROM pg_tables 
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 ```
 
-### 3. Caching Strategy
-```python
-import aioredis
-from functools import wraps
+### API Performance
+```bash
+# Monitor API response times
+curl -w "@curl-format.txt" -o /dev/null -s "http://localhost:8000/api/v1/stocks/AAPL/prices"
 
-# Redis caching decorator
-def cache_result(expiry: int = 300):
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            cache_key = f"{func.__name__}:{hash(str(args) + str(kwargs))}"
-
-            # Try to get from cache
-            cached = await redis.get(cache_key)
-            if cached:
-                return json.loads(cached)
-
-            # Execute function and cache result
-            result = await func(*args, **kwargs)
-            await redis.setex(cache_key, expiry, json.dumps(result, default=str))
-            return result
-        return wrapper
-    return decorator
-
-# Apply to expensive endpoints
-@cache_result(expiry=600)  # 10 minutes
-async def get_top_performers(...):
-    ...
+# Create curl-format.txt:
+echo "time_namelookup:  %{time_namelookup}
+time_connect:     %{time_connect}
+time_appconnect:  %{time_appconnect}
+time_pretransfer: %{time_pretransfer}
+time_redirect:    %{time_redirect}
+time_starttransfer: %{time_starttransfer}
+time_total:       %{time_total}" > curl-format.txt
 ```
 
-## Testing Strategy
+## Next Steps
 
-### 1. Unit Tests
-```python
-import pytest
-from httpx import AsyncClient
-from src.api.main import app
+Once your local environment is running:
 
-@pytest.mark.asyncio
-async def test_get_stock_prices():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.get("/api/v1/stocks/AAPL/prices?limit=10")
+1. **Explore the API**: Visit http://localhost:8000/docs for interactive documentation
+2. **Set up Airflow**: Follow the optional Airflow setup for complete ETL orchestration
+3. **Customize the pipeline**: Modify DAGs in `airflow/dags/` for your specific needs
+4. **Add more stocks**: Extend the symbol list in the configuration
+5. **Build dashboards**: Use the API endpoints to create custom visualizations
 
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) <= 10
-    assert data[0]["symbol"] == "AAPL"
+## Getting Help
 
-@pytest.mark.asyncio
-async def test_invalid_stock_symbol():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.get("/api/v1/stocks/INVALID/prices")
+### Resources
+- **Project Documentation**: Check `docs/` directory for detailed guides
+- **API Documentation**: http://localhost:8000/docs when running locally
+- **Database Schema**: See `airflow/sql/ddl/` for table definitions
+- **Example Queries**: Check `airflow/sql/queries/` for analytics examples
 
-    assert response.status_code == 404
-    assert "not found" in response.json()["detail"]
+### Common Commands Reference
+```bash
+# Environment Management
+source .venv/bin/activate                    # Activate environment
+pip install -e ".[dev]"                     # Install with dev dependencies
+
+# Data Management  
+python -m ticker_converter.cli fetch-all    # Fetch all stock data
+python tools/data/examine_data.py           # Examine stored data
+python tools/data/cleanup_data.py           # Clean old data
+
+# Server Management
+python tools/deployment/run_api.py          # Start API server
+airflow webserver --port 8080               # Start Airflow web UI
+airflow scheduler                            # Start Airflow scheduler
+
+# Testing
+python -m pytest tests/                     # Run test suite
+python tools/dev/test_connections.py        # Test connections
+python tools/dev/demo_capabilities.py       # Demo functionality
 ```
 
-### 2. Integration Tests
-```python
-@pytest.mark.asyncio
-async def test_database_integration():
-    """Test database connectivity and basic queries"""
-    db = DatabaseManager()
-    await db.connect()
-
-    try:
-        result = await db.fetch_all("stocks/get_stock_prices.sql", 
-                                   symbol="AAPL", start_date=None, 
-                                   end_date=None, limit=1)
-        assert len(result) > 0
-        assert result[0]["symbol"] == "AAPL"
-    finally:
-        await db.disconnect()
-```
-
-## Monitoring and Observability
-
-### 1. Metrics Collection
-```python
-from prometheus_client import Counter, Histogram, generate_latest
-
-# Metrics
-REQUEST_COUNT = Counter('api_requests_total', 'Total API requests', ['method', 'endpoint'])
-REQUEST_DURATION = Histogram('api_request_duration_seconds', 'Request duration')
-
-@app.middleware("http")
-async def add_metrics(request, call_next):
-    start_time = time.time()
-
-    response = await call_next(request)
-
-    REQUEST_COUNT.labels(method=request.method, endpoint=request.url.path).inc()
-    REQUEST_DURATION.observe(time.time() - start_time)
-
-    return response
-
-@app.get("/metrics")
-async def metrics():
-    return Response(generate_latest(), media_type="text/plain")
-```
-
-### 2. Structured Logging
-```python
-import structlog
-
-logger = structlog.get_logger()
-
-@app.middleware("http")
-async def logging_middleware(request, call_next):
-    start_time = time.time()
-
-    response = await call_next(request)
-
-    logger.info(
-        "api_request",
-        method=request.method,
-        path=request.url.path,
-        status_code=response.status_code,
-        duration=time.time() - start_time,
-        user_agent=request.headers.get("user-agent"),
-        remote_addr=request.client.host
-    )
-
-    return response
-```
-
-This FastAPI implementation provides a high-performance, SQL-centric API that directly executes optimized queries against PostgreSQL, eliminating the complexity of ORMs while maintaining type safety and comprehensive documentation. The architecture supports the Magnificent Seven stocks with robust error handling, monitoring, and scalability features.
+Your local ticker-converter environment is now ready for development!
