@@ -11,7 +11,7 @@ YELLOW := \033[0;33m
 CYAN := \033[0;36m
 NC := \033[0m
 
-.PHONY: help install install-test install-dev init-db run airflow serve test lint lint-fix clean
+.PHONY: help install install-test install-dev init-db run airflow serve test lint lint-fix lint-dags clean act-pr
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -95,6 +95,23 @@ lint-fix: ## Auto-fix code quality issues
 	black src/$(PACKAGE_NAME)/ api/ tests/ run_api.py
 	isort src/$(PACKAGE_NAME)/ api/ tests/ run_api.py
 	@echo "$(GREEN)Code formatting applied$(NC)"
+
+lint-dags: ## Run pylint specifically for Airflow DAGs
+	@echo "$(BLUE)Running pylint checks on Airflow DAGs...$(NC)"
+	pylint dags/ --disable=pointless-statement
+	@echo "$(GREEN)DAG linting completed$(NC)"
+
+act-pr: ## Run GitHub Actions CI locally using act (simulates pull request)
+	@echo "$(BLUE)Running GitHub Actions CI workflow locally...$(NC)"
+	@echo "$(YELLOW)This simulates the CI checks that run on pull requests$(NC)"
+	@if [[ "$$(uname -m)" == "arm64" ]]; then \
+		echo "$(CYAN)Detected Apple Silicon (M1/M2) - using linux/amd64 architecture$(NC)"; \
+		act pull_request --container-architecture linux/amd64 --platform ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest; \
+	else \
+		echo "$(CYAN)Using default architecture$(NC)"; \
+		act pull_request; \
+	fi
+	@echo "$(GREEN)Local CI simulation completed$(NC)"
 
 clean: ## Clean build artifacts and cache files
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"
