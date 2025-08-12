@@ -13,7 +13,9 @@ from pathlib import Path
 from typing import Optional
 
 
-def get_user_input(prompt: str, default: Optional[str] = None, required: bool = True) -> str:
+def get_user_input(
+    prompt: str, default: Optional[str] = None, required: bool = True
+) -> str:
     """Get user input with optional default value.
 
     Args:
@@ -61,8 +63,10 @@ def main():
         sys.exit(1)
 
     if env_file.exists():
-        overwrite = input("⚠️  .env file already exists. Overwrite? [y/N]: ").strip().lower()
-        if overwrite not in ['y', 'yes']:
+        overwrite = (
+            input("⚠️  .env file already exists. Overwrite? [y/N]: ").strip().lower()
+        )
+        if overwrite not in ["y", "yes"]:
             print("Setup cancelled. Existing .env file preserved.")
             return
 
@@ -70,7 +74,7 @@ def main():
     print()
 
     # Read the example file
-    with open(env_example, 'r', encoding='utf-8') as f:
+    with open(env_example, "r", encoding="utf-8") as f:
         env_content = f.read()
 
     # Alpha Vantage API Key (required)
@@ -89,10 +93,16 @@ def main():
     db_user = get_user_input("Database user", default="postgres")
     db_password = get_user_input("Database password", required=True)
 
-    env_content = env_content.replace("POSTGRES_HOST=localhost", f"POSTGRES_HOST={db_host}")
+    env_content = env_content.replace(
+        "POSTGRES_HOST=localhost", f"POSTGRES_HOST={db_host}"
+    )
     env_content = env_content.replace("POSTGRES_PORT=5432", f"POSTGRES_PORT={db_port}")
-    env_content = env_content.replace("POSTGRES_DB=ticker_converter", f"POSTGRES_DB={db_name}")
-    env_content = env_content.replace("POSTGRES_USER=postgres", f"POSTGRES_USER={db_user}")
+    env_content = env_content.replace(
+        "POSTGRES_DB=ticker_converter", f"POSTGRES_DB={db_name}"
+    )
+    env_content = env_content.replace(
+        "POSTGRES_USER=postgres", f"POSTGRES_USER={db_user}"
+    )
     env_content = env_content.replace("your_postgres_password_here", db_password)
     print("✅ Database configuration set")
     print()
@@ -101,16 +111,25 @@ def main():
     print("🌬️  Apache Airflow Configuration")
     airflow_username = get_user_input("Airflow admin username", default="admin")
     airflow_password = get_user_input("Airflow admin password", default="admin123")
-    airflow_email = get_user_input("Airflow admin email", default="admin@ticker-converter.local")
+    airflow_email = get_user_input(
+        "Airflow admin email", default="admin@ticker-converter.local"
+    )
 
-    env_content = env_content.replace("AIRFLOW_ADMIN_USERNAME=admin", f"AIRFLOW_ADMIN_USERNAME={airflow_username}")
-    env_content = env_content.replace("AIRFLOW_ADMIN_PASSWORD=admin123", f"AIRFLOW_ADMIN_PASSWORD={airflow_password}")
-    env_content = env_content.replace("AIRFLOW_ADMIN_EMAIL=admin@ticker-converter.local", f"AIRFLOW_ADMIN_EMAIL={airflow_email}")
+    env_content = env_content.replace(
+        "AIRFLOW_ADMIN_USERNAME=admin", f"AIRFLOW_ADMIN_USERNAME={airflow_username}"
+    )
+    env_content = env_content.replace(
+        "AIRFLOW_ADMIN_PASSWORD=admin123", f"AIRFLOW_ADMIN_PASSWORD={airflow_password}"
+    )
+    env_content = env_content.replace(
+        "AIRFLOW_ADMIN_EMAIL=admin@ticker-converter.local",
+        f"AIRFLOW_ADMIN_EMAIL={airflow_email}",
+    )
     print("✅ Airflow configuration set")
     print()
 
     # Write the .env file
-    with open(env_file, 'w', encoding='utf-8') as f:
+    with open(env_file, "w", encoding="utf-8") as f:
         f.write(env_content)
 
     print("🎉 Configuration complete!")
@@ -123,7 +142,9 @@ def main():
     print()
     print("📖 For more information, see README.md")
     print()
-    print("⚠️  Remember to keep your .env file secure and never commit it to version control!")
+    print(
+        "⚠️  Remember to keep your .env file secure and never commit it to version control!"
+    )
 
 
 if __name__ == "__main__":

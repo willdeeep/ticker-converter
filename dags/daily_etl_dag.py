@@ -19,7 +19,7 @@ from airflow.providers.standard.operators.empty import EmptyOperator
 from airflow.providers.standard.operators.python import PythonOperator
 
 # Add src to path to import our modules
-sys.path.append('/Users/willhuntleyclarke/repos/interests/ticker-converter/src')
+sys.path.append("/Users/willhuntleyclarke/repos/interests/ticker-converter/src")
 
 # pylint: disable=wrong-import-position,import-error
 from ticker_converter.data_ingestion.nyse_fetcher import NYSEDataFetcher

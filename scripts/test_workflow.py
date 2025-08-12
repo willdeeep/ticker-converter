@@ -3,7 +3,7 @@
 
 This script tests the entire user journey:
 1. Setup configuration
-2. Database initialization  
+2. Database initialization
 3. Check API functionality
 4. Verify SQL operations
 """
@@ -34,7 +34,7 @@ def run_command(command: str, description: str = "") -> bool:
             command, shell=True, capture_output=True, text=True, check=False
         )
         if result.returncode == 0:
-            print(f"✅ Success")
+            print("✅ Success")
             if result.stdout.strip():
                 print(f"   Output: {result.stdout.strip()}")
             return True
@@ -132,7 +132,7 @@ def main():
         print("⚠️  This will use your Alpha Vantage API quota!")
 
         proceed = input("Continue with live API testing? [y/N]: ").strip().lower()
-        if proceed in ['y', 'yes']:
+        if proceed in ["y", "yes"]:
             if not run_command("make init-db", "Initialize database with live data"):
                 print("❌ Database initialization failed")
                 return False
@@ -146,9 +146,9 @@ def main():
     print("📋 Step 7: Testing SQL Files")
     sql_files = [
         "sql/ddl/001_create_dimensions.sql",
-        "sql/ddl/002_create_facts.sql", 
+        "sql/ddl/002_create_facts.sql",
         "sql/ddl/003_create_views.sql",
-        "sql/ddl/004_create_indexes.sql"
+        "sql/ddl/004_create_indexes.sql",
     ]
 
     for sql_file in sql_files:

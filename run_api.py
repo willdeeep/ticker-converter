@@ -16,9 +16,9 @@ project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_root)
 
 # pylint: disable=wrong-import-position
-from api.database import DatabaseManager
-from api.dependencies import get_database_url
-from api.main import app
+from api.database import DatabaseManager  # noqa: E402
+from api.dependencies import get_database_url  # noqa: E402
+from api.main import app  # noqa: E402
 
 # Load environment variables
 load_dotenv()
