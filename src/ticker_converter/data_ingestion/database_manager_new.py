@@ -6,7 +6,7 @@ pipeline, including checking if the database needs initial setup.
 
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -294,90 +294,6 @@ class DatabaseManager:
             
         except (psycopg2.Error, FileNotFoundError, IOError) as e:
             error_msg = f"Schema creation failed: {e}"
-            results["errors"].append(error_msg)
-            self.logger.error(error_msg)
-        
-        return results
-
-    def teardown_database_schema(self) -> dict[str, Any]:
-        """Drop all tables, views, and database objects.
-        
-        Returns:
-            Dictionary with teardown results and any errors
-        """
-        results = {
-            "success": False,
-            "objects_dropped": [],
-            "errors": []
-        }
-        
-        try:
-            with self.get_connection() as conn:
-                with conn.cursor() as cursor:
-                    # Get all tables in the public schema
-                    cursor.execute("""
-                        SELECT tablename FROM pg_tables 
-                        WHERE schemaname = 'public'
-                        ORDER BY tablename
-                    """)
-                    tables = [row[0] for row in cursor.fetchall()]
-                    
-                    # Get all views in the public schema  
-                    cursor.execute("""
-                        SELECT viewname FROM pg_views 
-                        WHERE schemaname = 'public'
-                        ORDER BY viewname
-                    """)
-                    views = [row[0] for row in cursor.fetchall()]
-                    
-                    # Drop views first (they may depend on tables)
-                    for view in views:
-                        try:
-                            cursor.execute(f"DROP VIEW IF EXISTS {view} CASCADE")
-                            conn.commit()
-                            results["objects_dropped"].append(f"view:{view}")
-                            self.logger.info("Dropped view: %s", view)
-                        except psycopg2.Error as e:
-                            error_msg = f"Failed to drop view {view}: {e}"
-                            results["errors"].append(error_msg)
-                            self.logger.warning(error_msg)
-                    
-                    # Drop tables
-                    for table in tables:
-                        try:
-                            cursor.execute(f"DROP TABLE IF EXISTS {table} CASCADE")
-                            conn.commit()
-                            results["objects_dropped"].append(f"table:{table}")
-                            self.logger.info("Dropped table: %s", table)
-                        except psycopg2.Error as e:
-                            error_msg = f"Failed to drop table {table}: {e}"
-                            results["errors"].append(error_msg)
-                            self.logger.warning(error_msg)
-                    
-                    # Drop any remaining sequences, functions, etc.
-                    try:
-                        cursor.execute("""
-                            SELECT sequence_name FROM information_schema.sequences 
-                            WHERE sequence_schema = 'public'
-                        """)
-                        sequences = [row[0] for row in cursor.fetchall()]
-                        
-                        for sequence in sequences:
-                            cursor.execute(f"DROP SEQUENCE IF EXISTS {sequence} CASCADE")
-                            conn.commit()
-                            results["objects_dropped"].append(f"sequence:{sequence}")
-                            self.logger.info("Dropped sequence: %s", sequence)
-                            
-                    except psycopg2.Error as e:
-                        error_msg = f"Failed to drop sequences: {e}"
-                        results["errors"].append(error_msg)
-                        self.logger.warning(error_msg)
-                    
-                    results["success"] = True
-                    self.logger.info("Database schema teardown completed")
-                    
-        except psycopg2.Error as e:
-            error_msg = f"Schema teardown failed: {e}"
             results["errors"].append(error_msg)
             self.logger.error(error_msg)
         

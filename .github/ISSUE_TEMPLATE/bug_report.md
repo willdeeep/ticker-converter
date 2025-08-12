@@ -30,7 +30,7 @@ Describe what actually happened. Include any error messages or unexpected output
 
 ### Application Environment
 - Project Version: [e.g., v1.2.3, main branch, commit hash]
-- Database: [e.g., SQLite 3.36, PostgreSQL 13.8]
+- Database: [e.g., PostgreSQL 13.8, PostgreSQL 14.2]
 - API Dependencies: [e.g., Alpha Vantage, Currency API]
 
 ### Browser/Client (if applicable)
@@ -63,7 +63,7 @@ If relevant, include sanitized configuration details:
 ### Environment Variables
 ```bash
 # Remove any sensitive information like API keys
-DATABASE_URL=sqlite:///./data/stocks.db
+DATABASE_URL=postgresql://username:password@localhost:5432/ticker_converter
 API_TIMEOUT=30
 ```
 
