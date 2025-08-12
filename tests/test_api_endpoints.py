@@ -1,11 +1,12 @@
 """Unit tests for Magnificent Seven Stock Performance API."""
 
 from datetime import date
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
 
+from api.dependencies import get_db, get_sql_query
 from api.main import (
     _build_stock_performance_details,
     _build_top_performer_stock,
@@ -94,27 +95,43 @@ class TestModelBuilders:
 class TestAPIEndpoints:
     """Test the FastAPI endpoints."""
 
-    @patch("api.main.get_db")
-    @patch("api.main.get_sql_query")
-    async def test_health_check(
-        self, mock_get_sql, mock_get_db
-    ):  # pylint: disable=unused-argument
+    def setup_method(self):
+        """Set up test fixtures before each test method."""
+        # Create mock database
+        self.mock_db = AsyncMock()
+        
+        # Create mock dependencies
+        async def mock_get_db():
+            yield self.mock_db
+            
+        def mock_get_sql_query(filename: str):
+            return "SELECT * FROM test;"
+        
+        # Override FastAPI dependencies
+        app.dependency_overrides[get_db] = mock_get_db
+        app.dependency_overrides[get_sql_query] = mock_get_sql_query
+        
+        # Create test client
+        self.client = TestClient(app)
+    
+    def teardown_method(self):
+        """Clean up after each test method."""
+        # Clear dependency overrides
+        app.dependency_overrides.clear()
+
+    async def test_health_check(self):
         """Test the health check endpoint."""
-        client = TestClient(app)
-        response = client.get("/health")
+        response = self.client.get("/health")
 
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
         assert data["service"] == "magnificent-seven-stock-api"
 
-    @patch("api.main.get_db")
-    @patch("api.main.get_sql_query")
-    async def test_top_performers_success(self, mock_get_sql, mock_get_db):
+    async def test_top_performers_success(self):
         """Test top performers endpoint with successful response."""
         # Mock database response
-        mock_db = AsyncMock()
-        mock_db.execute_query.return_value = [
+        self.mock_db.execute_query.return_value = [
             {
                 "symbol": "AAPL",
                 "company_name": "Apple Inc.",
@@ -137,11 +154,7 @@ class TestAPIEndpoints:
             },
         ]
 
-        mock_get_db.return_value = mock_db
-        mock_get_sql.return_value = "SELECT * FROM test;"
-
-        client = TestClient(app)
-        response = client.get("/api/stocks/top-performers")
+        response = self.client.get("/api/stocks/top-performers")
 
         assert response.status_code == 200
         data = response.json()
@@ -150,29 +163,19 @@ class TestAPIEndpoints:
         assert data[0]["daily_return"] == 2.5
         assert data[1]["symbol"] == "MSFT"
 
-    @patch("api.main.get_db")
-    @patch("api.main.get_sql_query")
-    async def test_top_performers_no_data(self, mock_get_sql, mock_get_db):
+    async def test_top_performers_no_data(self):
         """Test top performers endpoint with no data available."""
-        mock_db = AsyncMock()
-        mock_db.execute_query.return_value = []
+        self.mock_db.execute_query.return_value = []
 
-        mock_get_db.return_value = mock_db
-        mock_get_sql.return_value = "SELECT * FROM test;"
-
-        client = TestClient(app)
-        response = client.get("/api/stocks/top-performers")
+        response = self.client.get("/api/stocks/top-performers")
 
         assert response.status_code == 404
         data = response.json()
         assert "No performance data available" in data["detail"]
 
-    @patch("api.main.get_db")
-    @patch("api.main.get_sql_query")
-    async def test_performance_details_success(self, mock_get_sql, mock_get_db):
+    async def test_performance_details_success(self):
         """Test performance details endpoint with successful response."""
-        mock_db = AsyncMock()
-        mock_db.execute_query.return_value = [
+        self.mock_db.execute_query.return_value = [
             {
                 "symbol": "NVDA",
                 "company_name": "NVIDIA Corporation",
@@ -189,11 +192,7 @@ class TestAPIEndpoints:
             }
         ]
 
-        mock_get_db.return_value = mock_db
-        mock_get_sql.return_value = "SELECT * FROM test;"
-
-        client = TestClient(app)
-        response = client.get("/api/stocks/performance-details")
+        response = self.client.get("/api/stocks/performance-details")
 
         assert response.status_code == 200
         data = response.json()
