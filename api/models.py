@@ -65,3 +65,39 @@ class StockSummary(BaseModel):
     avg_volume_30d: int = Field(..., description="30-day average volume")
     price_change_30d: float | None = Field(None, description="30-day price change %")
     last_updated: date = Field(..., description="Last update date")
+
+
+class TopPerformerStock(BaseModel):
+    """Top performing stock data for Magnificent Seven companies."""
+
+    symbol: str = Field(..., description="Stock symbol (e.g., AAPL)")
+    company_name: str = Field(..., description="Company name")
+    price_usd: float = Field(..., description="Current closing price in USD")
+    price_gbp: float | None = Field(None, description="Current closing price in GBP")
+    daily_return: float | None = Field(None, description="Daily return percentage")
+    volume: int = Field(..., description="Trading volume")
+    trade_date: date = Field(..., description="Trading date")
+    performance_rank: int | None = Field(None, description="Performance ranking (1-3)")
+
+
+class StockPerformanceDetails(BaseModel):
+    """Detailed performance metrics for Magnificent Seven companies."""
+
+    symbol: str = Field(..., description="Stock symbol (e.g., AAPL)")
+    company_name: str = Field(..., description="Company name")
+    price_usd: float = Field(..., description="Current closing price in USD")
+    price_gbp: float | None = Field(None, description="Current closing price in GBP")
+    daily_return: float | None = Field(None, description="Daily return percentage")
+    volume: int = Field(..., description="Current trading volume")
+    trade_date: date = Field(..., description="Trading date")
+    avg_price_30d_usd: float | None = Field(
+        None, description="30-day average price in USD"
+    )
+    avg_volume_30d: int | None = Field(None, description="30-day average volume")
+    price_change_30d_pct: float | None = Field(
+        None, description="30-day price change percentage"
+    )
+    volatility_30d: float | None = Field(
+        None, description="30-day volatility (standard deviation)"
+    )
+    performance_rank: int | None = Field(None, description="Performance ranking")

@@ -3,6 +3,7 @@
 import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
+from typing import Any
 
 from api.database import DatabaseConnection, DatabaseManager
 
@@ -70,7 +71,7 @@ def get_database_url() -> str:
     return f"postgresql://{user}@{host}:{port}/{database}"
 
 
-def get_api_settings() -> dict:
+def get_api_settings() -> dict[str, Any]:
     """Get API configuration settings.
 
     Returns:

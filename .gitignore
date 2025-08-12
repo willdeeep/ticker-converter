@@ -4,6 +4,7 @@
 .DS_Store
 .env
 raw_data_output/*
+my_docs/
 
 # Python
 __pycache__/

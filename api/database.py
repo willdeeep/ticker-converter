@@ -1,8 +1,9 @@
 """Database connection and configuration."""
 
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator
+from typing import Any
 
 import asyncpg
 
@@ -44,7 +45,7 @@ class DatabaseConnection:
     @asynccontextmanager
     async def _get_connection(self) -> AsyncGenerator[asyncpg.Connection, None]:
         """Get a database connection from the pool.
-        
+
         Yields:
             Database connection
 
@@ -114,7 +115,7 @@ class DatabaseConnection:
         self, commands: list[tuple[str, list[Any] | None]]
     ) -> None:
         """Execute multiple commands in a transaction.
-        
+
         Args:
             commands: List of (command, params) tuples
 

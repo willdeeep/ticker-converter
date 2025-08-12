@@ -398,11 +398,11 @@ transaction_task = PostgresOperator(
     postgres_conn_id='postgres_default',
     sql="""
         BEGIN;
-        
+
         -- Multiple operations in single transaction
         INSERT INTO fact_stock_prices (...) VALUES (...);
         UPDATE dim_stocks SET last_updated = NOW() WHERE symbol = 'AAPL';
-        
+
         -- Conditional logic
         DO $$
         BEGIN
@@ -412,7 +412,7 @@ transaction_task = PostgresOperator(
                 RAISE EXCEPTION 'No data loaded for today';
             END IF;
         END $$;
-        
+
         COMMIT;
     """,
     autocommit=False,  # Manual transaction control

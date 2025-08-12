@@ -210,13 +210,13 @@ class DatabaseManager:
             except FileNotFoundError:
                 logger.error(f"SQL file not found: {sql_file}")
                 raise FileNotFoundError(f"SQL file not found: {sql_file}")
-        
+
         return self.sql_cache[sql_file]
 
     async def fetch_all(self, sql_file: str, **params) -> List[Dict[str, Any]]:
         """Execute query and return all results"""
         sql = self.load_sql(sql_file)
-        
+
         async with self.pool.acquire() as connection:
             try:
                 result = await connection.fetch(sql, **params)
@@ -230,7 +230,7 @@ class DatabaseManager:
     async def fetch_one(self, sql_file: str, **params) -> Optional[Dict[str, Any]]:
         """Execute query and return single result"""
         sql = self.load_sql(sql_file)
-        
+
         async with self.pool.acquire() as connection:
             try:
                 result = await connection.fetchrow(sql, **params)
@@ -244,7 +244,7 @@ class DatabaseManager:
     async def execute(self, sql_file: str, **params) -> str:
         """Execute query without returning results"""
         sql = self.load_sql(sql_file)
-        
+
         async with self.pool.acquire() as connection:
             try:
                 result = await connection.execute(sql, **params)
@@ -407,7 +407,7 @@ async def get_available_stocks(db: DatabaseManager = Depends(get_database)):
     """Get list of available stocks"""
     try:
         result = await db.fetch_one("stocks/get_available_stocks.sql")
-        
+
         return StockListResponse(
             stocks=MAGNIFICENT_SEVEN,
             total_count=len(MAGNIFICENT_SEVEN),
@@ -441,9 +441,9 @@ async def get_stock_prices(
             end_date=end_date,
             limit=limit
         )
-        
+
         return [StockPrice(**price) for price in prices]
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch stock prices: {str(e)}")
 
@@ -471,9 +471,9 @@ async def get_stock_prices_gbp(
             end_date=end_date,
             limit=limit
         )
-        
+
         return [StockPriceWithCurrency(**price) for price in prices]
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch stock prices with currency: {str(e)}")
 
@@ -495,12 +495,12 @@ async def get_stock_performance(
             "stocks/get_stock_performance.sql",
             symbol=symbol.upper()
         )
-        
+
         if not performance:
             raise HTTPException(status_code=404, detail=f"No performance data found for {symbol}")
-        
+
         return StockPerformance(**performance)
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -526,24 +526,24 @@ async def get_stock_history(
             symbol=symbol.upper(),
             days=days
         )
-        
+
         if not history_data:
             raise HTTPException(status_code=404, detail=f"No historical data found for {symbol}")
-        
+
         # Get date range
         dates = [item["date"] for item in history_data]
         date_range = {
             "start_date": min(dates),
             "end_date": max(dates)
         }
-        
+
         return StockPriceHistory(
             symbol=symbol.upper(),
             prices=[StockPrice(**item) for item in history_data],
             total_records=len(history_data),
             date_range=date_range
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -571,17 +571,17 @@ async def get_top_performers(
 
     try:
         start_time = time.time()
-        
+
         performers = await db.fetch_all(
             "analytics/top_performers.sql",
             period=period,
             limit=limit
         )
-        
+
         execution_time = (time.time() - start_time) * 1000
-        
+
         return [TopPerformer(**performer) for performer in performers]
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch top performers: {str(e)}")
 
@@ -597,12 +597,12 @@ async def get_market_summary(
             "analytics/market_summary.sql",
             summary_date=summary_date
         )
-        
+
         if not summary:
             raise HTTPException(status_code=404, detail="No market summary data found")
-        
+
         return MarketSummary(**summary)
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -626,9 +626,9 @@ async def get_stock_correlations(
             period_days=period_days,
             min_correlation=min_correlation
         )
-        
+
         return [CorrelationData(**corr) for corr in correlations]
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch correlations: {str(e)}")
 
@@ -644,9 +644,9 @@ async def get_sector_performance(
             "analytics/sector_performance.sql",
             period=period
         )
-        
+
         return sectors
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch sector performance: {str(e)}")
 ```
@@ -772,13 +772,13 @@ async def database_health(db: DatabaseManager = Depends(get_database)):
     """Database connectivity health check"""
     try:
         start_time = datetime.now()
-        
+
         # Simple query to test database connectivity
         result = await db.fetch_one("health/database_check.sql")
-        
+
         end_time = datetime.now()
         response_time = (end_time - start_time).total_seconds() * 1000
-        
+
         return {
             "status": "healthy",
             "database": "connected",
@@ -787,7 +787,7 @@ async def database_health(db: DatabaseManager = Depends(get_database)):
             "latest_data_date": result["latest_date"] if result else None,
             "total_records": result["total_records"] if result else 0
         }
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=503,
@@ -804,7 +804,7 @@ async def data_health(db: DatabaseManager = Depends(get_database)):
     """Data freshness and quality health check"""
     try:
         result = await db.fetch_one("health/data_quality_check.sql")
-        
+
         return {
             "status": "healthy",
             "data_quality": "good",
@@ -814,7 +814,7 @@ async def data_health(db: DatabaseManager = Depends(get_database)):
             "data_age_days": result["data_age_days"],
             "timestamp": datetime.now().isoformat()
         }
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=503,

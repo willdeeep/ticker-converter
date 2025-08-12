@@ -11,12 +11,11 @@ This DAG orchestrates the complete ETL process using SQL operators:
 """
 
 from datetime import datetime, timedelta
-from typing import List
 
 from airflow import DAG
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.empty import EmptyOperator
 from airflow.providers.standard.operators.python import PythonOperator
-from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 
 
 class DAGConfig:
@@ -46,8 +45,8 @@ class DAGConfig:
     SQL_DIR = "sql/etl"
     DIMENSION_TABLES = [
         "load_stock_dimension.sql",
-        "load_date_dimension.sql", 
-        "load_currency_dimension.sql"
+        "load_date_dimension.sql",
+        "load_currency_dimension.sql",
     ]
 
 
@@ -73,12 +72,12 @@ def extract_exchange_rates() -> None:
     print("Extracting exchange rates from API")
 
 
-def create_dimension_load_tasks(dag_instance: DAG) -> List[SQLExecuteQueryOperator]:
+def create_dimension_load_tasks(dag_instance: DAG) -> list[SQLExecuteQueryOperator]:
     """Create dimension loading tasks.
 
     Args:
         dag_instance: Airflow DAG instance
-        
+
     Returns:
         List of dimension loading tasks
     """
@@ -97,12 +96,12 @@ def create_dimension_load_tasks(dag_instance: DAG) -> List[SQLExecuteQueryOperat
     return tasks
 
 
-def create_extraction_tasks(dag_instance: DAG) -> List[PythonOperator]:
+def create_extraction_tasks(dag_instance: DAG) -> list[PythonOperator]:
     """Create data extraction tasks.
 
     Args:
         dag_instance: Airflow DAG instance
-        
+
     Returns:
         List of extraction tasks
     """
@@ -121,12 +120,12 @@ def create_extraction_tasks(dag_instance: DAG) -> List[PythonOperator]:
     return [stock_data_task, currency_data_task]
 
 
-def create_transformation_tasks(dag_instance: DAG) -> List[SQLExecuteQueryOperator]:
+def create_transformation_tasks(dag_instance: DAG) -> list[SQLExecuteQueryOperator]:
     """Create transformation and quality check tasks.
 
     Args:
         dag_instance: Airflow DAG instance
-        
+
     Returns:
         List of transformation tasks
     """
@@ -188,6 +187,7 @@ extract_currency_data = extraction_tasks[1]
 run_daily_transforms = transformation_tasks[0]
 run_data_quality_checks = transformation_tasks[1]
 cleanup_old_data = transformation_tasks[2]
+
 
 # Define task dependencies using a more declarative approach
 def setup_dependencies() -> None:
