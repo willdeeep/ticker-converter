@@ -37,20 +37,12 @@ class DailySummary(BaseModel):
     avg_closing_price_usd: float = Field(..., description="Average closing price USD")
     min_closing_price_usd: float = Field(..., description="Minimum closing price USD")
     max_closing_price_usd: float = Field(..., description="Maximum closing price USD")
-    avg_daily_return_pct: float | None = Field(
-        None, description="Average daily return %"
-    )
-    min_daily_return_pct: float | None = Field(
-        None, description="Minimum daily return %"
-    )
-    max_daily_return_pct: float | None = Field(
-        None, description="Maximum daily return %"
-    )
+    avg_daily_return_pct: float | None = Field(None, description="Average daily return %")
+    min_daily_return_pct: float | None = Field(None, description="Minimum daily return %")
+    max_daily_return_pct: float | None = Field(None, description="Maximum daily return %")
     total_volume: int = Field(..., description="Total trading volume")
     avg_volume: int = Field(..., description="Average trading volume")
-    avg_closing_price_gbp: float | None = Field(
-        None, description="Average closing price GBP"
-    )
+    avg_closing_price_gbp: float | None = Field(None, description="Average closing price GBP")
     usd_to_gbp_rate: float | None = Field(None, description="USD to GBP rate")
 
 
@@ -90,14 +82,8 @@ class StockPerformanceDetails(BaseModel):
     daily_return: float | None = Field(None, description="Daily return percentage")
     volume: int = Field(..., description="Current trading volume")
     trade_date: date = Field(..., description="Trading date")
-    avg_price_30d_usd: float | None = Field(
-        None, description="30-day average price in USD"
-    )
+    avg_price_30d_usd: float | None = Field(None, description="30-day average price in USD")
     avg_volume_30d: int | None = Field(None, description="30-day average volume")
-    price_change_30d_pct: float | None = Field(
-        None, description="30-day price change percentage"
-    )
-    volatility_30d: float | None = Field(
-        None, description="30-day volatility (standard deviation)"
-    )
+    price_change_30d_pct: float | None = Field(None, description="30-day price change percentage")
+    volatility_30d: float | None = Field(None, description="30-day volatility (standard deviation)")
     performance_rank: int | None = Field(None, description="Performance ranking")

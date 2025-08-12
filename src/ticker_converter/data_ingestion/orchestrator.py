@@ -46,9 +46,7 @@ class DataIngestionOrchestrator:
         Returns:
             Dictionary with setup results
         """
-        self.logger.info(
-            "Starting initial database setup with %d days of data", days_back
-        )
+        self.logger.info("Starting initial database setup with %d days of data", days_back)
 
         results: dict[str, Any] = {
             "setup_started": datetime.now().isoformat(),
@@ -71,34 +69,24 @@ class DataIngestionOrchestrator:
                     "records_inserted": stock_inserted,
                     "companies": self.nyse_fetcher.MAGNIFICENT_SEVEN,
                 }
-                results["total_records_inserted"] = (
-                    results["total_records_inserted"] + stock_inserted
-                )
-                self.logger.info(
-                    "Stock data setup complete: %d records inserted", stock_inserted
-                )
+                results["total_records_inserted"] = results["total_records_inserted"] + stock_inserted
+                self.logger.info("Stock data setup complete: %d records inserted", stock_inserted)
             else:
                 results["errors"].append("Failed to fetch stock data")
                 self.logger.error("Failed to fetch any stock data")
 
             # 2. Fetch currency conversion data
             self.logger.info("Fetching USD/GBP currency conversion data")
-            currency_records = self.currency_fetcher.fetch_and_prepare_fx_data(
-                days_back
-            )
+            currency_records = self.currency_fetcher.fetch_and_prepare_fx_data(days_back)
 
             if currency_records:
-                currency_inserted = self.db_manager.insert_currency_data(
-                    currency_records
-                )
+                currency_inserted = self.db_manager.insert_currency_data(currency_records)
                 results["currency_data"] = {
                     "records_fetched": len(currency_records),
                     "records_inserted": currency_inserted,
                     "currency_pair": f"{self.currency_fetcher.FROM_CURRENCY}/{self.currency_fetcher.TO_CURRENCY}",
                 }
-                results["total_records_inserted"] = (
-                    results["total_records_inserted"] + currency_inserted
-                )
+                results["total_records_inserted"] = results["total_records_inserted"] + currency_inserted
                 self.logger.info(
                     "Currency data setup complete: %d records inserted",
                     currency_inserted,
@@ -118,9 +106,7 @@ class DataIngestionOrchestrator:
                     results["total_records_inserted"],
                 )
             else:
-                self.logger.warning(
-                    "Initial setup completed with errors: %s", results["errors"]
-                )
+                self.logger.warning("Initial setup completed with errors: %s", results["errors"])
 
         except (ValueError, TypeError, AttributeError, RuntimeError) as e:
             results["errors"].append(f"Setup failed: {str(e)}")
@@ -157,33 +143,21 @@ class DataIngestionOrchestrator:
                     "records_inserted": stock_inserted,
                     "companies_updated": len({r["symbol"] for r in stock_records}),
                 }
-                results["total_records_inserted"] = (
-                    results["total_records_inserted"] + stock_inserted
-                )
-                self.logger.info(
-                    "Stock data update complete: %d new records", stock_inserted
-                )
+                results["total_records_inserted"] = results["total_records_inserted"] + stock_inserted
+                self.logger.info("Stock data update complete: %d new records", stock_inserted)
 
             # 2. Update currency data (last 2-3 days)
             self.logger.info("Updating USD/GBP currency data")
-            currency_records = self.currency_fetcher.fetch_and_prepare_fx_data(
-                days_back=3
-            )
+            currency_records = self.currency_fetcher.fetch_and_prepare_fx_data(days_back=3)
 
             if currency_records:
-                currency_inserted = self.db_manager.insert_currency_data(
-                    currency_records
-                )
+                currency_inserted = self.db_manager.insert_currency_data(currency_records)
                 results["currency_updates"] = {
                     "records_fetched": len(currency_records),
                     "records_inserted": currency_inserted,
                 }
-                results["total_records_inserted"] = (
-                    results["total_records_inserted"] + currency_inserted
-                )
-                self.logger.info(
-                    "Currency data update complete: %d new records", currency_inserted
-                )
+                results["total_records_inserted"] = results["total_records_inserted"] + currency_inserted
+                self.logger.info("Currency data update complete: %d new records", currency_inserted)
 
             # 3. Final status
             results["update_completed"] = datetime.now().isoformat()
@@ -269,9 +243,7 @@ class DataIngestionOrchestrator:
             # Check for any missing recent data
             missing_data = {}
             for symbol in self.nyse_fetcher.MAGNIFICENT_SEVEN:
-                missing_dates = self.db_manager.get_missing_dates_for_symbol(
-                    symbol, days_back=5
-                )
+                missing_dates = self.db_manager.get_missing_dates_for_symbol(symbol, days_back=5)
                 if missing_dates:
                     missing_data[symbol] = len(missing_dates)
 
@@ -279,8 +251,7 @@ class DataIngestionOrchestrator:
                 "status_checked": datetime.now().isoformat(),
                 "database_health": db_health,
                 "stock_data_freshness": {
-                    symbol: date.isoformat() if date else None
-                    for symbol, date in stock_freshness.items()
+                    symbol: date.isoformat() if date else None for symbol, date in stock_freshness.items()
                 },
                 "currency_data_freshness": (
                     {
@@ -289,11 +260,7 @@ class DataIngestionOrchestrator:
                             if currency_freshness and len(currency_freshness) > 0
                             else None
                         ),
-                        "rate": (
-                            currency_freshness[1]
-                            if currency_freshness and len(currency_freshness) > 1
-                            else None
-                        ),
+                        "rate": (currency_freshness[1] if currency_freshness and len(currency_freshness) > 1 else None),
                     }
                     if currency_freshness
                     else None

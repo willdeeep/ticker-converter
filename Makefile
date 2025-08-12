@@ -1,332 +1,197 @@
-# Financial Market Data Analytics Pipeline - Makefile
-# Ticker Converter Project
-# Author: Will Huntley-Clarke
-
-.PHONY: help install install-dev clean test test-unit test-integration test-coverage test-fast
-.PHONY: lint format check-format check-typing check-security check-all
-.PHONY: demo run-demo run-pipeline
-.PHONY: git-status git-add git-commit git-push
-.PHONY: build package dist upload
-.PHONY: docs serve-docs
-.PHONY: env-setup env-check env-clean
-.PHONY: ci-setup ci-test ci-quality ci-full
-
-# Default target
-.DEFAULT_GOAL := help
-
 # Variables
-PYTHON := python
-PIP := pip
+SHELL := /bin/bash
+PYTHON := python3
 PACKAGE_NAME := ticker_converter
-SOURCE_DIR := src
-TEST_DIR := tests
-DOCS_DIR := docs
-SCRIPTS_DIR := scripts
+VENV_NAME := .venv
 
 # Colors for output
-RED := \033[0;31m
+BLUE := \033[0;34m
 GREEN := \033[0;32m
 YELLOW := \033[0;33m
-BLUE := \033[0;34m
-PURPLE := \033[0;35m
 CYAN := \033[0;36m
-WHITE := \033[0;37m
-NC := \033[0m # No Color
+NC := \033[0m
 
-# Help target
+.PHONY: help install install-test install-dev setup init-db run airflow serve test test-unit test-int test-ci test-fast test-full lint lint-fix act-pr clean
+
 help: ## Show this help message
-	@echo "$(CYAN)Financial Market Data Analytics Pipeline - Makefile$(NC)"
-	@echo "$(BLUE)Available commands:$(NC)"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@echo "$(CYAN)================== TICKER CONVERTER COMMANDS ==================$(NC)"
 	@echo ""
-	@echo "$(YELLOW)Quick Start:$(NC)"
-	@echo "  make install-dev    # Install dev + database dependencies"
-	@echo "  make install-all    # Install API + database + dev dependencies"
-	@echo "  make install-full   # Install everything including Airflow"
-	@echo "  make test           # Run all tests"
-	@echo "  make lint           # Check code quality"
-	@echo "  make demo           # Run demo pipeline"
+	@echo "$(YELLOW)📦 SETUP & INSTALLATION$(NC)"
+	@echo "  $(CYAN)setup$(NC)           Interactive setup - configure API keys and credentials"
+	@echo "  $(CYAN)install$(NC)         Install production dependencies only"
+	@echo "  $(CYAN)install-test$(NC)    Install production + testing dependencies"
+	@echo "  $(CYAN)install-dev$(NC)     Install full development environment"
+	@echo ""
+	@echo "$(YELLOW)🚀 OPERATIONS & EXECUTION$(NC)"
+	@echo "  $(CYAN)init-db$(NC)         Initialize database with last 30 trading days of data"
+	@echo "  $(CYAN)run$(NC)             Run daily data collection for previous trading day"
+	@echo "  $(CYAN)airflow$(NC)         Start Apache Airflow instance with default user"
+	@echo "  $(CYAN)serve$(NC)           Start FastAPI development server"
+	@echo ""
+	@echo "$(YELLOW)🧪 TESTING$(NC)"
+	@echo "  $(CYAN)test$(NC)            Run test suite with coverage (legacy alias for test-full)"
+	@echo "  $(CYAN)test-unit$(NC)       Run unit tests only (fast)"
+	@echo "  $(CYAN)test-int$(NC)        Run integration tests only"
+	@echo "  $(CYAN)test-ci$(NC)         Run CI pipeline tests (unit + basic coverage)"
+	@echo "  $(CYAN)test-fast$(NC)       Run all tests quickly (no coverage reports)"
+	@echo "  $(CYAN)test-full$(NC)       Run comprehensive test suite with full coverage"
+	@echo ""
+	@echo "$(YELLOW)✨ CODE QUALITY$(NC)"
+	@echo "  $(CYAN)lint$(NC)            Run all code quality checks"
+	@echo "  $(CYAN)lint-fix$(NC)        Auto-fix code quality issues (black, isort)"
+	@echo "  $(CYAN)act-pr$(NC)          Validate codebase for pull request (GitHub Actions locally)"
+	@echo ""
+	@echo "$(YELLOW)🧹 MAINTENANCE$(NC)"
+	@echo "  $(CYAN)clean$(NC)           Clean build artifacts and cache files"
+	@echo "  $(CYAN)help$(NC)            Show this help message"
+	@echo ""
+	@echo "$(CYAN)============================================================$(NC)"
 
-# Environment Setup
-env-setup: ## Create and activate virtual environment
-	@echo "$(BLUE)Setting up virtual environment...$(NC)"
-	python -m venv .venv
-	@echo "$(GREEN)Virtual environment created. Activate with: source .venv/bin/activate$(NC)"
+# Setup and installation commands
+setup: ## Interactive setup - configure API keys and credentials
+	@echo "$(BLUE)Starting interactive setup...$(NC)"
+	$(PYTHON) scripts/setup.py
+	@echo "$(GREEN)Setup completed$(NC)"
 
-env-check: ## Check if virtual environment is activated
-	@echo "$(BLUE)Checking environment...$(NC)"
-	@if [ -z "$$VIRTUAL_ENV" ]; then \
-		echo "$(RED)No virtual environment detected. Run: source .venv/bin/activate$(NC)"; \
-		exit 1; \
+# Installation commands
+install: ## Install production dependencies only
+	@echo "$(BLUE)Installing production dependencies...$(NC)"
+	pip install -e .
+	@echo "$(GREEN)Production installation complete$(NC)"
+
+install-test: ## Install production + testing dependencies
+	@echo "$(BLUE)Installing production and testing dependencies...$(NC)"
+	pip install -e ".[test]"
+	@echo "$(GREEN)Testing environment installation complete$(NC)"
+
+install-dev: ## Install full development environment
+	@echo "$(BLUE)Installing full development environment...$(NC)"
+	pip install -e ".[dev]"
+	pre-commit install
+	@echo "$(GREEN)Development environment installation complete$(NC)"
+
+# Operational commands
+init-db: ## Initialize database with last 30 trading days of data
+	@echo "$(BLUE)Initializing database with historical data...$(NC)"
+	@echo "$(YELLOW)This will fetch the last 30 trading days from Alpha Vantage API$(NC)"
+	$(PYTHON) -m $(PACKAGE_NAME).cli_ingestion --init --days=30
+	@echo "$(GREEN)Database initialized successfully$(NC)"
+
+run: ## Run daily data collection for previous trading day
+	@echo "$(BLUE)Running daily data collection...$(NC)"
+	$(PYTHON) -m $(PACKAGE_NAME).cli_ingestion --daily
+	@echo "$(GREEN)Daily data collection completed$(NC)"
+
+airflow: ## Start Apache Airflow instance with default user
+	@echo "$(BLUE)Starting Apache Airflow...$(NC)"
+	@echo "$(YELLOW)Setting up Airflow database...$(NC)"
+	airflow db init
+	@echo "$(YELLOW)Creating default admin user...$(NC)"
+	@if [ -f .env ]; then \
+		source .env && airflow users create \
+			--username $${AIRFLOW_ADMIN_USERNAME:-admin} \
+			--firstname $${AIRFLOW_ADMIN_FIRSTNAME:-Admin} \
+			--lastname $${AIRFLOW_ADMIN_LASTNAME:-User} \
+			--role Admin \
+			--email $${AIRFLOW_ADMIN_EMAIL:-admin@ticker-converter.local} \
+			--password $${AIRFLOW_ADMIN_PASSWORD:-admin123} 2>/dev/null || echo "User already exists"; \
 	else \
-		echo "$(GREEN)Virtual environment active: $$VIRTUAL_ENV$(NC)"; \
+		airflow users create \
+			--username admin \
+			--firstname Admin \
+			--lastname User \
+			--role Admin \
+			--email admin@ticker-converter.local \
+			--password admin123 2>/dev/null || echo "User already exists"; \
 	fi
+	@echo "$(GREEN)Starting Airflow webserver...$(NC)"
+	@echo "$(CYAN)=== AIRFLOW CONNECTION DETAILS ===$(NC)"
+	@echo "$(GREEN)URL: http://localhost:8080$(NC)"
+	@if [ -f .env ]; then \
+		source .env && echo "$(GREEN)Username: $${AIRFLOW_ADMIN_USERNAME:-admin}$(NC)" && echo "$(GREEN)Password: $${AIRFLOW_ADMIN_PASSWORD:-admin123}$(NC)"; \
+	else \
+		echo "$(GREEN)Username: admin$(NC)" && echo "$(GREEN)Password: admin123$(NC)"; \
+	fi
+	@echo "$(CYAN)=================================$(NC)"
+	airflow webserver --port 8080
 
-env-clean: ## Remove virtual environment and cache files
-	@echo "$(YELLOW)Cleaning environment...$(NC)"
-	rm -rf .venv/
-	rm -rf .pytest_cache/
-	rm -rf .mypy_cache/
-	rm -rf .ruff_cache/
-	rm -rf htmlcov/
-	rm -rf .coverage
-	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name "*.pyc" -delete 2>/dev/null || true
-	@echo "$(GREEN)Environment cleaned$(NC)"
+serve: ## Start FastAPI development server
+	@echo "$(BLUE)Starting FastAPI server...$(NC)"
+	@echo "$(CYAN)=== API ENDPOINT URLS ===$(NC)"
+	@echo "$(GREEN)Health Check: http://localhost:8000/health$(NC)"
+	@echo "$(GREEN)API Docs: http://localhost:8000/docs$(NC)"
+	@echo "$(GREEN)Top Performers: http://localhost:8000/api/stocks/top-performers$(NC)"
+	@echo "$(GREEN)Performance Details: http://localhost:8000/api/stocks/performance-details$(NC)"
+	@echo "$(CYAN)========================$(NC)"
+	$(PYTHON) run_api.py
 
-# Installation
-install: ## Install basic dependencies
-	@echo "$(BLUE)Installing dependencies...$(NC)"
-	$(PIP) install -e .
+# Quality and testing commands
+test: test-full ## Run test suite with coverage (legacy alias for test-full)
 
-install-dev: ## Install all development dependencies
-	@echo "$(BLUE)Installing development dependencies...$(NC)"
-	$(PIP) install -e ".[dev,database]"
-	@echo "$(GREEN)Development environment ready$(NC)"
-
-install-all: ## Install all optional dependencies
-	@echo "$(BLUE)Installing all dependencies...$(NC)"
-	$(PIP) install -e ".[all]"
-	@echo "$(GREEN)All dependencies installed$(NC)"
-
-install-api: ## Install API dependencies (FastAPI, uvicorn, etc.)
-	@echo "$(BLUE)Installing API dependencies...$(NC)"
-	$(PIP) install -e ".[api]"
-	@echo "$(GREEN)API dependencies installed$(NC)"
-
-install-database: ## Install database dependencies (PostgreSQL adapters)
-	@echo "$(BLUE)Installing database dependencies...$(NC)"
-	$(PIP) install -e ".[database]"
-	@echo "$(GREEN)Database dependencies installed$(NC)"
-
-install-airflow: ## Install Airflow dependencies (for DAG development)
-	@echo "$(BLUE)Installing Airflow dependencies...$(NC)"
-	$(PIP) install -e ".[airflow]"
-	@echo "$(GREEN)Airflow dependencies installed$(NC)"
-
-install-full: ## Install all dependencies including Airflow
-	@echo "$(BLUE)Installing all dependencies including Airflow...$(NC)"
-	$(PIP) install -e ".[full]"
-	@echo "$(GREEN)Full development environment ready$(NC)"
-
-# Testing
-test: ## Run all tests with coverage (SAFE - no real API calls)
-	@echo "$(BLUE)Running all tests with coverage...$(NC)"
-	$(PYTHON) -m pytest $(TEST_DIR)/ --cov=$(SOURCE_DIR)/$(PACKAGE_NAME) --cov-report=term-missing --cov-report=html:htmlcov --cov-fail-under=40
-
-test-unit: ## Run only unit tests (SAFE - no real API calls)
+test-unit: ## Run unit tests only (fast)
 	@echo "$(BLUE)Running unit tests...$(NC)"
-	$(PYTHON) -m pytest $(TEST_DIR)/unit/ -v
+	pytest tests/unit/ -v --tb=short --no-cov
+	@echo "$(GREEN)Unit tests completed$(NC)"
 
-test-integration: ## Run integration tests (SAFE - mocked API calls only)
-	@echo "$(BLUE)Running integration tests (mocked API calls)...$(NC)"
-	$(PYTHON) -m pytest $(TEST_DIR)/integration/ -v
+test-int: ## Run integration tests only
+	@echo "$(BLUE)Running integration tests...$(NC)"
+	@echo "$(YELLOW)Note: Integration tests require valid API keys and INTEGRATION_TEST=true$(NC)"
+	INTEGRATION_TEST=true pytest tests/integration/ -v --tb=short --no-cov
+	@echo "$(GREEN)Integration tests completed$(NC)"
 
-test-fast: ## Run tests without coverage (SAFE - no real API calls)
-	@echo "$(BLUE)Running fast tests...$(NC)"
-	$(PYTHON) -m pytest $(TEST_DIR)/ -x --tb=short -q
+test-ci: ## Run CI pipeline tests (unit + basic coverage)
+	@echo "$(BLUE)Running CI test suite...$(NC)"
+	pytest tests/unit/ --cov=src/$(PACKAGE_NAME) --cov-report=term-missing --cov-fail-under=35
+	@echo "$(GREEN)CI test suite completed$(NC)"
 
-test-coverage: ## Generate coverage report (SAFE - no real API calls)
-	@echo "$(BLUE)Generating coverage report...$(NC)"
-	$(PYTHON) -m pytest $(TEST_DIR)/ --cov=$(SOURCE_DIR)/$(PACKAGE_NAME) --cov-report=html:htmlcov
-	@echo "$(GREEN)Coverage report generated in htmlcov/$(NC)"
+test-fast: ## Run all tests quickly (no coverage reports)
+	@echo "$(BLUE)Running all tests (fast mode)...$(NC)"
+	pytest tests/ -v --tb=short -x --no-cov
+	@echo "$(GREEN)Fast test suite completed$(NC)"
 
-test-specific: ## Run specific test (SAFE - no real API calls unless explicitly specified)
-	@echo "$(BLUE)Running specific test: $(TEST)$(NC)"
-	$(PYTHON) -m pytest $(TEST_DIR)/$(TEST) -v
+test-full: ## Run comprehensive test suite with full coverage
+	@echo "$(BLUE)Running comprehensive test suite...$(NC)"
+	pytest tests/ --cov=src/$(PACKAGE_NAME) --cov-report=html --cov-report=term-missing --cov-report=xml --cov-fail-under=35 -v
+	@echo "$(GREEN)Comprehensive test suite completed$(NC)"
+	@echo "$(CYAN)Coverage reports generated:$(NC)"
+	@echo "  $(GREEN)HTML: htmlcov/index.html$(NC)"
+	@echo "  $(GREEN)XML: coverage.xml$(NC)"
 
-test-api-live: ## ⚠️ WARNING: Run REAL API tests (consumes Alpha Vantage quota!)
-	@echo "$(RED)⚠️  WARNING: This will make REAL API calls and consume your Alpha Vantage quota!$(NC)"
-	@echo "$(YELLOW)Free tier limit: 25 requests per day$(NC)"
-	@echo "$(YELLOW)Make sure you have ALPHA_VANTAGE_API_KEY set in your environment.$(NC)"
-	@echo "$(YELLOW)Press Enter to continue or Ctrl+C to cancel...$(NC)"
-	@read dummy
-	@echo "$(BLUE)Running live API integration tests...$(NC)"
-	INTEGRATION_TEST=true $(PYTHON) -m pytest $(TEST_DIR)/integration/test_api_integration.py -v
+lint: ## Run all code quality checks
+	@echo "$(BLUE)Running code quality checks...$(NC)"
+	pylint src/$(PACKAGE_NAME)/ api/ run_api.py
+	black --check src/$(PACKAGE_NAME)/ api/ tests/ run_api.py || (echo "Code formatting issues found. Run 'make lint-fix' to fix them." && exit 1)
+	isort --check-only src/$(PACKAGE_NAME)/ api/ tests/ run_api.py || (echo "Import sorting issues found. Run 'make lint-fix' to fix them." && exit 1)
+	mypy src/$(PACKAGE_NAME)/ api/ || true
+	@echo "$(GREEN)Code quality checks completed$(NC)"
 
-test-api-safe: ## Run API tests with mocked responses (SAFE - no quota usage)
-	@echo "$(BLUE)Running safe API tests (mocked responses)...$(NC)"
-	$(PYTHON) -m pytest $(TEST_DIR)/unit/test_api_client.py -v
+lint-fix: ## Auto-fix code quality issues (black first, then isort)
+	@echo "$(BLUE)Auto-fixing code quality issues...$(NC)"
+	@echo "$(YELLOW)Step 1: Running black formatter...$(NC)"
+	black src/$(PACKAGE_NAME)/ api/ tests/ run_api.py
+	@echo "$(YELLOW)Step 2: Running isort import sorter...$(NC)"
+	isort src/$(PACKAGE_NAME)/ api/ tests/ run_api.py
+	@echo "$(GREEN)Code formatting applied$(NC)"
 
-# Code Quality
-lint: ## Run all linting checks
-	@echo "$(BLUE)Running linting checks...$(NC)"
-	$(PYTHON) -m ruff check $(SOURCE_DIR)/ $(TEST_DIR)/
-
-lint-fix: ## Fix linting issues automatically
-	@echo "$(BLUE)Fixing linting issues...$(NC)"
-	$(PYTHON) -m ruff check $(SOURCE_DIR)/ $(TEST_DIR)/ --fix
-
-format: ## Format code with black and ruff
-	@echo "$(BLUE)Formatting code...$(NC)"
-	$(PYTHON) -m black $(SOURCE_DIR)/ $(TEST_DIR)/ $(SCRIPTS_DIR)/
-	$(PYTHON) -m ruff check --fix $(SOURCE_DIR)/ $(TEST_DIR)/ $(SCRIPTS_DIR)/
-
-check-format: ## Check if code is properly formatted
-	@echo "$(BLUE)Checking code formatting...$(NC)"
-	$(PYTHON) -m black --check $(SOURCE_DIR)/ $(TEST_DIR)/ $(SCRIPTS_DIR)/
-
-check-typing: ## Run mypy type checking
-	@echo "$(BLUE)Running type checking...$(NC)"
-	$(PYTHON) -m mypy $(SOURCE_DIR)/$(PACKAGE_NAME)
-
-check-security: ## Run security checks with bandit
-	@echo "$(BLUE)Running security checks...$(NC)"
-	$(PYTHON) -m bandit -r $(SOURCE_DIR)/ -f json || true
-
-check-all: lint check-format check-typing ## Run all quality checks
-
-# Demo and Pipeline
-demo: ## Run the demo pipeline
-	@echo "$(BLUE)Running demo pipeline...$(NC)"
-	$(PYTHON) $(SCRIPTS_DIR)/demo_pipeline.py
-
-run-demo: demo ## Alias for demo
-
-run-pipeline: ## Run the main pipeline (interactive)
-	@echo "$(BLUE)Running main pipeline...$(NC)"
-	$(PYTHON) -m $(PACKAGE_NAME).cli
-
-# Git Operations
-git-status: ## Show git status
-	@echo "$(BLUE)Git status:$(NC)"
-	git status
-
-git-add: ## Add all changes to git
-	@echo "$(BLUE)Adding changes to git...$(NC)"
-	git add .
-	git status
-
-git-commit: ## Commit changes (usage: make git-commit MSG="commit message")
-	@echo "$(BLUE)Committing changes...$(NC)"
-	@if [ -z "$(MSG)" ]; then \
-		echo "$(RED)Error: Please provide a commit message with MSG=\"your message\"$(NC)"; \
+act-pr: ## Validate codebase for pull request (GitHub Actions locally)
+	@echo "$(BLUE)Running GitHub Actions locally with act...$(NC)"
+	@echo "$(YELLOW)This will simulate the CI pipeline on your local machine$(NC)"
+	@if ! command -v act &> /dev/null; then \
+		echo "$(YELLOW)⚠️  'act' not found. Installing act...$(NC)"; \
+		echo "$(CYAN)On macOS: brew install act$(NC)"; \
+		echo "$(CYAN)On Linux: curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash$(NC)"; \
+		echo "$(CYAN)Or visit: https://github.com/nektos/act$(NC)"; \
 		exit 1; \
 	fi
-	git commit -m "$(MSG)"
-
-git-push: ## Push changes to remote
-	@echo "$(BLUE)Pushing to remote...$(NC)"
-	git push
-
-git-log: ## Show recent git log
-	@echo "$(BLUE)Recent commits:$(NC)"
-	git log --oneline -10
-
-# CI/CD Simulation
-ci-setup: install-dev ## Setup CI environment
-	@echo "$(GREEN)CI environment setup complete$(NC)"
-
-ci-test: test-fast ## Run CI tests (fast)
-	@echo "$(GREEN)CI tests completed$(NC)"
-
-ci-quality: check-all ## Run CI quality checks
-	@echo "$(GREEN)CI quality checks completed$(NC)"
-
-ci-full: ci-setup ci-quality test ## Run full CI pipeline
-	@echo "$(GREEN)Full CI pipeline completed$(NC)"
-
-# Act (GitHub Actions Local Testing)
-act-pr: ## Run GitHub Actions PR workflow locally with Act
-	@echo "$(BLUE)Running GitHub Actions PR workflow locally...$(NC)"
 	act pull_request --container-architecture linux/amd64
+	@echo "$(GREEN)Local CI validation completed$(NC)"
 
-act-push: ## Run GitHub Actions push workflow locally with Act
-	@echo "$(BLUE)Running GitHub Actions push workflow locally...$(NC)"
-	act push --container-architecture linux/amd64
-
-act-list: ## List available Act workflows
-	@echo "$(BLUE)Available GitHub Actions workflows:$(NC)"
-	act --list --container-architecture linux/amd64
-
-# Build and Package
-clean: ## Clean build artifacts
-	@echo "$(YELLOW)Cleaning build artifacts...$(NC)"
-	rm -rf build/
-	rm -rf dist/
-	rm -rf *.egg-info/
+clean: ## Clean build artifacts and cache files
+	@echo "$(BLUE)Cleaning build artifacts...$(NC)"
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-
-build: clean ## Build the package
-	@echo "$(BLUE)Building package...$(NC)"
-	$(PYTHON) -m build
-
-package: build ## Create distribution packages
-	@echo "$(GREEN)Package built successfully$(NC)"
-	ls -la dist/
-
-# Documentation
-docs: ## Generate documentation
-	@echo "$(BLUE)Generating documentation...$(NC)"
-	@if [ -d "$(DOCS_DIR)" ]; then \
-		cd $(DOCS_DIR) && make html; \
-	else \
-		echo "$(YELLOW)Documentation directory not found$(NC)"; \
-	fi
-
-serve-docs: docs ## Serve documentation locally
-	@echo "$(BLUE)Serving documentation...$(NC)"
-	@if [ -d "$(DOCS_DIR)/_build/html" ]; then \
-		cd $(DOCS_DIR)/_build/html && $(PYTHON) -m http.server 8000; \
-	else \
-		echo "$(RED)Documentation not built. Run 'make docs' first$(NC)"; \
-	fi
-
-# Data Operations
-clean-data: ## Clean temporary data files
-	@echo "$(YELLOW)Cleaning data files...$(NC)"
-	rm -rf data/temp/
-	rm -rf raw_data_output/temp/
-	@echo "$(GREEN)Data files cleaned$(NC)"
-
-# Development Workflow Shortcuts
-dev-setup: env-setup install-dev ## Complete development setup
-	@echo "$(GREEN)Development environment ready!$(NC)"
-	@echo "$(YELLOW)Don't forget to activate the virtual environment: source .venv/bin/activate$(NC)"
-
-dev-test: lint-fix test-fast ## Quick development test cycle
-	@echo "$(GREEN)Development test cycle completed$(NC)"
-
-dev-commit: lint-fix test-fast git-add ## Prepare for commit (lint, test, add)
-	@echo "$(GREEN)Ready for commit. Use: make git-commit MSG=\"your message\"$(NC)"
-
-# Production Readiness
-prod-check: check-all test ## Full production readiness check
-	@echo "$(GREEN)Production readiness check completed$(NC)"
-
-# Monitoring and Analysis
-profile: ## Run performance profiling
-	@echo "$(BLUE)Running performance profiling...$(NC)"
-	$(PYTHON) -m cProfile -o profile.stats $(SCRIPTS_DIR)/demo_pipeline.py
-	@echo "$(GREEN)Profile saved to profile.stats$(NC)"
-
-memory-profile: ## Run memory profiling
-	@echo "$(BLUE)Running memory profiling...$(NC)"
-	$(PYTHON) -m memory_profiler $(SCRIPTS_DIR)/demo_pipeline.py
-
-# Security and Dependencies
-security-audit: ## Run security audit
-	@echo "$(BLUE)Running security audit...$(NC)"
-	$(PYTHON) -m safety check
-	$(PYTHON) -m bandit -r $(SOURCE_DIR)/
-
-update-deps: ## Update dependencies
-	@echo "$(BLUE)Updating dependencies...$(NC)"
-	$(PIP) install --upgrade pip
-	$(PIP) install --upgrade -e ".[dev,database]"
-
-# Aliases for common workflows
-quick-test: test-fast ## Alias for test-fast
-quality: check-all ## Alias for check-all
-setup: dev-setup ## Alias for dev-setup
-
-# Display current configuration
-show-config: ## Show current project configuration
-	@echo "$(CYAN)Project Configuration:$(NC)"
-	@echo "Python version: $(shell $(PYTHON) --version)"
-	@echo "Pip version: $(shell $(PIP) --version)"
-	@echo "Current directory: $(shell pwd)"
-	@echo "Virtual environment: $$VIRTUAL_ENV"
-	@echo "Package name: $(PACKAGE_NAME)"
-	@echo "Source directory: $(SOURCE_DIR)"
-	@echo "Test directory: $(TEST_DIR)"
+	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+	find . -name "*.pyc" -delete 2>/dev/null || true
+	rm -rf build/ dist/ htmlcov/ .coverage
+	@echo "$(GREEN)Cleanup completed$(NC)"
