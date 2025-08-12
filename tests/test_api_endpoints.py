@@ -1,7 +1,7 @@
 """Unit tests for Magnificent Seven Stock Performance API."""
 
 from datetime import date
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -95,25 +95,30 @@ class TestModelBuilders:
 class TestAPIEndpoints:
     """Test the FastAPI endpoints."""
 
+    def __init__(self):
+        """Initialize test class attributes."""
+        self.mock_db = None
+        self.client = None
+
     def setup_method(self):
         """Set up test fixtures before each test method."""
         # Create mock database
         self.mock_db = AsyncMock()
-        
+
         # Create mock dependencies
         async def mock_get_db():
             yield self.mock_db
-            
-        def mock_get_sql_query(filename: str):
+
+        def mock_get_sql_query(filename: str):  # pylint: disable=unused-argument
             return "SELECT * FROM test;"
-        
+
         # Override FastAPI dependencies
         app.dependency_overrides[get_db] = mock_get_db
         app.dependency_overrides[get_sql_query] = mock_get_sql_query
-        
+
         # Create test client
         self.client = TestClient(app)
-    
+
     def teardown_method(self):
         """Clean up after each test method."""
         # Clear dependency overrides
