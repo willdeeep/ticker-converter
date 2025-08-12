@@ -15,7 +15,7 @@ app = FastAPI(
 )
 
 # Magnificent Seven company symbols
-MAGNIFICENT_SEVEN = {'AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META', 'NVDA', 'TSLA'}
+MAGNIFICENT_SEVEN = {"AAPL", "MSFT", "AMZN", "GOOGL", "META", "NVDA", "TSLA"}
 
 
 def _build_top_performer_stock(row: dict[str, Any]) -> TopPerformerStock:
@@ -65,7 +65,9 @@ def _build_stock_performance_details(row: dict[str, Any]) -> StockPerformanceDet
             int(row["avg_volume_30d"]) if row.get("avg_volume_30d") else None
         ),
         price_change_30d_pct=(
-            float(row["price_change_30d_pct"]) if row.get("price_change_30d_pct") else None
+            float(row["price_change_30d_pct"])
+            if row.get("price_change_30d_pct")
+            else None
         ),
         volatility_30d=(
             float(row["volatility_30d"]) if row.get("volatility_30d") else None
@@ -129,13 +131,15 @@ async def get_top_performers(
     if not rows:
         raise HTTPException(
             status_code=404,
-            detail="No performance data available for Magnificent Seven stocks"
+            detail="No performance data available for Magnificent Seven stocks",
         )
 
     return [_build_top_performer_stock(row) for row in rows]
 
 
-@app.get("/api/stocks/performance-details", response_model=list[StockPerformanceDetails])
+@app.get(
+    "/api/stocks/performance-details", response_model=list[StockPerformanceDetails]
+)
 async def get_performance_details(
     db: DatabaseConnection = Depends(get_db),
 ) -> list[StockPerformanceDetails]:
@@ -163,7 +167,7 @@ async def get_performance_details(
     if not rows:
         raise HTTPException(
             status_code=404,
-            detail="No detailed performance data available for Magnificent Seven stocks"
+            detail="No detailed performance data available for Magnificent Seven stocks",
         )
 
     return [_build_stock_performance_details(row) for row in rows]

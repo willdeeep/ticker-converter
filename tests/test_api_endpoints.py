@@ -96,7 +96,9 @@ class TestAPIEndpoints:
 
     @patch("api.main.get_db")
     @patch("api.main.get_sql_query")
-    async def test_health_check(self, mock_get_sql, mock_get_db):  # pylint: disable=unused-argument
+    async def test_health_check(
+        self, mock_get_sql, mock_get_db
+    ):  # pylint: disable=unused-argument
         """Test the health check endpoint."""
         client = TestClient(app)
         response = client.get("/health")
