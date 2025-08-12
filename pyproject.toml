@@ -26,6 +26,7 @@ dependencies = [
     "fastapi>=0.95.0",
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.0.0",
+    "email-validator>=1.0.5,<2.0.0",  # Compatible with Airflow constraints
 
     # Database and data processing
     "psycopg2-binary>=2.9.7",
@@ -39,6 +40,7 @@ dependencies = [
 
 # Note: Avoid cadwyn package - requires FastAPI >=0.112.4 which conflicts with Airflow compatibility
 # See: https://github.com/apache/airflow/issues/32311 for Airflow/Pydantic 2.0+ compatibility issues
+# Email-validator is constrained to <2.0.0 to maintain compatibility with flask-appbuilder in Airflow environments
 
 [project.optional-dependencies]
 test = [
@@ -54,6 +56,7 @@ airflow = [
     "pydantic>=1.10.0,<2.0.0",  # Override for Airflow compatibility
     "fastapi>=0.95.0,<0.104.0",  # Override for Airflow compatibility
     "sqlalchemy>=1.4.36,<2.0",  # Override for Airflow compatibility
+    "email-validator>=1.0.5,<2.0.0",  # Required for FastAPI/Airflow compatibility
 ]
 
 dev = [
