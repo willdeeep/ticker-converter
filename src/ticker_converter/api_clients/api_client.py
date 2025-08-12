@@ -74,18 +74,14 @@ class AlphaVantageClient:
 
         for attempt in range(self.config.max_retries):
             try:
-                response = self.session.get(
-                    self.config.base_url, params=params, timeout=self.config.timeout
-                )
+                response = self.session.get(self.config.base_url, params=params, timeout=self.config.timeout)
                 response.raise_for_status()
 
                 data = response.json()
 
                 # Check for API errors
                 if AlphaVantageResponseKey.ERROR_MESSAGE.value in data:
-                    raise AlphaVantageAPIError(
-                        f"API Error: {data[AlphaVantageResponseKey.ERROR_MESSAGE.value]}"
-                    )
+                    raise AlphaVantageAPIError(f"API Error: {data[AlphaVantageResponseKey.ERROR_MESSAGE.value]}")
 
                 if AlphaVantageResponseKey.NOTE.value in data:
                     # Rate limit hit, wait and retry
@@ -93,22 +89,18 @@ class AlphaVantageClient:
                         wait_time = self.config.rate_limit_delay * (2**attempt)
                         time.sleep(wait_time)
                         continue
-                    raise AlphaVantageAPIError(
-                        f"Rate limit exceeded: {data[AlphaVantageResponseKey.NOTE.value]}"
-                    )
+                    raise AlphaVantageAPIError(f"Rate limit exceeded: {data[AlphaVantageResponseKey.NOTE.value]}")
 
                 # Apply rate limiting and return data
                 time.sleep(self.config.rate_limit_delay)
-                return data
+                return dict(data)  # Ensure we return a proper dict
 
             except requests.RequestException as e:
                 if attempt < self.config.max_retries - 1:
                     wait_time = self.config.rate_limit_delay * (2**attempt)
                     time.sleep(wait_time)
                     continue
-                raise AlphaVantageAPIError(
-                    f"Request failed after {self.config.max_retries} attempts: {e}"
-                ) from e
+                raise AlphaVantageAPIError(f"Request failed after {self.config.max_retries} attempts: {e}") from e
 
         # This should never be reached, but needed for mypy
         raise AlphaVantageAPIError("Unexpected error: max retries exceeded")
@@ -149,9 +141,7 @@ class AlphaVantageClient:
             # Volume handling (different keys for different endpoints)
             if AlphaVantageValueKey.VOLUME.value in values:
                 volume_value = values[AlphaVantageValueKey.VOLUME.value]
-                row["Volume"] = (
-                    int(volume_value) if volume_value.isdigit() else float(volume_value)
-                )
+                row["Volume"] = int(volume_value) if volume_value.isdigit() else float(volume_value)
 
             # Add any additional columns
             row.update(additional_columns)
@@ -175,9 +165,7 @@ class AlphaVantageClient:
                 f"API Information message: {data.get('Information', 'Rate limit or service issue')}"
             )
 
-    def get_daily_stock_data(
-        self, symbol: str, outputsize: OutputSize | str = OutputSize.COMPACT
-    ) -> pd.DataFrame:
+    def get_daily_stock_data(self, symbol: str, outputsize: OutputSize | str = OutputSize.COMPACT) -> pd.DataFrame:
         """Get daily stock data for a given symbol.
 
         Args:
@@ -188,9 +176,7 @@ class AlphaVantageClient:
             DataFrame with daily stock data (Date, Open, High, Low, Close, Volume).
         """
         # Handle both enum and string inputs for backwards compatibility
-        output_value = (
-            outputsize.value if isinstance(outputsize, OutputSize) else outputsize
-        )
+        output_value = outputsize.value if isinstance(outputsize, OutputSize) else outputsize
 
         params = {
             "function": AlphaVantageFunction.TIME_SERIES_DAILY.value,
@@ -204,9 +190,7 @@ class AlphaVantageClient:
         time_series_key = AlphaVantageResponseKey.TIME_SERIES_DAILY.value
         if time_series_key not in data:
             self._handle_api_error_response(data)
-            raise AlphaVantageAPIError(
-                f"Unexpected response format: {list(data.keys())}"
-            )
+            raise AlphaVantageAPIError(f"Unexpected response format: {list(data.keys())}")
 
         time_series = data[time_series_key]
 
@@ -219,9 +203,7 @@ class AlphaVantageClient:
 
         return df
 
-    def get_intraday_stock_data(
-        self, symbol: str, interval: str = "5min"
-    ) -> pd.DataFrame:
+    def get_intraday_stock_data(self, symbol: str, interval: str = "5min") -> pd.DataFrame:
         """Get intraday stock data for a given symbol.
 
         Args:
@@ -243,9 +225,7 @@ class AlphaVantageClient:
         time_series_key = f"Time Series ({interval})"
         if time_series_key not in data:
             self._handle_api_error_response(data)
-            raise AlphaVantageAPIError(
-                f"Unexpected response format: {list(data.keys())}"
-            )
+            raise AlphaVantageAPIError(f"Unexpected response format: {list(data.keys())}")
 
         time_series = data[time_series_key]
 
@@ -273,9 +253,7 @@ class AlphaVantageClient:
         params = {"function": AlphaVantageFunction.OVERVIEW.value, "symbol": symbol}
         return self.make_request(params)
 
-    def get_currency_exchange_rate(
-        self, from_currency: str, to_currency: str
-    ) -> dict[str, Any]:
+    def get_currency_exchange_rate(self, from_currency: str, to_currency: str) -> dict[str, Any]:
         """Get real-time exchange rate for currency pair.
 
         Args:
@@ -315,9 +293,7 @@ class AlphaVantageClient:
             AlphaVantageAPIError: If the API request fails.
         """
         # Handle both enum and string inputs for backwards compatibility
-        output_value = (
-            outputsize.value if isinstance(outputsize, OutputSize) else outputsize
-        )
+        output_value = outputsize.value if isinstance(outputsize, OutputSize) else outputsize
 
         params = {
             "function": AlphaVantageFunction.FX_DAILY.value,
@@ -332,9 +308,7 @@ class AlphaVantageClient:
         time_series_key = "Time Series FX (Daily)"
         if time_series_key not in data:
             self._handle_api_error_response(data)
-            raise AlphaVantageAPIError(
-                f"Unexpected forex data format: {list(data.keys())}"
-            )
+            raise AlphaVantageAPIError(f"Unexpected forex data format: {list(data.keys())}")
 
         time_series = data[time_series_key]
 
@@ -357,9 +331,7 @@ class AlphaVantageClient:
         df = df.sort_values("Date")
         return df.reset_index(drop=True)
 
-    def get_digital_currency_daily(
-        self, symbol: str, market: str = "USD"
-    ) -> pd.DataFrame:
+    def get_digital_currency_daily(self, symbol: str, market: str = "USD") -> pd.DataFrame:
         """Get daily digital currency time series data.
 
         Args:
@@ -384,9 +356,7 @@ class AlphaVantageClient:
         time_series_key = "Time Series (Digital Currency Daily)"
         if time_series_key not in data:
             self._handle_api_error_response(data)
-            raise AlphaVantageAPIError(
-                f"Unexpected crypto data format: {list(data.keys())}"
-            )
+            raise AlphaVantageAPIError(f"Unexpected crypto data format: {list(data.keys())}")
 
         time_series = data[time_series_key]
 
