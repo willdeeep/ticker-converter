@@ -47,7 +47,7 @@ def init_database_command(days: int = 30) -> None:
         orchestrator = DataIngestionOrchestrator()
         results = orchestrator.perform_initial_setup(days_back=days)
 
-        print(f"Database initialization completed successfully")
+        print("Database initialization completed successfully")
         print(f"Total records inserted: {results.get('total_records_inserted', 0)}")
 
         if results.get("stock_data"):

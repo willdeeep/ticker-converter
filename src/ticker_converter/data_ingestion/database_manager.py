@@ -132,10 +132,12 @@ class DatabaseManager:
         """
         try:
             # Check for stock data
-            stock_count = self.execute_query("SELECT COUNT(*) as count FROM raw_stock_data")[0]["count"]
+            stock_result = self.execute_query("SELECT COUNT(*) as count FROM raw_stock_data")
+            stock_count = int(stock_result[0]["count"]) if stock_result else 0
 
             # Check for currency data
-            currency_count = self.execute_query("SELECT COUNT(*) as count FROM raw_currency_data")[0]["count"]
+            currency_result = self.execute_query("SELECT COUNT(*) as count FROM raw_currency_data")
+            currency_count = int(currency_result[0]["count"]) if currency_result else 0
 
             is_empty = stock_count == 0 and currency_count == 0
             self.logger.info(
@@ -169,12 +171,23 @@ class DatabaseManager:
                 params = None
 
             result = self.execute_query(query, params)
-            latest_date = result[0]["latest_date"] if result else None
+            if not result:
+                return None
+
+            latest_date = result[0]["latest_date"]
+            if latest_date is None:
+                return None
 
             if isinstance(latest_date, str):
                 return datetime.strptime(latest_date, "%Y-%m-%d")
-            if latest_date:
+            if isinstance(latest_date, datetime):
                 return latest_date
+
+            # Handle other potential types by converting to string first
+            try:
+                return datetime.strptime(str(latest_date), "%Y-%m-%d")
+            except ValueError:
+                return None
 
         except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
             self.logger.error("Error getting latest stock date: %s", e)
@@ -189,12 +202,23 @@ class DatabaseManager:
         """
         try:
             result = self.execute_query("SELECT MAX(data_date) as latest_date FROM raw_currency_data")
-            latest_date = result[0]["latest_date"] if result else None
+            if not result:
+                return None
+
+            latest_date = result[0]["latest_date"]
+            if latest_date is None:
+                return None
 
             if isinstance(latest_date, str):
                 return datetime.strptime(latest_date, "%Y-%m-%d")
-            if latest_date:
+            if isinstance(latest_date, datetime):
                 return latest_date
+
+            # Handle other potential types by converting to string first
+            try:
+                return datetime.strptime(str(latest_date), "%Y-%m-%d")
+            except ValueError:
+                return None
 
         except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
             self.logger.error("Error getting latest currency date: %s", e)

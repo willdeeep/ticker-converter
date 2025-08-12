@@ -11,7 +11,7 @@ YELLOW := \033[0;33m
 CYAN := \033[0;36m
 NC := \033[0m
 
-.PHONY: help install install-test install-dev setup init-db run airflow serve test test-unit test-int test-ci test-fast test-full lint lint-fix clean
+.PHONY: help install install-test install-dev setup init-db run airflow serve test test-unit test-int test-ci test-fast test-full lint lint-fix act-pr clean
 
 help: ## Show this help message
 	@echo "$(CYAN)================== TICKER CONVERTER COMMANDS ==================$(NC)"
@@ -39,6 +39,7 @@ help: ## Show this help message
 	@echo "$(YELLOW)✨ CODE QUALITY$(NC)"
 	@echo "  $(CYAN)lint$(NC)            Run all code quality checks"
 	@echo "  $(CYAN)lint-fix$(NC)        Auto-fix code quality issues (black, isort)"
+	@echo "  $(CYAN)act-pr$(NC)          Validate codebase for pull request (GitHub Actions locally)"
 	@echo ""
 	@echo "$(YELLOW)🧹 MAINTENANCE$(NC)"
 	@echo "  $(CYAN)clean$(NC)           Clean build artifacts and cache files"
@@ -171,6 +172,19 @@ lint-fix: ## Auto-fix code quality issues (black first, then isort)
 	@echo "$(YELLOW)Step 2: Running isort import sorter...$(NC)"
 	isort src/$(PACKAGE_NAME)/ api/ tests/ run_api.py
 	@echo "$(GREEN)Code formatting applied$(NC)"
+
+act-pr: ## Validate codebase for pull request (GitHub Actions locally)
+	@echo "$(BLUE)Running GitHub Actions locally with act...$(NC)"
+	@echo "$(YELLOW)This will simulate the CI pipeline on your local machine$(NC)"
+	@if ! command -v act &> /dev/null; then \
+		echo "$(YELLOW)⚠️  'act' not found. Installing act...$(NC)"; \
+		echo "$(CYAN)On macOS: brew install act$(NC)"; \
+		echo "$(CYAN)On Linux: curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash$(NC)"; \
+		echo "$(CYAN)Or visit: https://github.com/nektos/act$(NC)"; \
+		exit 1; \
+	fi
+	act pull_request --container-architecture linux/amd64
+	@echo "$(GREEN)Local CI validation completed$(NC)"
 
 clean: ## Clean build artifacts and cache files
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"
