@@ -580,8 +580,28 @@ def status(output: click.File) -> None:
         else:
             click.echo("\n=== Data Ingestion Status ===")
 
+            # Database Status
             db_health = status_info.get("database_health", {})
-            click.echo(f"Database status: {db_health.get('status', 'unknown')}")
+            db_status = db_health.get('status', 'unknown')
+            if db_status == 'online':
+                db_url = db_health.get('database_url', 'unknown')
+                click.echo(f"Database status: online ({db_url})")
+            elif db_status == 'offline':
+                db_url = db_health.get('database_url', 'unknown')
+                click.echo(f"Database status: offline ({db_url})")
+            else:
+                click.echo(f"Database status: {db_status}")
+                if 'error' in db_health:
+                    click.echo(f"Database error: {db_health['error']}")
+
+            # Airflow Status
+            airflow_status = status_info.get("airflow_status", {})
+            if airflow_status.get('webserver_running'):
+                webserver_url = airflow_status.get('webserver_url', 'http://localhost:8080')
+                click.echo(f"Airflow status: online ({webserver_url})")
+            else:
+                click.echo("Airflow status: offline")
+            
             click.echo(f"Stock records: {db_health.get('stock_records', 0)}")
             click.echo(f"Currency records: {db_health.get('currency_records', 0)}")
             click.echo(

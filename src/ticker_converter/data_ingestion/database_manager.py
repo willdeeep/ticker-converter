@@ -12,6 +12,7 @@ from typing import Any
 
 import psycopg2
 import psycopg2.extensions
+import psycopg2.extras
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -382,6 +383,145 @@ class DatabaseManager:
             self.logger.error(error_msg)
         
         return results
+
+    def is_database_empty(self) -> bool:
+        """Check if database is empty (alias for needs_initial_setup for backward compatibility).
+        
+        Returns:
+            True if database needs initial setup
+        """
+        return self.needs_initial_setup()
+
+    def health_check(self) -> dict[str, Any]:
+        """Perform database health check.
+        
+        Returns:
+            Dictionary with health check results
+        """
+        try:
+            # Parse database URL for display
+            import urllib.parse
+            parsed = urllib.parse.urlparse(self.connection_string)
+            db_display_url = f"postgresql://{parsed.hostname}:{parsed.port}/{parsed.path.lstrip('/')}"
+            
+            # Test connection
+            if not self.test_connection():
+                return {
+                    "status": "offline", 
+                    "error": "Connection failed",
+                    "database_url": db_display_url
+                }
+            
+            # Get record counts
+            stock_count = self.get_stock_count()
+            price_count = self.get_price_record_count()
+            currency_count = self.get_exchange_rate_count()
+            
+            # Get latest dates
+            latest_stock = None
+            latest_currency = None
+            
+            try:
+                # Get latest stock date for any symbol
+                result = self.execute_query(
+                    "SELECT MAX(sp.date) as latest_date FROM fact_stock_prices sp",
+                    fetch_results=True
+                )
+                if result and result[0]["latest_date"]:
+                    latest_stock = result[0]["latest_date"]
+            except psycopg2.Error:
+                pass
+            
+            try:
+                # Get latest currency date
+                result = self.execute_query(
+                    "SELECT MAX(date) as latest_date FROM fact_exchange_rates",
+                    fetch_results=True
+                )
+                if result and result[0]["latest_date"]:
+                    latest_currency = result[0]["latest_date"]
+            except psycopg2.Error:
+                pass
+            
+            return {
+                "status": "online",
+                "database_url": db_display_url,
+                "stock_records": stock_count,
+                "price_records": price_count,
+                "currency_records": currency_count,
+                "latest_stock_date": latest_stock.isoformat() if latest_stock else None,
+                "latest_currency_date": latest_currency.isoformat() if latest_currency else None,
+                "is_empty": self.is_database_empty(),
+            }
+            
+        except Exception as e:
+            # Parse database URL for display in error case too
+            import urllib.parse
+            parsed = urllib.parse.urlparse(self.connection_string)
+            db_display_url = f"postgresql://{parsed.hostname}:{parsed.port}/{parsed.path.lstrip('/')}"
+            
+            return {
+                "status": "error", 
+                "error": str(e),
+                "database_url": db_display_url
+            }
+
+    def insert_stock_data(self, records: list[dict[str, Any]]) -> int:
+        """Insert stock data records into raw_stock_data table.
+        
+        Args:
+            records: List of stock data records
+            
+        Returns:
+            Number of records inserted
+        """
+        if not records:
+            return 0
+        
+        try:
+            # Insert into raw_stock_data table
+            self.bulk_insert("raw_stock_data", records, on_conflict="NOTHING")
+            self.logger.info("Inserted %d stock data records", len(records))
+            return len(records)
+        except Exception as e:
+            self.logger.error("Failed to insert stock data: %s", e)
+            return 0
+
+    def insert_currency_data(self, records: list[dict[str, Any]]) -> int:
+        """Insert currency data records into raw_currency_data table.
+        
+        Args:
+            records: List of currency data records
+            
+        Returns:
+            Number of records inserted
+        """
+        if not records:
+            return 0
+        
+        try:
+            # Insert into raw_currency_data table
+            self.bulk_insert("raw_currency_data", records, on_conflict="NOTHING")
+            self.logger.info("Inserted %d currency data records", len(records))
+            return len(records)
+        except Exception as e:
+            self.logger.error("Failed to insert currency data: %s", e)
+            return 0
+
+    def get_missing_dates_for_symbol(self, symbol: str, days_back: int = 10) -> list[datetime]:
+        """Get list of missing dates for a symbol within the last N days.
+        
+        Args:
+            symbol: Stock symbol to check
+            days_back: Number of days to check back
+            
+        Returns:
+            List of missing dates (simplified - just returns empty list for now)
+        """
+        # Simplified implementation - in a full implementation, this would check
+        # for missing business days in the date range
+        self.logger.info("Checking missing dates for %s (last %d days)", symbol, days_back)
+        return []
 
     def test_connection(self) -> bool:
         """Test the PostgreSQL database connection."""

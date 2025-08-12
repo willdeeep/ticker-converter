@@ -267,42 +267,27 @@ class DataIngestionOrchestrator:
         try:
             db_health = self.db_manager.health_check()
 
-            # Get data freshness information
-            stock_freshness = self.nyse_fetcher.check_data_freshness()
-            currency_freshness = self.currency_fetcher.get_latest_available_rate()
+            # Get Airflow status
+            airflow_manager = AirflowManager()
+            airflow_status = airflow_manager.get_airflow_status()
 
-            # Check for any missing recent data
+            # Check for any missing recent data (only if database is accessible)
             missing_data = {}
-            for symbol in self.nyse_fetcher.MAGNIFICENT_SEVEN:
-                missing_dates = self.db_manager.get_missing_dates_for_symbol(
-                    symbol, days_back=5
-                )
-                if missing_dates:
-                    missing_data[symbol] = len(missing_dates)
+            if db_health.get("status") == "online":
+                try:
+                    for symbol in self.nyse_fetcher.MAGNIFICENT_SEVEN:
+                        missing_dates = self.db_manager.get_missing_dates_for_symbol(
+                            symbol, days_back=5
+                        )
+                        if missing_dates:
+                            missing_data[symbol] = len(missing_dates)
+                except Exception as e:
+                    self.logger.warning("Could not check missing data: %s", str(e))
 
             return {
                 "status_checked": datetime.now().isoformat(),
                 "database_health": db_health,
-                "stock_data_freshness": {
-                    symbol: date.isoformat() if date else None
-                    for symbol, date in stock_freshness.items()
-                },
-                "currency_data_freshness": (
-                    {
-                        "date": (
-                            currency_freshness[0].isoformat()
-                            if currency_freshness and len(currency_freshness) > 0
-                            else None
-                        ),
-                        "rate": (
-                            currency_freshness[1]
-                            if currency_freshness and len(currency_freshness) > 1
-                            else None
-                        ),
-                    }
-                    if currency_freshness
-                    else None
-                ),
+                "airflow_status": airflow_status,
                 "missing_recent_data": missing_data,
                 "companies_tracked": self.nyse_fetcher.MAGNIFICENT_SEVEN,
                 "currency_pair": f"{self.currency_fetcher.FROM_CURRENCY}/{self.currency_fetcher.TO_CURRENCY}",
@@ -448,7 +433,23 @@ class DataIngestionOrchestrator:
     def _fetch_minimal_api_data(self, results: dict[str, Any]) -> None:
         """Fetch minimal data from API (Apple + USD/GBP for one day)."""
         # Fetch Apple stock data (1 day)
-        stock_records = self.nyse_fetcher.fetch_and_prepare_single_stock("AAPL", days_back=1)
+        aapl_df = self.nyse_fetcher.fetch_daily_data("AAPL", days_back=1)
+        stock_records = []
+        if aapl_df is not None and not aapl_df.empty:
+            # Convert DataFrame to records format
+            for _, row in aapl_df.iterrows():
+                stock_records.append({
+                    "symbol": "AAPL",
+                    "data_date": row.get("date", datetime.now().date()),
+                    "open_price": float(row.get("open", 0)),
+                    "high_price": float(row.get("high", 0)),
+                    "low_price": float(row.get("low", 0)),
+                    "close_price": float(row.get("close", 0)),
+                    "volume": int(row.get("volume", 0)),
+                    "source": "api_minimal",
+                    "created_at": datetime.now(),
+                })
+        
         if stock_records:
             stock_inserted = self.db_manager.insert_stock_data(stock_records)
             results["stock_data"] = {
