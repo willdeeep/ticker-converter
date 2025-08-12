@@ -7,15 +7,24 @@ This DAG orchestrates the complete ETL process using SQL operators:
 3. Extract and load exchange rates from exchangerate-api.io
 4. Run daily transformations to calculate derived metrics
 5. Run data quality checks
-6. Clean up old data based on retention policies
+6. Clean up old data based to retention policies
 """
 
+import sys
 from datetime import datetime, timedelta
 
 from airflow import DAG
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.empty import EmptyOperator
 from airflow.providers.standard.operators.python import PythonOperator
+
+# Add src to path to import our modules
+sys.path.append('/Users/willhuntleyclarke/repos/interests/ticker-converter/src')
+
+# pylint: disable=wrong-import-position,import-error
+from ticker_converter.data_ingestion.nyse_fetcher import NYSEDataFetcher
+from ticker_converter.data_ingestion.currency_fetcher import CurrencyDataFetcher
+from ticker_converter.data_ingestion.database_manager import DatabaseManager
 
 
 class DAGConfig:
@@ -56,14 +65,6 @@ def extract_stock_prices() -> None:
     This function calls the Alpha Vantage API for each stock
     and inserts into staging tables (raw_stock_data).
     """
-    import sys
-
-    # Add src to path to import our modules
-    sys.path.append('/Users/willhuntleyclarke/repos/interests/ticker-converter/src')
-
-    from ticker_converter.data_ingestion.nyse_fetcher import NYSEDataFetcher
-    from ticker_converter.data_ingestion.database_manager import DatabaseManager
-
     # Initialize components
     db_manager = DatabaseManager()
     fetcher = NYSEDataFetcher()
@@ -90,14 +91,6 @@ def extract_exchange_rates() -> None:
     This function calls the exchange rate API
     and inserts into staging tables (raw_currency_data).
     """
-    import sys
-
-    # Add src to path to import our modules
-    sys.path.append('/Users/willhuntleyclarke/repos/interests/ticker-converter/src')
-
-    from ticker_converter.data_ingestion.currency_fetcher import CurrencyDataFetcher
-    from ticker_converter.data_ingestion.database_manager import DatabaseManager
-
     # Initialize components
     db_manager = DatabaseManager()
     fetcher = CurrencyDataFetcher()
