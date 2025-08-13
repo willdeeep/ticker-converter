@@ -12,7 +12,7 @@ RED := \033[0;31m
 CYAN := \033[0;36m
 NC := \033[0m
 
-.PHONY: help setup install install-test install-dev init-db airflow test test-ci act-pr lint lint-fix airflow-close db-close clean teardown-cache teardown-env teardown-airflow teardown-db
+.PHONY: help setup install install-test install-dev init-db airflow airflow-fix-config test test-ci act-pr lint lint-fix airflow-close db-close clean teardown-cache teardown-env teardown-airflow teardown-db
 
 # ============================================================================
 # HELP
@@ -25,7 +25,7 @@ help: ## Show this help message
 	@grep -E '^(help):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo -e "$(YELLOW)Setup and run:$(NC)"
-	@grep -E '^(setup|install|install-test|install-dev|init-db|airflow):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^(setup|install|install-test|install-dev|init-db|airflow|airflow-fix-config):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo -e "$(YELLOW)Testing:$(NC)"
 	@grep -E '^(test|test-ci|act-pr|lint|lint-fix):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -44,12 +44,12 @@ help: ## Show this help message
 setup: ## Sets up environment variables
 	@echo -e "$(BLUE)Setting up environment variables...$(NC)"
 	@if [ ! -f .env ]; then \
-		echo "$(YELLOW)Creating .env file from .env.example...$(NC)"; \
+				echo -e "$(YELLOW)Creating .env file from .env.example...$(NC)"; \
 		cp .env.example .env; \
-		echo "$(CYAN)Please review and update the .env file with your specific values.$(NC)"; \
-		echo "$(CYAN)Default values have been set from .env.example$(NC)"; \
+				echo -e "$(CYAN)Please review and update the .env file with your specific values.$(NC)"; \
+				echo -e "$(CYAN)Default values have been set from .env.example$(NC)"; \
 	else \
-		echo "$(GREEN).env file already exists$(NC)"; \
+				echo -e "$(GREEN).env file already exists$(NC)"; \
 	fi
 
 install: ## Install all running dependencies
@@ -72,13 +72,68 @@ install-dev: ## Install full development environment
 
 init-db: ## Initialise PostgreSQL database using defaults
 	@echo -e "$(BLUE)Initializing PostgreSQL database...$(NC)"
-	@$(PYTHON) -m $(PACKAGE_NAME).cli_ingestion init-db
+	@echo -e "$(YELLOW)Checking PostgreSQL service status...$(NC)"
+	@if ! pgrep -f "postgres" > /dev/null; then \
+		echo -e "$(YELLOW)Starting PostgreSQL service...$(NC)"; \
+		if command -v brew >/dev/null 2>&1; then \
+			brew services start postgresql || brew services start postgresql@14 || brew services start postgresql@15; \
+		else \
+			sudo systemctl start postgresql 2>/dev/null || sudo service postgresql start 2>/dev/null; \
+		fi; \
+		sleep 2; \
+	fi
+	@echo -e "$(YELLOW)Setting up database schema...$(NC)"
+	@if [ -f sql/create_tables.sql ]; then \
+		psql -h $${POSTGRES_HOST:-localhost} -p $${POSTGRES_PORT:-5432} -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-ticker_converter} -f sql/create_tables.sql 2>/dev/null || \
+		echo -e "$(YELLOW)Note: Ensure PostgreSQL is running and connection details in .env are correct$(NC)"; \
+	else \
+		echo -e "$(YELLOW)Note: No schema file found at sql/create_tables.sql$(NC)"; \
+	fi
 	@echo -e "$(GREEN)Database initialization completed$(NC)"
+	@echo -e "$(CYAN)Database connection details:$(NC)"
+	@echo -e "$(GREEN)Host: $${POSTGRES_HOST:-localhost}$(NC)"
+	@echo -e "$(GREEN)Port: $${POSTGRES_PORT:-5432}$(NC)"
+	@echo -e "$(GREEN)Database: $${POSTGRES_DB:-ticker_converter}$(NC)"
+	@echo -e "$(GREEN)User: $${POSTGRES_USER:-postgres}$(NC)"
 
 airflow: ## Start Apache Airflow instance with default user
 	@echo -e "$(BLUE)Starting Apache Airflow...$(NC)"
-	@$(PYTHON) -m $(PACKAGE_NAME).cli_ingestion start-airflow
-	@echo -e "$(CYAN)Airflow should be available at: http://localhost:8080$(NC)"
+	@echo -e "$(YELLOW)Activating virtual environment...$(NC)"
+	@source .venv/bin/activate && \
+	echo -e "$(YELLOW)Loading environment variables...$(NC)" && \
+	source .env && \
+	echo -e "$(YELLOW)Initializing Airflow configuration...$(NC)" && \
+	export AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" && \
+	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" && \
+	export AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" && \
+	echo -e "$(YELLOW)Setting up Airflow database...$(NC)" && \
+	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
+	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" \
+	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
+	airflow db migrate && \
+	echo -e "$(YELLOW)Creating default admin user (if not exists)...$(NC)" && \
+	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
+	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" \
+	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
+	airflow users create \
+		--username $$AIRFLOW_ADMIN_USERNAME \
+		--firstname $$AIRFLOW_ADMIN_FIRSTNAME \
+		--lastname $$AIRFLOW_ADMIN_LASTNAME \
+		--role Admin \
+		--email $$AIRFLOW_ADMIN_EMAIL \
+		--password $$AIRFLOW_ADMIN_PASSWORD 2>/dev/null || echo -e "$(YELLOW)User already exists$(NC)" && \
+	echo -e "$(GREEN)Starting Airflow API server...$(NC)" && \
+	echo -e "$(CYAN)Airflow will be available at: http://localhost:8080$(NC)" && \
+	echo -e "$(GREEN)Username: $$AIRFLOW_ADMIN_USERNAME | Password: $$AIRFLOW_ADMIN_PASSWORD$(NC)" && \
+	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
+	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" \
+	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
+	airflow api-server --port 8080
+
+airflow-config: ## Fix Airflow 3.0.4 configuration deprecation warnings
+	@echo -e "$(BLUE)Setting Airflow configuration for 3.0.4...$(NC)"
+	@$(PYTHON) scripts/fix_airflow_config.py
+	@echo -e "$(GREEN)Airflow configuration updated$(NC)"
 
 # ============================================================================
 # TESTING
@@ -103,7 +158,7 @@ act-pr: ## Runs local GitHub Actions workflow using Act
 			act pull_request; \
 		fi; \
 	else \
-		echo "$(RED)Error: 'act' is not installed. Install it from: https://github.com/nektos/act$(NC)"; \
+				echo -e "$(RED)Error: 'act' is not installed. Install it from: https://github.com/nektos/act$(NC)"; \
 		exit 1; \
 	fi
 
@@ -127,17 +182,22 @@ lint-fix: ## Auto-fix code quality issues
 airflow-close: ## Closes down Airflow
 	@echo -e "$(BLUE)Closing Airflow...$(NC)"
 	@if pgrep -f "airflow" > /dev/null; then \
-		pkill -f "airflow" && echo "$(GREEN)Airflow stopped$(NC)"; \
+		pkill -f "airflow" && echo -e "$(GREEN)Airflow stopped$(NC)"; \
 	else \
-		echo "$(YELLOW)Airflow is not running$(NC)"; \
+		echo -e "$(YELLOW)Airflow is not running$(NC)"; \
 	fi
 
 db-close: ## Shuts down local PostgreSQL instance
 	@echo -e "$(BLUE)Shutting down PostgreSQL...$(NC)"
 	@if pgrep -f "postgres" > /dev/null; then \
-		$(PYTHON) -m $(PACKAGE_NAME).cli_ingestion stop-db && echo "$(GREEN)PostgreSQL stopped$(NC)"; \
+		if command -v brew >/dev/null 2>&1; then \
+			brew services stop postgresql || brew services stop postgresql@14 || brew services stop postgresql@15; \
+		else \
+			sudo systemctl stop postgresql 2>/dev/null || sudo service postgresql stop 2>/dev/null; \
+		fi; \
+		echo -e "$(GREEN)PostgreSQL stopped$(NC)"; \
 	else \
-		echo "$(YELLOW)PostgreSQL is not running$(NC)"; \
+		echo -e "$(YELLOW)PostgreSQL is not running$(NC)"; \
 	fi
 
 clean: ## Clean build artifacts and cache files
@@ -179,7 +239,7 @@ teardown-airflow: ## Shutdown Airflow and remove all Airflow files
 	@echo -e "$(BLUE)Shutting down Airflow and removing files...$(NC)"
 	@if pgrep -f "airflow" > /dev/null; then \
 		pkill -f "airflow"; \
-		echo "$(YELLOW)Airflow processes stopped$(NC)"; \
+		echo -e "$(YELLOW)Airflow processes stopped$(NC)"; \
 	fi
 	@rm -rf airflow/
 	@echo -e "$(GREEN)Airflow teardown completed$(NC)"
@@ -188,5 +248,12 @@ teardown-db: ## Shutdown and remove PostgreSQL database
 	@echo -e "$(RED)WARNING: This will shutdown PostgreSQL and delete the database$(NC)"
 	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
 	@echo -e "$(BLUE)Shutting down and removing PostgreSQL database...$(NC)"
-	@$(PYTHON) -m $(PACKAGE_NAME).cli_ingestion teardown-db
+	@if pgrep -f "postgres" > /dev/null; then \
+		if command -v brew >/dev/null 2>&1; then \
+			brew services stop postgresql || brew services stop postgresql@14 || brew services stop postgresql@15; \
+		else \
+			sudo systemctl stop postgresql 2>/dev/null || sudo service postgresql stop 2>/dev/null; \
+		fi; \
+	fi
+	@echo -e "$(YELLOW)Note: Database files are preserved. Use your system's PostgreSQL tools to remove data if needed.$(NC)"
 	@echo -e "$(GREEN)Database teardown completed$(NC)"
