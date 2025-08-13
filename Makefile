@@ -102,16 +102,27 @@ airflow: ## Start Apache Airflow instance with default user
 	@source .venv/bin/activate && \
 	echo -e "$(YELLOW)Loading environment variables...$(NC)" && \
 	source .env && \
-	echo -e "$(YELLOW)Initializing Airflow configuration...$(NC)" && \
+	echo -e "$(YELLOW)Setting up project-local Airflow configuration...$(NC)" && \
+	export AIRFLOW_HOME="$${PWD}/airflow" && \
+	export AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" && \
+	export AIRFLOW__CORE__LOAD_EXAMPLES=False && \
 	export AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" && \
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" && \
 	export AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" && \
+	echo -e "$(YELLOW)Airflow Home: $${PWD}/airflow$(NC)" && \
+	echo -e "$(YELLOW)DAGs Folder: $${PWD}/dags$(NC)" && \
 	echo -e "$(YELLOW)Setting up Airflow database...$(NC)" && \
+	AIRFLOW_HOME="$${PWD}/airflow" \
+	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
+	AIRFLOW__CORE__LOAD_EXAMPLES=False \
 	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
 	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" \
 	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
 	airflow db migrate && \
 	echo -e "$(YELLOW)Creating default admin user (if not exists)...$(NC)" && \
+	AIRFLOW_HOME="$${PWD}/airflow" \
+	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
+	AIRFLOW__CORE__LOAD_EXAMPLES=False \
 	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
 	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" \
 	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
@@ -125,6 +136,9 @@ airflow: ## Start Apache Airflow instance with default user
 	echo -e "$(GREEN)Starting Airflow API server...$(NC)" && \
 	echo -e "$(CYAN)Airflow will be available at: http://localhost:8080$(NC)" && \
 	echo -e "$(GREEN)Username: $$AIRFLOW_ADMIN_USERNAME | Password: $$AIRFLOW_ADMIN_PASSWORD$(NC)" && \
+	AIRFLOW_HOME="$${PWD}/airflow" \
+	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
+	AIRFLOW__CORE__LOAD_EXAMPLES=False \
 	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
 	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" \
 	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
