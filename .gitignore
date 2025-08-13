@@ -3,6 +3,7 @@
 .python-version
 .DS_Store
 .env
+.env.backup
 raw_data/*/*
 my_docs/
 
