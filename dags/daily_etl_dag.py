@@ -14,11 +14,9 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from airflow.decorators import dag, task
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.empty import EmptyOperator
-from airflow.providers.standard.operators.python import PythonOperator
-
-from airflow import DAG
 
 
 class DAGConfig:
@@ -182,127 +180,82 @@ def monitor_etl_process() -> None:
         print("No data files found")
 
 
-def create_extraction_tasks() -> list:
-    """Create data extraction tasks for Steps 1 & 2: Extract to JSON format"""
-
-    # Step 1: Extract stock prices from Alpha Vantage API and load into JSON storage
-    stock_data_task = PythonOperator(
-        task_id="extract_stock_prices_to_json",
-        python_callable=extract_stock_prices_to_json,
-    )
-
-    # Step 2: Extract exchange rates from exchangerate-api.io and load in raw JSON format
-    currency_data_task = PythonOperator(
-        task_id="extract_exchange_rates_to_json",
-        python_callable=extract_exchange_rates_to_json,
-    )
-
-    return [stock_data_task, currency_data_task]
-
-
-def create_sql_processing_tasks() -> list:
-    """Create SQL processing tasks for Step 3: Load to PostgreSQL and transform"""
-
-    # Load raw stock data from JSON to PostgreSQL
-    load_stock_data = SQLExecuteQueryOperator(
-        task_id="load_raw_stock_data_to_postgres",
-        sql=DAGConfig.SQL_FILES["load_raw_stock_data"],
-    )
-
-    # Load raw exchange rate data from JSON to PostgreSQL
-    load_exchange_data = SQLExecuteQueryOperator(
-        task_id="load_raw_exchange_data_to_postgres",
-        sql=DAGConfig.SQL_FILES["load_raw_exchange_data"],
-    )
-
-    # Clean, transform and load all data using SQL operators
-    transform_data = SQLExecuteQueryOperator(
-        task_id="clean_transform_data", sql=DAGConfig.SQL_FILES["clean_transform_data"]
-    )
-
-    return [load_stock_data, load_exchange_data, transform_data]
-
-
-def create_quality_and_monitoring_tasks() -> list:
-    """Create quality checks and monitoring tasks for Steps 4, 5, 6"""
-
-    # Step 4: Run data quality checks
-    quality_checks = PythonOperator(
-        task_id="run_data_quality_checks",
-        python_callable=lambda: None,  # Placeholder for quality checks
-    )
-
-    # Step 5: Monitor and log ETL process
-    monitoring_task = PythonOperator(
-        task_id="monitor_etl_process", python_callable=monitor_etl_process
-    )
-
-    # Step 6: Clean up old data based on retention policies
-    cleanup_task = PythonOperator(
-        task_id="cleanup_old_data",
-        python_callable=lambda: None,  # Placeholder for cleanup logic
-    )
-
-    return [quality_checks, monitoring_task, cleanup_task]
-
-
-# Create the DAG using context manager
-# pylint: disable=unexpected-keyword-arg
-with DAG(
+@dag(
     dag_id=DAGConfig.DAG_ID,
-    default_args=DAGConfig.DEFAULT_ARGS,
     description=DAGConfig.DESCRIPTION,
-    schedule_interval=DAGConfig.SCHEDULE,
+    schedule=DAGConfig.SCHEDULE,
     start_date=DAGConfig.START_DATE,
     catchup=False,
     max_active_runs=1,
     tags=DAGConfig.TAGS,
-) as dag:
+    default_args=DAGConfig.DEFAULT_ARGS,
+)
+def ticker_converter_daily_etl():
+    """Ticker converter daily ETL DAG using Airflow 3.0 syntax."""
 
-    # Create control tasks
+    @task
+    def extract_stock_data_to_json():
+        """Extract stock prices to JSON files."""
+        extract_stock_prices_to_json()
+
+    @task
+    def extract_exchange_rates_to_json_task():
+        """Extract exchange rates to JSON files."""
+        extract_exchange_rates_to_json()
+
+    @task
+    def run_data_quality_checks():
+        """Run data quality checks."""
+        print("Running data quality checks...")
+        # Placeholder for quality checks
+        return "quality_checks_passed"
+
+    @task
+    def monitor_etl_process_task():
+        """Monitor ETL process."""
+        monitor_etl_process()
+
+    @task
+    def cleanup_old_data():
+        """Clean up old data."""
+        print("Cleaning up old data...")
+        # Placeholder for cleanup logic
+        return "cleanup_completed"
+
+    # Create control tasks using traditional operators
     start_task = EmptyOperator(task_id="start_etl")
     end_task = EmptyOperator(task_id="end_etl")
 
-    # Create task groups following the new ETL workflow
-    extraction_tasks = create_extraction_tasks()  # Step 1 & 2: Extract to JSON
-    sql_processing_tasks = (
-        create_sql_processing_tasks()
-    )  # Step 3: Load to PostgreSQL and transform
-    quality_monitoring_tasks = (
-        create_quality_and_monitoring_tasks()
-    )  # Steps 4, 5, 6: Quality, Monitor, Cleanup
-
-    # Extract individual tasks for easier reference
-    # Extraction tasks (Step 1 & 2)
-    extract_stock_data_to_json, extract_exchange_rates_to_json = extraction_tasks
-
-    # SQL processing tasks (Step 3)
-    (
-        load_raw_stock_data_to_postgres,
-        load_raw_exchange_data_to_postgres,
-        clean_transform_data,
-    ) = sql_processing_tasks
-
-    # Quality and monitoring tasks (Steps 4, 5, 6)
-    run_data_quality_checks, monitor_etl_process_task, cleanup_old_data = (
-        quality_monitoring_tasks
+    # SQL processing tasks using traditional operators
+    load_raw_stock_data_to_postgres = SQLExecuteQueryOperator(
+        task_id="load_raw_stock_data_to_postgres",
+        sql=DAGConfig.SQL_FILES["load_raw_stock_data"],
     )
 
-    # Define task dependencies following the 6-step ETL process:
-    # 1. Extract stock prices from Alpha Vantage API and load into Json storage in raw_data/exchange
-    # 2. Extract and load exchange rates from exchangerate-api.io and load in raw Json format in raw_data/exchange
-    # 3. Use SQL operators to clean, transform and load data all data into PostgreSQL database
-    # 4. Run data quality checks
-    # 5. Monitor and log ETL process
-    # 6. Clean up old data based on retention policies
+    load_raw_exchange_data_to_postgres = SQLExecuteQueryOperator(
+        task_id="load_raw_exchange_data_to_postgres",
+        sql=DAGConfig.SQL_FILES["load_raw_exchange_data"],
+    )
 
+    clean_transform_data = SQLExecuteQueryOperator(
+        task_id="clean_transform_data", 
+        sql=DAGConfig.SQL_FILES["clean_transform_data"]
+    )
+
+    # Create task instances
+    extract_stock_task = extract_stock_data_to_json()
+    extract_exchange_task = extract_exchange_rates_to_json_task()
+    quality_checks_task = run_data_quality_checks()
+    monitor_task = monitor_etl_process_task()
+    cleanup_task = cleanup_old_data()
+
+    # Define task dependencies following the 6-step ETL process:
     # Step 1 & 2: Start with parallel data extraction to JSON files
-    start_task >> extraction_tasks
+    start_task >> [extract_stock_task, extract_exchange_task]
 
     # Step 3: After JSON files are created, load them into PostgreSQL in parallel
-    for extract_task in extraction_tasks:
-        extract_task >> load_raw_stock_data_to_postgres
-        extract_task >> load_raw_exchange_data_to_postgres
+    extract_stock_task >> [load_raw_stock_data_to_postgres, load_raw_exchange_data_to_postgres]
+    extract_exchange_task >> [load_raw_stock_data_to_postgres, load_raw_exchange_data_to_postgres]
 
     # After both raw data loads complete, run the clean and transform step
     [
@@ -311,13 +264,17 @@ with DAG(
     ] >> clean_transform_data
 
     # Step 4: Run data quality checks after transformation
-    clean_transform_data >> run_data_quality_checks
+    clean_transform_data >> quality_checks_task
 
     # Step 5: Monitor ETL process after quality checks
-    run_data_quality_checks >> monitor_etl_process_task
+    quality_checks_task >> monitor_task
 
     # Step 6: Clean up old data after monitoring
-    monitor_etl_process_task >> cleanup_old_data
+    monitor_task >> cleanup_task
 
     # End the DAG
-    cleanup_old_data >> end_task
+    cleanup_task >> end_task
+
+
+# Instantiate the DAG
+daily_etl_dag = ticker_converter_daily_etl()
