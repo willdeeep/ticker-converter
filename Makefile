@@ -72,8 +72,10 @@ install-dev: ## Install full development environment
 
 init-db: ## Initialise PostgreSQL database using defaults
 	@echo -e "$(BLUE)Initializing PostgreSQL database...$(NC)"
-	@echo -e "$(YELLOW)Checking PostgreSQL service status...$(NC)"
-	@if ! pgrep -f "postgres" > /dev/null; then \
+	@echo -e "$(YELLOW)Loading environment variables...$(NC)"
+	@source .env && \
+	echo -e "$(YELLOW)Checking PostgreSQL service status...$(NC)" && \
+	if ! pgrep -f "postgres" > /dev/null; then \
 		echo -e "$(YELLOW)Starting PostgreSQL service...$(NC)"; \
 		if command -v brew >/dev/null 2>&1; then \
 			brew services start postgresql || brew services start postgresql@14 || brew services start postgresql@15; \
@@ -81,20 +83,23 @@ init-db: ## Initialise PostgreSQL database using defaults
 			sudo systemctl start postgresql 2>/dev/null || sudo service postgresql start 2>/dev/null; \
 		fi; \
 		sleep 2; \
-	fi
-	@echo -e "$(YELLOW)Setting up database schema...$(NC)"
-	@if [ -f sql/create_tables.sql ]; then \
-		psql -h $${POSTGRES_HOST:-localhost} -p $${POSTGRES_PORT:-5432} -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-ticker_converter} -f sql/create_tables.sql 2>/dev/null || \
+	fi && \
+	echo -e "$(YELLOW)Creating PostgreSQL user and database...$(NC)" && \
+	createuser -s $$POSTGRES_USER 2>/dev/null || echo -e "$(YELLOW)User $$POSTGRES_USER already exists$(NC)" && \
+	createdb -O $$POSTGRES_USER $$POSTGRES_DB 2>/dev/null || echo -e "$(YELLOW)Database $$POSTGRES_DB already exists$(NC)" && \
+	echo -e "$(YELLOW)Setting up database schema...$(NC)" && \
+	if [ -f sql/create_tables.sql ]; then \
+		psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -f sql/create_tables.sql 2>/dev/null || \
 		echo -e "$(YELLOW)Note: Ensure PostgreSQL is running and connection details in .env are correct$(NC)"; \
 	else \
 		echo -e "$(YELLOW)Note: No schema file found at sql/create_tables.sql$(NC)"; \
-	fi
-	@echo -e "$(GREEN)Database initialization completed$(NC)"
-	@echo -e "$(CYAN)Database connection details:$(NC)"
-	@echo -e "$(GREEN)Host: $${POSTGRES_HOST:-localhost}$(NC)"
-	@echo -e "$(GREEN)Port: $${POSTGRES_PORT:-5432}$(NC)"
-	@echo -e "$(GREEN)Database: $${POSTGRES_DB:-ticker_converter}$(NC)"
-	@echo -e "$(GREEN)User: $${POSTGRES_USER:-postgres}$(NC)"
+	fi && \
+	echo -e "$(GREEN)Database initialization completed$(NC)" && \
+	echo -e "$(CYAN)Database connection details:$(NC)" && \
+	echo -e "$(GREEN)Host: $$POSTGRES_HOST$(NC)" && \
+	echo -e "$(GREEN)Port: $$POSTGRES_PORT$(NC)" && \
+	echo -e "$(GREEN)Database: $$POSTGRES_DB$(NC)" && \
+	echo -e "$(GREEN)User: $$POSTGRES_USER$(NC)"
 
 airflow: ## Start Apache Airflow instance with default user
 	@echo -e "$(BLUE)Starting Apache Airflow...$(NC)"
@@ -133,9 +138,19 @@ airflow: ## Start Apache Airflow instance with default user
 		--role Admin \
 		--email $$AIRFLOW_ADMIN_EMAIL \
 		--password $$AIRFLOW_ADMIN_PASSWORD 2>/dev/null || echo -e "$(YELLOW)User already exists$(NC)" && \
-	echo -e "$(GREEN)Starting Airflow API server...$(NC)" && \
+	echo -e "$(GREEN)Starting Airflow scheduler and API server...$(NC)" && \
 	echo -e "$(CYAN)Airflow will be available at: http://localhost:8080$(NC)" && \
 	echo -e "$(GREEN)Username: $$AIRFLOW_ADMIN_USERNAME | Password: $$AIRFLOW_ADMIN_PASSWORD$(NC)" && \
+	echo -e "$(YELLOW)Starting scheduler in background...$(NC)" && \
+	AIRFLOW_HOME="$${PWD}/airflow" \
+	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
+	AIRFLOW__CORE__LOAD_EXAMPLES=False \
+	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
+	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" \
+	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
+	airflow scheduler --daemon && \
+	sleep 2 && \
+	echo -e "$(YELLOW)Starting API server...$(NC)" && \
 	AIRFLOW_HOME="$${PWD}/airflow" \
 	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
 	AIRFLOW__CORE__LOAD_EXAMPLES=False \
