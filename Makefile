@@ -11,7 +11,7 @@ YELLOW := \033[0;33m
 CYAN := \033[0;36m
 NC := \033[0m
 
-.PHONY: help install install-test install-dev init-db run airflow serve test lint lint-fix clean
+.PHONY: help install install-test install-dev init-db run airflow serve teardown-cache teardown-airflow teardown-env teardown-db teardown-all test lint lint-fix clean
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -75,6 +75,57 @@ serve: ## Start FastAPI development server
 	@echo "$(GREEN)Performance Details: http://localhost:8000/api/stocks/performance-details$(NC)"
 	@echo "$(CYAN)========================$(NC)"
 	$(PYTHON) run_api.py
+
+# Teardown commands
+teardown-cache: ## Remove all cache folders and temporary files
+	@echo "$(BLUE)Removing cache folders and temporary files...$(NC)"
+	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name ".tox" -exec rm -rf {} + 2>/dev/null || true
+	find . -name "*.pyc" -delete 2>/dev/null || true
+	rm -rf .coverage .pytest_cache htmlcov/ build/ dist/
+	@echo "$(GREEN)Cache cleanup completed$(NC)"
+
+teardown-airflow: ## Shutdown Airflow and remove all Airflow files
+	@echo "$(BLUE)Shutting down Airflow instance...$(NC)"
+	@echo "$(YELLOW)Stopping any running Airflow processes...$(NC)"
+	-pkill -f "airflow webserver" 2>/dev/null || true
+	-pkill -f "airflow scheduler" 2>/dev/null || true
+	-pkill -f "airflow worker" 2>/dev/null || true
+	@sleep 2
+	@echo "$(YELLOW)Removing Airflow runtime files...$(NC)"
+	rm -rf airflow/
+	@echo "$(GREEN)Airflow teardown completed$(NC)"
+
+teardown-env: ## Remove environment file and virtual environment
+	@echo "$(BLUE)Removing environment configuration...$(NC)"
+	@echo "$(YELLOW)Removing .env file...$(NC)"
+	rm -f .env
+	@echo "$(YELLOW)Removing virtual environment...$(NC)"
+	rm -rf $(VENV_NAME)/
+	@echo "$(GREEN)Environment teardown completed$(NC)"
+
+teardown-db: ## Shutdown and remove PostgreSQL database
+	@echo "$(BLUE)Shutting down and removing database...$(NC)"
+	@echo "$(YELLOW)Stopping PostgreSQL service...$(NC)"
+	-brew services stop postgresql@14 2>/dev/null || true
+	-brew services stop postgresql 2>/dev/null || true
+	@echo "$(YELLOW)Removing database data directory...$(NC)"
+	-rm -rf /usr/local/var/postgresql@14/ 2>/dev/null || true
+	-rm -rf /usr/local/var/postgres/ 2>/dev/null || true
+	@echo "$(GREEN)Database teardown completed$(NC)"
+
+teardown-all: ## Complete system teardown (cache, airflow, env, db)
+	@echo "$(BLUE)Performing complete system teardown...$(NC)"
+	@$(MAKE) teardown-cache
+	@$(MAKE) teardown-airflow
+	@$(MAKE) teardown-db
+	@$(MAKE) teardown-env
+	@echo "$(GREEN)Complete system teardown finished$(NC)"
 
 # Quality and testing commands
 test: ## Run test suite with coverage
