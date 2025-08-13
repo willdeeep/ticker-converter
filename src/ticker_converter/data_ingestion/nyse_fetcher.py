@@ -186,7 +186,12 @@ class NYSEDataFetcher:
                 if isinstance(latest_date, datetime):
                     return latest_date
                 # Convert pandas Timestamp to datetime if needed
-                return pd.to_datetime(latest_date).to_pydatetime()
+                try:
+                    converted_date = pd.to_datetime(latest_date).to_pydatetime()
+                    if isinstance(converted_date, datetime):
+                        return converted_date
+                except (ValueError, TypeError):
+                    self.logger.warning("Could not convert date %s to datetime", latest_date)
         except (ValueError, KeyError, TypeError, AttributeError) as e:
             self.logger.error("Error getting latest date for %s: %s", symbol, e)
 
