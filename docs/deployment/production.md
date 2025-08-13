@@ -10,7 +10,7 @@ This guide covers the setup and deployment of the ticker-converter SQL-centric E
 - Python 3.9+ 
 - Git
 - PostgreSQL 12+ (development and production)
-- Apache Airflow 2.5+ (optional for orchestration)
+- Apache Airflow 3.0.4+ (optional for orchestration)
 
 ### API Access
 - Alpha Vantage API key (free tier available)
@@ -197,8 +197,8 @@ server {
 
 ### 1. Airflow Installation
 ```bash
-# Install Airflow with PostgreSQL provider
-pip install apache-airflow[postgres]
+# Install Airflow 3.0.4 with PostgreSQL provider
+pip install "apache-airflow>=3.0.4[postgres]"
 
 # Initialize Airflow database
 airflow db init

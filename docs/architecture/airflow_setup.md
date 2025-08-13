@@ -144,7 +144,7 @@ python -m ticker_converter.cli_ingestion --airflow-status
 4. **Environment Configuration**: Uses `.env` variables correctly
 
 ### 🔧 Known Issues
-1. **Airflow 3.0 Compatibility**: Some configuration module issues with newer Airflow versions
+1. **Configuration Management**: Ensure proper environment variable loading for project-local Airflow setup
 2. **Auth Manager**: Configuration issues with `airflow.auth.managers.fab.fab_auth_manager.FabAuthManager`
 
 ## Benefits

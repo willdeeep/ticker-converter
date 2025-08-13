@@ -140,7 +140,7 @@ make install-dev  # Full toolchain with quality tools
 - psycopg2-binary >= 2.9.7 (PostgreSQL adapter)
 - pandas >= 2.1.0 (Data processing)
 - SQLAlchemy >= 2.0.0 (Database ORM)
-- Apache Airflow >= 2.7.0 (Workflow orchestration)
+- Apache Airflow >= 3.0.4 (Workflow orchestration)
 
 ### Development Tools
 - pylint >= 3.0.0 (Code analysis)

@@ -191,7 +191,7 @@ LIMIT 5;
 ### 3. Data Orchestration (Airflow)
 - **SQLExecuteQueryOperator** for all database operations
 - **External .sql files** for transformation logic
-- **No PythonOperator** for data processing
+- **@task decorators** for custom Python logic (Airflow 3.0)
 
 ### 4. Data Serving (FastAPI)
 - **Direct SQL query execution**

@@ -39,7 +39,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
 
     # Workflow orchestration
-    "apache-airflow>=3.0.0",
+    "apache-airflow>=3.0.4",
 ]
 
 [project.optional-dependencies]

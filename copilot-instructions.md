@@ -95,7 +95,7 @@ Adherence to these standards ensures code consistency, readability, and maintain
 
 *   **DAG Naming**: `dag_id` should be `kebab-case` and descriptive of its purpose.
 *   **Task Naming**: Task IDs should be `snake_case` and clearly indicate the task's action (e.g., `extract_data`, `transform_records`, `load_to_warehouse`).
-*   **Operator Usage**: Prefer built-in Airflow operators when possible. For custom Python logic, use `PythonOperator` or `TaskFlow API` decorators. For SQL execution, use `SqlOperator` or database-specific operators (e.g., `PostgresOperator`).
+*   **Operator Usage**: Prefer built-in Airflow operators when possible. For custom Python logic, use `@task` decorators (Airflow 3.0 TaskFlow API). For SQL execution, use `SQLExecuteQueryOperator` or database-specific operators.
 *   **Idempotency**: Design ETL tasks to be idempotent where possible, allowing safe re-runs without adverse effects on data [158 (general principle)].
 *   **Templating**: Utilize Jinja templating for dynamic SQL queries and other Airflow parameters.
 *   **Dependencies**: Explicitly define task dependencies using `>>` or `<<` operators.
