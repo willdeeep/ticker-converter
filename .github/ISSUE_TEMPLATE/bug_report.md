@@ -25,7 +25,7 @@ Describe what actually happened. Include any error messages or unexpected output
 
 ### System Environment
 - OS: [e.g., Ubuntu 20.04, macOS 12.0, Windows 11]
-- Python Version: [e.g., 3.9.7, 3.10.2, 3.11.1]
+- Python Version: [Must be 3.11.12]
 - Virtual Environment: [e.g., venv, conda, pipenv]
 
 ### Application Environment

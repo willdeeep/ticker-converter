@@ -182,7 +182,11 @@ class NYSEDataFetcher:
         try:
             df = self.api_client.get_daily_stock_data(symbol, OutputSize.COMPACT)
             if not df.empty:
-                return df["Date"].max()
+                latest_date = df["Date"].max()
+                if isinstance(latest_date, datetime):
+                    return latest_date
+                # Convert pandas Timestamp to datetime if needed
+                return pd.to_datetime(latest_date).to_pydatetime()
         except (ValueError, KeyError, TypeError, AttributeError) as e:
             self.logger.error("Error getting latest date for %s: %s", symbol, e)
 

@@ -17,6 +17,14 @@ This project implements a production-ready financial data analytics pipeline des
 
 ## Quick Start
 
+### Requirements
+
+**Python Version**: This project is built specifically for Python 3.11.12 and requires exactly this version for optimal compatibility with all dependencies and type annotations.
+
+```bash
+python --version  # Should output: Python 3.11.12
+```
+
 ### 1. Environment Setup
 ```bash
 # Clone the repository
@@ -139,7 +147,6 @@ make install-dev  # Full toolchain with quality tools
 - uvicorn >= 0.24.0 (ASGI server)
 - psycopg2-binary >= 2.9.7 (PostgreSQL adapter)
 - pandas >= 2.1.0 (Data processing)
-- SQLAlchemy >= 2.0.0 (Database ORM)
 - Apache Airflow >= 3.0.4 (Workflow orchestration)
 
 ### Development Tools

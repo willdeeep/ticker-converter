@@ -7,7 +7,7 @@ This guide covers the setup and deployment of the ticker-converter SQL-centric E
 ## Prerequisites
 
 ### System Requirements
-- Python 3.9+ 
+- Python 3.11.12 (exactly) 
 - Git
 - PostgreSQL 12+ (development and production)
 - Apache Airflow 3.0.4+ (optional for orchestration)

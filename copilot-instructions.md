@@ -9,7 +9,7 @@ This repository develops and manages **ETL pipelines** using **Python** and **Ap
 *   **Project Type**: Data Engineering, ETL Pipelines [3, 4].
 *   **Languages**: Python, SQL (e.g., PostgreSQL, MySQL, Snowflake-specific SQL) [3-5].
 *   **Frameworks/Tools**: Apache Airflow, Pytest [3-5].
-*   **Target Runtimes**: Python 3.9+ [3, 6].
+*   **Target Runtimes**: Python 3.11.12 (exactly) [3, 6].
 *   **Key Architectural Patterns**: Airflow DAGs define workflows, with modular Python functions handling ETL logic and SQL scripts managing data transformations within databases [6, 7].
 
 ### Important Project Documentation References
