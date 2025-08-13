@@ -22,4 +22,4 @@ repos:
     rev: v3.0.0
     hooks:
       - id: pylint
-        additional_dependencies: [fastapi, uvicorn, psycopg2-binary, pandas, requests, python-dotenv, pydantic, sqlalchemy, apache-airflow]
+        additional_dependencies: [fastapi, uvicorn, psycopg2-binary, pandas, requests, python-dotenv, pydantic, apache-airflow]
