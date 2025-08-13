@@ -164,15 +164,16 @@ act-pr: ## Runs local GitHub Actions workflow using Act
 
 lint: ## Run all code quality checks
 	@echo -e "$(BLUE)Running code quality checks...$(NC)"
-	@$(PYTHON) -m ruff check .
-	@$(PYTHON) -m ruff format --check .
+	@$(PYTHON) -m black --check .
+	@$(PYTHON) -m isort --check-only .
+	@$(PYTHON) -m pylint $(PACKAGE_NAME) dags/
 	@$(PYTHON) -m mypy $(PACKAGE_NAME)
 	@echo -e "$(GREEN)Code quality checks completed$(NC)"
 
 lint-fix: ## Auto-fix code quality issues
 	@echo -e "$(BLUE)Auto-fixing code quality issues...$(NC)"
-	@$(PYTHON) -m ruff check --fix .
-	@$(PYTHON) -m ruff format .
+	@$(PYTHON) -m black .
+	@$(PYTHON) -m isort .
 	@echo -e "$(GREEN)Code quality fixes applied$(NC)"
 
 # ============================================================================
