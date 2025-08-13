@@ -18,12 +18,12 @@ This project implements a production-ready financial data analytics pipeline des
 ## What's New in v1.1.0
 
 ### Major Improvements
-- **🚀 Upgraded to Apache Airflow 3.0.4**: Latest workflow orchestration with modern @dag and @task decorators
-- **🐍 Standardized on Python 3.11.12**: Single Python version for optimal compatibility and performance
-- **🧪 Enhanced Test Coverage**: Improved from 38% to 44% with comprehensive unit tests
-- **⚡ Improved CI/CD Pipeline**: Faster, more reliable automated testing and deployment
-- **🔧 Better Type Safety**: Full mypy compliance with proper type annotations
-- **📚 Enhanced Documentation**: Clear setup instructions and troubleshooting guides
+- **Upgraded to Apache Airflow 3.0.4**: Latest workflow orchestration with modern @dag and @task decorators
+- **Standardized on Python 3.11.12**: Single Python version for optimal compatibility and performance
+- **Enhanced Test Coverage**: Improved from 38% to 44% with comprehensive unit tests
+- **Improved CI/CD Pipeline**: Faster, more reliable automated testing and deployment
+- **Better Type Safety**: Full mypy compliance with proper type annotations
+- **Enhanced Documentation**: Clear setup instructions and troubleshooting guides
 
 ### Breaking Changes
 - **Python Version**: Now requires exactly Python 3.11.12 (previously supported 3.9+)
@@ -362,17 +362,19 @@ MIT License - see [LICENSE](LICENSE) file for details.
 Explore detailed documentation in the `docs/` folder:
 
 ### Architecture Documentation
-- [System Overview](docs/architecture/overview.md) - High-level system design and component interactions
-- [Database Design](docs/architecture/database_design.md) - SQL schema, relationships, and optimization strategies
-- [API Design](docs/architecture/api_design.md) - FastAPI endpoint specifications and design patterns
-- [Airflow Setup](docs/architecture/airflow_setup.md) - Workflow orchestration configuration and DAG design
+- [System Overview](docs/architecture/overview.md) - Strategic system architecture and technology decisions
+- [ETL Pipeline Implementation](docs/architecture/etl_pipeline_implementation.md) - Detailed ETL pipeline mechanics and data flow
+- [Database Schema and Operations](docs/architecture/database_schema_and_operations.md) - Schema design with explicit normalization strategy
+- [Technology Choices](docs/architecture/technology_choices.md) - Technology selection analysis and decision rationale
+- [Airflow Setup](docs/architecture/airflow_setup.md) - Apache Airflow 3.0.4 configuration and modern patterns
+- [API Design](docs/architecture/api_design.md) - FastAPI endpoint specifications and architectural decisions
 
 ### Deployment Guides
-- [Local Setup](docs/deployment/local_setup.md) - Detailed local development environment setup
-- [Production Deployment](docs/deployment/production.md) - Production deployment strategies and best practices
+- [Local Setup](docs/deployment/local_setup.md) - Comprehensive local development environment setup
+- [Production Deployment](docs/deployment/production.md) - Enterprise-grade production deployment procedures
 
 ### User Guides
-- [CLI Usage](docs/user_guides/cli_usage.md) - Command-line interface documentation and examples
+- [CLI Usage](docs/user_guides/cli_usage.md) - Complete CLI command reference and development workflows
 
 ---
 

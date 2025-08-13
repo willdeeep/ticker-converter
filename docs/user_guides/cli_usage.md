@@ -1,136 +1,593 @@
-# Quick Reference: SQL-Centric Pipeline Implementation
+# CLI Usage Guide
 
-## 🚨 IMMEDIATE ACTIONS REQUIRED
+## Executive Summary
 
-### Issue Execution Order:
-1. **Issue #12** - Complexity Reduction (START HERE - HIGH PRIORITY)
-2. **Issue #3** - Simplified Data Models  
-3. **Issue #4** - SQL Star Schema
-4. **Issue #13** - Data Ingestion
-5. **Issue #5** - Airflow SQL DAG
-6. **Issue #6** - FastAPI SQL Endpoints
-7. **Issue #8** - Documentation
+This guide provides comprehensive documentation for all command-line interfaces available in the ticker-converter project. The CLI system emphasizes **workflow automation**, **development efficiency**, and **operational simplicity** through Make-based commands, Python CLI tools, and git-based development workflows.
 
-## 🗑️ FILES TO DELETE (Issue #12)
+**CLI Value Proposition**: Master the complete command-line workflow to reduce development time, ensure consistent quality, and automate complex operational tasks across development, testing, and production environments.
+
+## Make Command Reference (Primary Interface)
+
+### Command Categories Overview
+
+The ticker-converter project uses **GNU Make** as the primary interface for all development and operational tasks. All commands are designed to be self-documenting, fail-safe, and work consistently across macOS, Linux, and Windows (WSL) environments.
 
 ```bash
-# Execute these deletions immediately:
-rm src/ticker_converter/etl_modules/feature_engineer.py
-rm src/ticker_converter/etl_modules/quality_validator.py
-rm src/ticker_converter/data_models/quality_metrics.py
-rm scripts/demo_pipeline.py
-rm tests/unit/etl_modules/test_quality_validator.py
-rm tests/integration/test_data_pipeline.py
+# Display all available commands with descriptions
+make help
 ```
 
-## CLASSES TO REMOVE FROM `market_data.py`
+### Setup and Installation Commands
 
-Keep ONLY:
-- `MarketDataPoint` 
-- `RawMarketData`
+#### Environment Setup
+```bash
+# Create .env file from template
+make setup
+# Creates .env from .env.example with default values
+# Prompts user to review and update configuration
+# Safe to run multiple times (won't overwrite existing .env)
 
-Remove:
-- `VolatilityFlag`
-- `CleanedMarketData` 
-- `FeatureEngineeredData`
-- `ValidationResult`
-
-Add:
-- `CurrencyRate` (new model for USD/GBP)
-
-## SIMPLIFIED SCOPE
-
-**Data Focus**:
-- Magnificent Seven stocks: AAPL, MSFT, AMZN, GOOGL, META, NVDA, TSLA
-- Daily OHLCV data only
-- USD → GBP conversion only
-- Alpha Vantage API (Issue #1 complete)
-
-**Technical Focus**:
-- SQL-first transformations
-- Star schema (dim/fact tables)
-- Direct SQL in API endpoints
-- SQL operators in Airflow
-- PostgreSQL as single database solution
-
-## SQL SCHEMA DESIGN
-
-```sql
--- Dimensions
-dim_stocks (stock_id, symbol, company_name, sector, exchange)
-dim_dates (date_id, date, year, month, quarter, is_trading_day)
-dim_currencies (currency_id, code, name, country)
-
--- Facts  
-fact_stock_prices (date_id, stock_id, open_usd, high_usd, low_usd, close_usd, volume)
-fact_currency_rates (date_id, from_currency_id, to_currency_id, exchange_rate)
-
--- Views
-v_stock_performance  # Daily returns via SQL window functions
-v_stocks_gbp         # Prices in GBP via JOINs
-v_top_performers     # Top 5 stocks ORDER BY LIMIT 5
+# Example output:
+# Creating .env file from .env.example...
+# Please review and update the .env file with your specific values.
+# Default values have been set from .env.example
 ```
 
-## API ENDPOINTS (SQL-Powered)
+#### Dependency Installation
+```bash
+# Install production dependencies only
+make install
+# - Upgrades pip to latest version
+# - Installs core dependencies: FastAPI, PostgreSQL drivers, Pandas
+# - Suitable for production deployment
+# - Estimated time: 30-60 seconds
 
-```python
-@app.get("/api/stocks/top-performers")
-# Execute: SELECT TOP 5 ... ORDER BY daily_return DESC LIMIT 5
+# Install production + testing dependencies
+make install-test
+# - Everything in 'install' plus testing tools
+# - Includes: pytest, coverage, factory-boy
+# - Suitable for CI/CD environments
+# - Estimated time: 45-75 seconds
 
-@app.get("/api/stocks/price-range")  
-# Execute: SELECT ... WHERE price BETWEEN ? AND ?
-
-@app.get("/api/stocks/gbp-prices")
-# Execute: SELECT ... JOIN fact_currency_rates ...
+# Install full development environment (recommended)
+make install-dev
+# - Everything in 'install-test' plus development tools
+# - Includes: black, isort, pylint, mypy, pre-commit
+# - Suitable for local development
+# - Estimated time: 60-90 seconds
 ```
 
-## AIRFLOW DAG STRUCTURE
+### Database Management Commands
 
-```python
-fetch_stock_data >> fetch_currency_rates >> transform_to_warehouse >> data_quality_check
+#### Database Initialization
+```bash
+# Initialize PostgreSQL database with default configuration
+make init-db
+# - Starts PostgreSQL service (macOS: brew services, Linux: systemctl)
+# - Creates database user and database
+# - Executes schema creation scripts from sql/ddl/
+# - Loads sample data for development
+# - Estimated time: 2-3 minutes
+
+# Database initialization process:
+# 1. Check PostgreSQL service status
+# 2. Start PostgreSQL if not running
+# 3. Create user 'willhuntleyclarke' with superuser privileges
+# 4. Create database 'ticker_converter'
+# 5. Execute DDL scripts in order:
+#    - 001_create_dimensions.sql
+#    - 002_create_facts.sql  
+#    - 003_create_views.sql
+#    - 004_create_indexes.sql
+# 6. Verify database connectivity
 ```
 
-Tasks use `SQLExecuteQueryOperator` with external `.sql` files
+#### Alternative Database Commands
+```bash
+# Schema-only initialization (no data loading)
+make init-schema
+# - Creates database structure without loading sample data
+# - Faster initialization for testing environments
 
-## 📁 NEW DIRECTORY STRUCTURE
-
-```
-sql/
-├── ddl/
-│   ├── 001_create_dimensions.sql
-│   ├── 002_create_facts.sql  
-│   ├── 003_create_views.sql
-│   └── 004_create_indexes.sql
-├── etl/
-│   ├── daily_transform.sql
-│   ├── data_quality_checks.sql
-│   └── load_dimensions.sql
-└── queries/
-    ├── top_performers.sql
-    ├── price_ranges.sql
-    └── currency_conversion.sql
-
-src/data_ingestion/
-├── nyse_fetcher.py
-└── currency_fetcher.py
-
-api/
-├── main.py
-├── models.py
-└── queries.sql
-
-dags/
-└── nyse_stock_etl.py
+# Smart initialization (uses local data if available)
+make smart-init-db
+# - Checks for existing local data files
+# - Uses cached data to speed up initialization
+# - Falls back to API fetching if no local data
 ```
 
-## SUCCESS METRICS
+### Service Management Commands
 
-- [ ] 50%+ file count reduction
-- [ ] All transformations in SQL
-- [ ] API endpoints execute SQL directly  
-- [ ] Airflow uses SQL operators only
-- [ ] Tests pass after simplification
+#### Airflow Operations
+```bash
+# Start Apache Airflow with project-local configuration
+make airflow
+# - Sets AIRFLOW_HOME to ./airflow (project-local)
+# - Sets DAGs folder to ./dags
+# - Disables example DAGs for cleaner interface
+# - Uses PostgreSQL as Airflow metadata database
+# - Creates default admin user (admin/admin123)
+# - Starts scheduler and webserver
+# - Available at: http://localhost:8080
+
+# Airflow startup process:
+# 1. Load environment variables from .env
+# 2. Set project-local Airflow configuration
+# 3. Initialize Airflow metadata database
+# 4. Create admin user if not exists
+# 5. Start scheduler in background
+# 6. Start webserver (blocking process)
+
+# Fix Airflow 3.0.4 configuration deprecation warnings
+make airflow-config
+# - Updates deprecated configuration settings
+# - Ensures compatibility with Airflow 3.0.4
+# - Fixes authentication backend configuration
+```
+
+#### FastAPI Development Server
+```bash
+# Start FastAPI development server (separate terminal required)
+make serve
+# - Starts uvicorn development server
+# - Hot-reload enabled for development
+# - Available at: http://localhost:8000
+# - API documentation: http://localhost:8000/docs
+# - Health check: http://localhost:8000/health
+
+# Note: Run this in a separate terminal while Airflow is running
+```
+
+#### Service Status and Control
+```bash
+# Check status of all services
+make status
+# - Checks Airflow scheduler and webserver processes
+# - Tests FastAPI health endpoint
+# - Verifies PostgreSQL connectivity
+# - Reports service health and availability
+
+# Stop Airflow services
+make airflow-close
+# - Terminates all Airflow processes (scheduler, webserver)
+# - Clean shutdown with process cleanup
+# - Safe to run multiple times
+
+# Stop PostgreSQL service
+make db-close
+# - Stops PostgreSQL service (macOS: brew services, Linux: systemctl)
+# - Graceful shutdown of database connections
+# - Safe to run multiple times
+```
+
+### Testing and Quality Commands
+
+#### Test Execution
+```bash
+# Run complete test suite with coverage
+make test
+# - Executes all unit and integration tests
+# - Generates coverage report (HTML and terminal)
+# - Coverage report saved to htmlcov/index.html
+# - Target coverage: >40% (configurable in pytest.ini)
+# - Estimated time: 2-5 minutes
+
+# Test execution includes:
+# - Unit tests: src/ module testing
+# - Integration tests: database and API testing
+# - Coverage analysis: line and branch coverage
+# - HTML report generation for detailed analysis
+
+# Run CI-compatible tests
+make test-ci
+# - Same as 'test' but with XML coverage output
+# - Suitable for GitHub Actions and CI/CD pipelines
+# - Stricter coverage requirements
+# - Machine-readable output formats
+```
+
+#### Code Quality Commands
+```bash
+# Run all code quality checks
+make lint
+# - Black: Code formatting verification
+# - isort: Import sorting verification  
+# - Pylint: Code analysis and style checking
+# - MyPy: Static type checking
+# - Reports all issues without fixing
+
+# Code quality tools configuration:
+# - Black: 88 character line length, Python 3.11+ target
+# - isort: Black-compatible import sorting
+# - Pylint: Custom configuration for project structure
+# - MyPy: Strict type checking with gradual adoption
+
+# Auto-fix code quality issues
+make lint-fix
+# - Black: Auto-format all Python files
+# - isort: Auto-sort imports in all files
+# - Non-destructive: only fixes formatting, not logic
+# - Safe to run before commits
+```
+
+#### GitHub Actions Local Testing
+```bash
+# Run GitHub Actions workflow locally using act
+make act-pr
+# - Requires 'act' tool installation
+# - Runs pull request workflow locally
+# - Tests CI/CD pipeline before pushing
+# - Supports both x86_64 and ARM64 architectures
+# - Estimated time: 5-10 minutes
+
+# Prerequisites for act:
+# macOS: brew install act
+# Linux: Download from GitHub releases
+# Windows: Use WSL2 with Linux installation
+```
+
+### Data Pipeline Commands
+
+#### ETL Pipeline Execution
+```bash
+# Execute daily ETL pipeline manually
+make run
+# - Fetches latest stock data from Alpha Vantage API
+# - Fetches latest USD/GBP exchange rates
+# - Transforms data using SQL operations
+# - Updates analytical views and aggregations
+# - Validates data quality and completeness
+# - Estimated time: 3-5 minutes (depending on API response)
+
+# ETL pipeline stages:
+# 1. Data extraction: Stock prices and currency rates
+# 2. Data validation: Quality checks and schema validation
+# 3. Data transformation: SQL-based processing
+# 4. Data loading: Insert into dimensional tables
+# 5. View refresh: Update analytical views
+# 6. Quality verification: Post-load data checks
+```
+
+### Cleanup and Maintenance Commands
+
+#### Regular Cleanup
+```bash
+# Clean build artifacts and cache files
+make clean
+# - Removes __pycache__ directories
+# - Removes .pytest_cache directories
+# - Removes .mypy_cache directories
+# - Removes build artifacts (.egg-info, dist/)
+# - Removes coverage reports
+# - Preserves virtual environment and source code
+# - Safe to run regularly
+```
+
+#### Comprehensive Teardown Commands
+```bash
+# Remove all cache and temporary files
+make teardown-cache
+# - Everything in 'clean' plus additional caches
+# - Removes .ruff_cache, .tox directories
+# - Removes all .pyc files
+# - Deep cleanup for troubleshooting
+# - Safe and reversible
+
+# Remove environment configuration (DESTRUCTIVE)
+make teardown-env
+# - Prompts for confirmation (y/N)
+# - Removes .env file
+# - Removes .venv/ directory
+# - Requires complete setup after running
+# - Use for clean slate development
+
+# Remove Airflow installation (DESTRUCTIVE)
+make teardown-airflow
+# - Prompts for confirmation (y/N)
+# - Stops all Airflow processes
+# - Removes airflow/ directory
+# - Removes all Airflow metadata and logs
+# - Use for Airflow troubleshooting
+
+# Remove database (DESTRUCTIVE)
+make teardown-db
+# - Prompts for confirmation (y/N)
+# - Stops PostgreSQL service
+# - Database files preserved (system-level removal required)
+# - Use for database troubleshooting
+```
+
+## Python CLI Tools
+
+### Direct Python Module Execution
+
+#### Data Ingestion CLI
+```bash
+# Execute data ingestion with custom parameters
+python -m ticker_converter.cli_ingestion --help
+
+# Initialize database with specific days of data
+python -m ticker_converter.cli_ingestion --init --days 7
+
+# Fetch data for specific stocks
+python -m ticker_converter.cli_ingestion --stocks AAPL,MSFT --days 30
+
+# Run data quality checks only
+python -m ticker_converter.cli_ingestion --validate-only
+
+# Verbose output with debug logging
+python -m ticker_converter.cli_ingestion --verbose --days 5
+```
+
+#### Database Management CLI
+```bash
+# Database schema management
+python scripts/setup_database.py --help
+
+# Create schema only (no data)
+python scripts/setup_database.py --schema-only
+
+# Reset database (drops and recreates)
+python scripts/setup_database.py --reset
+
+# Production initialization
+python scripts/setup_database.py --production
+```
+
+#### Data Validation CLI
+```bash
+# Comprehensive data validation
+python scripts/data_validation.py --help
+
+# Check database connectivity
+python scripts/data_validation.py --check-connection
+
+# Validate data freshness
+python scripts/data_validation.py --check-freshness
+
+# Full data quality audit
+python scripts/data_validation.py --full-check
+
+# Test API endpoints
+python scripts/data_validation.py --test-api
+```
+
+### Utility Scripts
+
+#### Demo and Testing Scripts
+```bash
+# Demonstrate pipeline capabilities
+python scripts/demo_capabilities.py
+# - Shows end-to-end data flow
+# - Displays sample API responses
+# - Tests all major components
+# - Generates summary report
+
+# Test complete workflow
+python scripts/test_workflow.py
+# - Automated testing of full workflow
+# - Database → ETL → API → Validation
+# - Performance benchmarking
+# - Error simulation and recovery
+```
+
+## Development Workflow Integration
+
+### Git Workflow with Make Commands
+
+#### Complete Development Cycle
+```bash
+# 1. Setup new development environment
+make setup
+make install-dev
+make init-db
+
+# 2. Start development services
+make airflow          # Terminal 1
+make serve           # Terminal 2
+
+# 3. Development cycle
+# ... make code changes ...
+
+# 4. Quality checks before commit
+make lint-fix        # Auto-fix formatting
+make test           # Run tests
+make lint           # Verify quality
+
+# 5. Test changes
+make run            # Test ETL pipeline
+curl http://localhost:8000/health  # Test API
+
+# 6. Commit and push
+git add .
+git commit -m "feat: implement new feature"
+git push origin feature-branch
+```
+
+#### CI/CD Integration
+```bash
+# Local CI/CD testing
+make act-pr         # Test GitHub Actions locally
+make test-ci        # CI-compatible test execution
+make lint           # Quality gates
+
+# Production deployment preparation
+make clean          # Clean environment
+make install        # Production dependencies only
+make test-ci        # Final validation
+```
+
+### Environment Management
+
+#### Development Environment Switching
+```bash
+# Switch to production environment
+cp .env.example .env.production
+# Edit .env.production with production values
+export ENV_FILE=.env.production
+
+# Switch back to development
+export ENV_FILE=.env
+
+# Verify current environment
+python -c "import os; print(f'Environment: {os.getenv(\"ENVIRONMENT\", \"development\")}')"
+```
+
+#### Multiple Environment Support
+```bash
+# Development environment
+make setup                    # Creates .env
+make install-dev             # Full development tools
+
+# Testing environment  
+cp .env .env.test            # Copy and modify for testing
+make install-test            # Testing dependencies only
+
+# Production environment
+cp .env .env.production      # Copy and modify for production
+make install                 # Production dependencies only
+```
+
+## Advanced Usage Patterns
+
+### Automation and Scripting
+
+#### Automated Setup Script
+```bash
+#!/bin/bash
+# Complete automated setup
+make setup
+make install-dev
+make init-db
+make airflow &
+sleep 30
+make serve &
+echo "Development environment ready!"
+echo "Airflow: http://localhost:8080 (admin/admin123)"
+echo "API: http://localhost:8000/docs"
+```
+
+#### Scheduled Operations
+```bash
+# Daily data refresh (crontab entry)
+0 6 * * 1-5 cd /opt/ticker-converter && make run
+
+# Weekly full refresh
+0 2 * * 0 cd /opt/ticker-converter && make teardown-cache && make init-db
+
+# Daily quality checks
+0 8 * * * cd /opt/ticker-converter && python scripts/data_validation.py --full-check
+```
+
+### Performance Optimization
+
+#### Development Performance
+```bash
+# Fast development restart
+make airflow-close
+make airflow &
+# Airflow restart without full teardown
+
+# Quick data refresh
+python -m ticker_converter.cli_ingestion --days 1
+# Single day update instead of full refresh
+
+# Targeted testing
+python -m pytest tests/unit/specific_test.py -v
+# Run specific tests instead of full suite
+```
+
+#### Production Performance
+```bash
+# Production deployment with minimal downtime
+make clean
+make install
+make test-ci
+# Gradual service restart with health checks
+```
+
+## Error Handling and Troubleshooting
+
+### Common Error Patterns
+
+#### Database Connection Errors
+```bash
+# Diagnosis
+make status                  # Check service status
+psql -h localhost -U willhuntleyclarke -d ticker_converter
+
+# Resolution
+make db-close
+make init-db                # Reinitialize database
+```
+
+#### Airflow Issues
+```bash
+# Diagnosis
+make airflow-status         # Check Airflow processes
+tail -f airflow/logs/scheduler/latest/*.log
+
+# Resolution
+make teardown-airflow       # Complete Airflow reset
+make airflow                # Fresh start
+```
+
+#### API Connection Issues
+```bash
+# Diagnosis
+curl http://localhost:8000/health
+python scripts/test_api.py
+
+# Resolution
+make serve                  # Restart FastAPI server
+make lint-fix && make test  # Fix code issues
+```
+
+### Diagnostic Commands
+
+#### System Health Check
+```bash
+# Complete system diagnosis
+echo "=== System Health Check ==="
+make status
+python scripts/data_validation.py --check-connection
+curl -f http://localhost:8000/health
+curl -f http://localhost:8080/health
+echo "=== Health Check Complete ==="
+```
+
+#### Performance Diagnostics
+```bash
+# Performance analysis
+time make test              # Test execution time
+time make run              # ETL pipeline performance
+python scripts/demo_capabilities.py  # End-to-end performance
+```
+
+## Best Practices and Tips
+
+### Development Best Practices
+1. **Always use make commands**: Consistent, documented, and reliable
+2. **Run make lint-fix before commits**: Automated code formatting
+3. **Use make test regularly**: Catch issues early in development
+4. **Start with make setup**: Consistent environment initialization
+5. **Check make status**: Monitor service health during development
+
+### Production Best Practices
+1. **Use make install for production**: Minimal dependencies
+2. **Run make test-ci before deployment**: Comprehensive validation
+3. **Monitor with make status**: Regular health checks
+4. **Backup before make teardown-***: Destructive operations
+5. **Document environment-specific configurations**: Production vs development
+
+### Performance Best Practices
+1. **Use make clean regularly**: Remove build artifacts
+2. **Run make smart-init-db**: Faster initialization with cached data
+3. **Use targeted testing**: Specific tests during development
+4. **Monitor resource usage**: During make airflow and make serve
+
+This comprehensive CLI guide provides complete command-line mastery for efficient development, testing, and operational workflows in the ticker-converter project.
 
 ---
 
-**Remember**: Start with Issue #12 (complexity reduction) before implementing new features!
+**Last Updated**: August 2025 | **Version**: 2.0.0 | **Mastery Level**: Expert CLI Usage

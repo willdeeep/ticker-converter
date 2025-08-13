@@ -1,1160 +1,625 @@
-# FastAPI with Direct SQL Setup
+# Local Development Environment Setup
 
-## Overview
+## Executive Summary
 
-This document describes the FastAPI implementation for the ticker-converter project, featuring direct SQL query execution against PostgreSQL. This approach eliminates complex ORM layers and provides maximum performance for analytical queries.
+This guide provides comprehensive instructions for setting up the ticker-converter development environment on macOS, Linux, and Windows. The setup emphasizes **Python 3.11.12 standardization**, **Make-based workflow automation**, and **consistent development environments** to minimize onboarding time and ensure reproducible builds across all development machines.
 
-## Architecture Principles
+**Setup Value Proposition**: By following this guide, developers can establish a fully functional development environment in under 30 minutes with automated quality gates, comprehensive testing, and production-like local services.
 
-### Direct SQL Approach
-- **Raw SQL Queries**: Execute SQL directly against PostgreSQL using asyncpg
-- **No ORM**: Avoid SQLAlchemy complexity for analytical workloads
-- **Connection Pooling**: Efficient database connection management
-- **Async Operations**: Non-blocking database operations for high concurrency
-- **Type Safety**: Pydantic models for request/response validation
+## Prerequisites and System Requirements
 
-### API Design Philosophy
-- **RESTful Endpoints**: Clear, predictable URL structure
-- **Query Parameters**: Flexible filtering and pagination
-- **JSON Responses**: Consistent data format
-- **Error Handling**: Comprehensive error responses
-- **Documentation**: Auto-generated OpenAPI/Swagger docs
+### Python Version Requirement: 3.11.12
 
-## Project Structure
+**Why Python 3.11.12 Specifically**:
+- **Performance**: 10-60% speed improvements over Python 3.10 for async and analytical workloads
+- **Modern Syntax**: Union type syntax (`X | Y`) improves code readability and maintainability
+- **Error Messages**: Significantly enhanced error messages accelerate debugging and development
+- **asyncio Performance**: Critical improvements for FastAPI and database async operations
+- **Stability**: 3.11.12 is a stable patch release with essential security fixes and bug corrections
 
-```
-src/
-├── api/
-│   ├── __init__.py
-│   ├── main.py                 # FastAPI application setup
-│   ├── database.py             # Database connection and pool management
-│   ├── dependencies.py         # Dependency injection for database
-│   ├── models/                 # Pydantic response models
-│   │   ├── __init__.py
-│   │   ├── stock.py            # Stock-related models
-│   │   ├── currency.py         # Currency-related models
-│   │   └── analytics.py        # Analytics response models
-│   ├── routers/                # API route handlers
-│   │   ├── __init__.py
-│   │   ├── stocks.py           # Stock price endpoints
-│   │   ├── currency.py         # Currency rate endpoints
-│   │   ├── analytics.py        # Analytics endpoints
-│   │   └── health.py           # Health check endpoints
-│   └── sql/                    # SQL query files
-│       ├── stocks/
-│       │   ├── get_stock_prices.sql
-│       │   ├── get_stock_performance.sql
-│       │   └── get_price_history.sql
-│       ├── currency/
-│       │   ├── get_exchange_rates.sql
-│       │   └── get_converted_prices.sql
-│       └── analytics/
-│           ├── top_performers.sql
-│           ├── market_summary.sql
-│           └── correlation_analysis.sql
-```
-
-## Core Implementation
-
-### 1. FastAPI Application Setup
-
-**File: `src/api/main.py`**
-```python
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
-import asyncio
-import logging
-from contextlib import asynccontextmanager
-
-from .database import DatabaseManager
-from .routers import stocks, currency, analytics, health
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Global database manager
-db_manager = None
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Manage application lifespan events"""
-    global db_manager
-
-    # Startup
-    logger.info("Starting ticker-converter API")
-    db_manager = DatabaseManager()
-    await db_manager.connect()
-    logger.info("Database connection pool initialized")
-
-    yield
-
-    # Shutdown
-    logger.info("Shutting down ticker-converter API")
-    await db_manager.disconnect()
-    logger.info("Database connections closed")
-
-# Create FastAPI application
-app = FastAPI(
-    title="Ticker Converter API",
-    description="SQL-powered stock data and currency conversion API for Magnificent Seven stocks",
-    version="2.0.0",
-    lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc"
-)
-
-# Middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Configure for production
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
-
-app.add_middleware(GZipMiddleware, minimum_size=1000)
-
-# Include routers
-app.include_router(health.router, prefix="/health", tags=["Health"])
-app.include_router(stocks.router, prefix="/api/v1/stocks", tags=["Stocks"])
-app.include_router(currency.router, prefix="/api/v1/currency", tags=["Currency"])
-app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["Analytics"])
-
-@app.get("/")
-async def root():
-    """Root endpoint with API information"""
-    return {
-        "name": "Ticker Converter API",
-        "version": "2.0.0",
-        "description": "SQL-powered stock data and currency conversion API",
-        "stocks": ["AAPL", "MSFT", "AMZN", "GOOGL", "META", "NVDA", "TSLA"],
-        "endpoints": {
-            "docs": "/docs",
-            "health": "/health",
-            "stocks": "/api/v1/stocks",
-            "currency": "/api/v1/currency",
-            "analytics": "/api/v1/analytics"
-        }
-    }
-
-# Global exception handler
-@app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
-    logger.error(f"Global exception: {exc}", exc_info=True)
-    return HTTPException(
-        status_code=500,
-        detail="Internal server error. Please try again later."
-    )
-```
-
-### 2. Database Connection Management
-
-**File: `src/api/database.py`**
-```python
-import asyncpg
-import asyncio
-from typing import Optional, List, Dict, Any
-import os
-import logging
-from pathlib import Path
-
-logger = logging.getLogger(__name__)
-
-class DatabaseManager:
-    """Manages PostgreSQL connection pool and query execution"""
-
-    def __init__(self):
-        self.pool: Optional[asyncpg.Pool] = None
-        self.sql_cache: Dict[str, str] = {}
-        self.sql_directory = Path(__file__).parent / "sql"
-
-    async def connect(self) -> None:
-        """Initialize database connection pool"""
-        try:
-            database_url = os.getenv(
-                "DATABASE_URL",
-                "postgresql://ticker_user:password@localhost:5432/ticker_converter"
-            )
-
-            self.pool = await asyncpg.create_pool(
-                database_url,
-                min_size=5,
-                max_size=20,
-                max_queries=50000,
-                max_inactive_connection_lifetime=300,
-                command_timeout=30
-            )
-
-            logger.info("Database connection pool created successfully")
-
-        except Exception as e:
-            logger.error(f"Failed to create database pool: {e}")
-            raise
-
-    async def disconnect(self) -> None:
-        """Close database connection pool"""
-        if self.pool:
-            await self.pool.close()
-            logger.info("Database connection pool closed")
-
-    def load_sql(self, sql_file: str) -> str:
-        """Load and cache SQL queries from files"""
-        if sql_file not in self.sql_cache:
-            sql_path = self.sql_directory / sql_file
-            try:
-                with open(sql_path, 'r') as f:
-                    self.sql_cache[sql_file] = f.read()
-                logger.debug(f"Loaded SQL from {sql_file}")
-            except FileNotFoundError:
-                logger.error(f"SQL file not found: {sql_file}")
-                raise FileNotFoundError(f"SQL file not found: {sql_file}")
-
-        return self.sql_cache[sql_file]
-
-    async def fetch_all(self, sql_file: str, **params) -> List[Dict[str, Any]]:
-        """Execute query and return all results"""
-        sql = self.load_sql(sql_file)
-
-        async with self.pool.acquire() as connection:
-            try:
-                result = await connection.fetch(sql, **params)
-                return [dict(row) for row in result]
-            except Exception as e:
-                logger.error(f"Query execution failed: {e}")
-                logger.error(f"SQL: {sql}")
-                logger.error(f"Params: {params}")
-                raise
-
-    async def fetch_one(self, sql_file: str, **params) -> Optional[Dict[str, Any]]:
-        """Execute query and return single result"""
-        sql = self.load_sql(sql_file)
-
-        async with self.pool.acquire() as connection:
-            try:
-                result = await connection.fetchrow(sql, **params)
-                return dict(result) if result else None
-            except Exception as e:
-                logger.error(f"Query execution failed: {e}")
-                logger.error(f"SQL: {sql}")
-                logger.error(f"Params: {params}")
-                raise
-
-    async def execute(self, sql_file: str, **params) -> str:
-        """Execute query without returning results"""
-        sql = self.load_sql(sql_file)
-
-        async with self.pool.acquire() as connection:
-            try:
-                result = await connection.execute(sql, **params)
-                logger.info(f"Query executed: {result}")
-                return result
-            except Exception as e:
-                logger.error(f"Query execution failed: {e}")
-                logger.error(f"SQL: {sql}")
-                logger.error(f"Params: {params}")
-                raise
-
-# Global database manager instance
-db_manager = DatabaseManager()
-
-async def get_database() -> DatabaseManager:
-    """Dependency injection for database manager"""
-    return db_manager
-```
-
-### 3. Pydantic Response Models
-
-**File: `src/api/models/stock.py`**
-```python
-from pydantic import BaseModel, Field
-from datetime import date, datetime
-from typing import List, Optional
-from decimal import Decimal
-
-class StockPrice(BaseModel):
-    """Individual stock price record"""
-    symbol: str = Field(..., description="Stock symbol")
-    date: date = Field(..., description="Trading date")
-    open_usd: Decimal = Field(..., description="Opening price in USD")
-    high_usd: Decimal = Field(..., description="High price in USD")
-    low_usd: Decimal = Field(..., description="Low price in USD")
-    close_usd: Decimal = Field(..., description="Closing price in USD")
-    volume: int = Field(..., description="Trading volume")
-
-    class Config:
-        json_encoders = {
-            Decimal: lambda v: float(v)
-        }
-
-class StockPriceWithCurrency(StockPrice):
-    """Stock price with currency conversion"""
-    close_gbp: Optional[Decimal] = Field(None, description="Closing price in GBP")
-    exchange_rate: Optional[Decimal] = Field(None, description="USD/GBP exchange rate")
-
-class StockPerformance(BaseModel):
-    """Stock performance metrics"""
-    symbol: str = Field(..., description="Stock symbol")
-    company_name: str = Field(..., description="Company name")
-    sector: str = Field(..., description="Sector")
-    current_price: Decimal = Field(..., description="Current price in USD")
-    daily_change: Decimal = Field(..., description="Daily price change")
-    daily_change_percent: Decimal = Field(..., description="Daily change percentage")
-    weekly_change_percent: Optional[Decimal] = Field(None, description="Weekly change percentage")
-    monthly_change_percent: Optional[Decimal] = Field(None, description="Monthly change percentage")
-    volume: int = Field(..., description="Current volume")
-    avg_volume_30d: Optional[int] = Field(None, description="30-day average volume")
-    market_cap: Optional[Decimal] = Field(None, description="Market capitalization")
-
-    class Config:
-        json_encoders = {
-            Decimal: lambda v: float(v)
-        }
-
-class StockPriceHistory(BaseModel):
-    """Historical stock price data"""
-    symbol: str = Field(..., description="Stock symbol")
-    prices: List[StockPrice] = Field(..., description="Historical prices")
-    total_records: int = Field(..., description="Total number of records")
-    date_range: dict = Field(..., description="Date range of data")
-
-class StockListResponse(BaseModel):
-    """Response for stock list endpoints"""
-    stocks: List[str] = Field(..., description="Available stock symbols")
-    total_count: int = Field(..., description="Total number of stocks")
-    last_updated: datetime = Field(..., description="Last data update time")
-```
-
-**File: `src/api/models/analytics.py`**
-```python
-from pydantic import BaseModel, Field
-from datetime import date, datetime
-from typing import List, Optional, Dict
-from decimal import Decimal
-
-class TopPerformer(BaseModel):
-    """Top performing stock"""
-    symbol: str = Field(..., description="Stock symbol")
-    company_name: str = Field(..., description="Company name")
-    sector: str = Field(..., description="Sector")
-    performance_metric: Decimal = Field(..., description="Performance metric (e.g., % change)")
-    current_price: Decimal = Field(..., description="Current price")
-    volume: int = Field(..., description="Trading volume")
-    rank: int = Field(..., description="Performance rank")
-
-    class Config:
-        json_encoders = {
-            Decimal: lambda v: float(v)
-        }
-
-class MarketSummary(BaseModel):
-    """Market summary statistics"""
-    date: date = Field(..., description="Summary date")
-    total_stocks: int = Field(..., description="Number of stocks tracked")
-    market_trend: str = Field(..., description="Overall market trend")
-    avg_daily_change: Decimal = Field(..., description="Average daily change percentage")
-    total_volume: int = Field(..., description="Total trading volume")
-    gainers: int = Field(..., description="Number of gaining stocks")
-    losers: int = Field(..., description="Number of losing stocks")
-    top_performer: str = Field(..., description="Best performing stock")
-    worst_performer: str = Field(..., description="Worst performing stock")
-
-    class Config:
-        json_encoders = {
-            Decimal: lambda v: float(v)
-        }
-
-class CorrelationData(BaseModel):
-    """Stock correlation analysis"""
-    symbol1: str = Field(..., description="First stock symbol")
-    symbol2: str = Field(..., description="Second stock symbol")
-    correlation_coefficient: Decimal = Field(..., description="Correlation coefficient")
-    period_days: int = Field(..., description="Analysis period in days")
-    significance: str = Field(..., description="Statistical significance level")
-
-    class Config:
-        json_encoders = {
-            Decimal: lambda v: float(v)
-        }
-
-class AnalyticsResponse(BaseModel):
-    """Generic analytics response wrapper"""
-    query_date: datetime = Field(..., description="Query execution time")
-    data_date: date = Field(..., description="Latest data date")
-    total_records: int = Field(..., description="Number of records returned")
-    execution_time_ms: float = Field(..., description="Query execution time in milliseconds")
-```
-
-### 4. API Route Handlers
-
-**File: `src/api/routers/stocks.py`**
-```python
-from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import List, Optional
-from datetime import date, datetime
-from ..database import DatabaseManager, get_database
-from ..models.stock import StockPrice, StockPriceWithCurrency, StockPerformance, StockPriceHistory, StockListResponse
-import time
-
-router = APIRouter()
-
-# Magnificent Seven stocks constant
-MAGNIFICENT_SEVEN = ["AAPL", "MSFT", "AMZN", "GOOGL", "META", "NVDA", "TSLA"]
-
-@router.get("/", response_model=StockListResponse)
-async def get_available_stocks(db: DatabaseManager = Depends(get_database)):
-    """Get list of available stocks"""
-    try:
-        result = await db.fetch_one("stocks/get_available_stocks.sql")
-
-        return StockListResponse(
-            stocks=MAGNIFICENT_SEVEN,
-            total_count=len(MAGNIFICENT_SEVEN),
-            last_updated=result["last_updated"] if result else datetime.now()
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch stocks: {str(e)}")
-
-@router.get("/{symbol}/prices", response_model=List[StockPrice])
-async def get_stock_prices(
-    symbol: str,
-    start_date: Optional[date] = Query(None, description="Start date (YYYY-MM-DD)"),
-    end_date: Optional[date] = Query(None, description="End date (YYYY-MM-DD)"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records"),
-    db: DatabaseManager = Depends(get_database)
-):
-    """Get historical stock prices for a specific symbol"""
-
-    # Validate symbol
-    if symbol.upper() not in MAGNIFICENT_SEVEN:
-        raise HTTPException(
-            status_code=404, 
-            detail=f"Stock {symbol} not found. Available stocks: {', '.join(MAGNIFICENT_SEVEN)}"
-        )
-
-    try:
-        prices = await db.fetch_all(
-            "stocks/get_stock_prices.sql",
-            symbol=symbol.upper(),
-            start_date=start_date,
-            end_date=end_date,
-            limit=limit
-        )
-
-        return [StockPrice(**price) for price in prices]
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch stock prices: {str(e)}")
-
-@router.get("/{symbol}/prices/gbp", response_model=List[StockPriceWithCurrency])
-async def get_stock_prices_gbp(
-    symbol: str,
-    start_date: Optional[date] = Query(None, description="Start date (YYYY-MM-DD)"),
-    end_date: Optional[date] = Query(None, description="End date (YYYY-MM-DD)"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records"),
-    db: DatabaseManager = Depends(get_database)
-):
-    """Get stock prices with GBP conversion"""
-
-    if symbol.upper() not in MAGNIFICENT_SEVEN:
-        raise HTTPException(
-            status_code=404, 
-            detail=f"Stock {symbol} not found. Available stocks: {', '.join(MAGNIFICENT_SEVEN)}"
-        )
-
-    try:
-        prices = await db.fetch_all(
-            "stocks/get_stock_prices_gbp.sql",
-            symbol=symbol.upper(),
-            start_date=start_date,
-            end_date=end_date,
-            limit=limit
-        )
-
-        return [StockPriceWithCurrency(**price) for price in prices]
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch stock prices with currency: {str(e)}")
-
-@router.get("/{symbol}/performance", response_model=StockPerformance)
-async def get_stock_performance(
-    symbol: str,
-    db: DatabaseManager = Depends(get_database)
-):
-    """Get current stock performance metrics"""
-
-    if symbol.upper() not in MAGNIFICENT_SEVEN:
-        raise HTTPException(
-            status_code=404, 
-            detail=f"Stock {symbol} not found. Available stocks: {', '.join(MAGNIFICENT_SEVEN)}"
-        )
-
-    try:
-        performance = await db.fetch_one(
-            "stocks/get_stock_performance.sql",
-            symbol=symbol.upper()
-        )
-
-        if not performance:
-            raise HTTPException(status_code=404, detail=f"No performance data found for {symbol}")
-
-        return StockPerformance(**performance)
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch stock performance: {str(e)}")
-
-@router.get("/{symbol}/history", response_model=StockPriceHistory)
-async def get_stock_history(
-    symbol: str,
-    days: int = Query(30, ge=1, le=365, description="Number of days of history"),
-    db: DatabaseManager = Depends(get_database)
-):
-    """Get comprehensive stock price history"""
-
-    if symbol.upper() not in MAGNIFICENT_SEVEN:
-        raise HTTPException(
-            status_code=404, 
-            detail=f"Stock {symbol} not found. Available stocks: {', '.join(MAGNIFICENT_SEVEN)}"
-        )
-
-    try:
-        history_data = await db.fetch_all(
-            "stocks/get_price_history.sql",
-            symbol=symbol.upper(),
-            days=days
-        )
-
-        if not history_data:
-            raise HTTPException(status_code=404, detail=f"No historical data found for {symbol}")
-
-        # Get date range
-        dates = [item["date"] for item in history_data]
-        date_range = {
-            "start_date": min(dates),
-            "end_date": max(dates)
-        }
-
-        return StockPriceHistory(
-            symbol=symbol.upper(),
-            prices=[StockPrice(**item) for item in history_data],
-            total_records=len(history_data),
-            date_range=date_range
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch stock history: {str(e)}")
-```
-
-**File: `src/api/routers/analytics.py`**
-```python
-from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import List, Optional
-from datetime import date, datetime
-from ..database import DatabaseManager, get_database
-from ..models.analytics import TopPerformer, MarketSummary, CorrelationData, AnalyticsResponse
-import time
-
-router = APIRouter()
-
-@router.get("/top-performers", response_model=List[TopPerformer])
-async def get_top_performers(
-    period: str = Query("daily", regex="^(daily|weekly|monthly)$", description="Performance period"),
-    limit: int = Query(7, ge=1, le=20, description="Number of top performers"),
-    db: DatabaseManager = Depends(get_database)
-):
-    """Get top performing stocks for specified period"""
-
-    try:
-        start_time = time.time()
-
-        performers = await db.fetch_all(
-            "analytics/top_performers.sql",
-            period=period,
-            limit=limit
-        )
-
-        execution_time = (time.time() - start_time) * 1000
-
-        return [TopPerformer(**performer) for performer in performers]
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch top performers: {str(e)}")
-
-@router.get("/market-summary", response_model=MarketSummary)
-async def get_market_summary(
-    summary_date: Optional[date] = Query(None, description="Date for summary (defaults to latest)"),
-    db: DatabaseManager = Depends(get_database)
-):
-    """Get market summary for specified date"""
-
-    try:
-        summary = await db.fetch_one(
-            "analytics/market_summary.sql",
-            summary_date=summary_date
-        )
-
-        if not summary:
-            raise HTTPException(status_code=404, detail="No market summary data found")
-
-        return MarketSummary(**summary)
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch market summary: {str(e)}")
-
-@router.get("/correlation", response_model=List[CorrelationData])
-async def get_stock_correlations(
-    symbol1: Optional[str] = Query(None, description="First stock symbol (optional)"),
-    symbol2: Optional[str] = Query(None, description="Second stock symbol (optional)"),
-    period_days: int = Query(30, ge=7, le=365, description="Analysis period in days"),
-    min_correlation: float = Query(0.0, ge=-1.0, le=1.0, description="Minimum correlation threshold"),
-    db: DatabaseManager = Depends(get_database)
-):
-    """Get stock correlation analysis"""
-
-    try:
-        correlations = await db.fetch_all(
-            "analytics/correlation_analysis.sql",
-            symbol1=symbol1.upper() if symbol1 else None,
-            symbol2=symbol2.upper() if symbol2 else None,
-            period_days=period_days,
-            min_correlation=min_correlation
-        )
-
-        return [CorrelationData(**corr) for corr in correlations]
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch correlations: {str(e)}")
-
-@router.get("/sector-performance", response_model=List[dict])
-async def get_sector_performance(
-    period: str = Query("daily", regex="^(daily|weekly|monthly)$", description="Performance period"),
-    db: DatabaseManager = Depends(get_database)
-):
-    """Get sector-wise performance analysis"""
-
-    try:
-        sectors = await db.fetch_all(
-            "analytics/sector_performance.sql",
-            period=period
-        )
-
-        return sectors
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch sector performance: {str(e)}")
-```
-
-### 5. SQL Query Files
-
-**File: `src/api/sql/stocks/get_stock_prices.sql`**
-```sql
--- Get stock prices with optional date filtering
-SELECT 
-    s.symbol,
-    d.date,
-    p.open_usd,
-    p.high_usd,
-    p.low_usd,
-    p.close_usd,
-    p.volume
-FROM fact_stock_prices p
-JOIN dim_stocks s ON p.stock_id = s.stock_id
-JOIN dim_dates d ON p.date_id = d.date_id
-WHERE s.symbol = $1
-  AND ($2::date IS NULL OR d.date >= $2::date)
-  AND ($3::date IS NULL OR d.date <= $3::date)
-ORDER BY d.date DESC
-LIMIT $4;
-```
-
-**File: `src/api/sql/stocks/get_stock_prices_gbp.sql`**
-```sql
--- Get stock prices with GBP conversion
-SELECT 
-    s.symbol,
-    d.date,
-    p.open_usd,
-    p.high_usd,
-    p.low_usd,
-    p.close_usd,
-    p.volume,
-    ROUND(p.close_usd * COALESCE(cr.exchange_rate, 0.8), 4) as close_gbp,
-    cr.exchange_rate
-FROM fact_stock_prices p
-JOIN dim_stocks s ON p.stock_id = s.stock_id
-JOIN dim_dates d ON p.date_id = d.date_id
-LEFT JOIN fact_currency_rates cr ON d.date_id = cr.date_id
-    AND cr.from_currency_id = (SELECT currency_id FROM dim_currencies WHERE code = 'USD')
-    AND cr.to_currency_id = (SELECT currency_id FROM dim_currencies WHERE code = 'GBP')
-WHERE s.symbol = $1
-  AND ($2::date IS NULL OR d.date >= $2::date)
-  AND ($3::date IS NULL OR d.date <= $3::date)
-ORDER BY d.date DESC
-LIMIT $4;
-```
-
-**File: `src/api/sql/analytics/top_performers.sql`**
-```sql
--- Get top performing stocks by period
-WITH performance_data AS (
-    SELECT 
-        s.symbol,
-        s.company_name,
-        s.sector,
-        p_current.close_usd as current_price,
-        p_current.volume,
-        CASE 
-            WHEN $1 = 'daily' THEN 
-                ROUND(((p_current.close_usd - p_prev.close_usd) / p_prev.close_usd * 100), 2)
-            WHEN $1 = 'weekly' THEN
-                ROUND(((p_current.close_usd - p_week.close_usd) / p_week.close_usd * 100), 2)
-            WHEN $1 = 'monthly' THEN
-                ROUND(((p_current.close_usd - p_month.close_usd) / p_month.close_usd * 100), 2)
-        END as performance_metric
-    FROM dim_stocks s
-    JOIN fact_stock_prices p_current ON s.stock_id = p_current.stock_id
-    JOIN dim_dates d_current ON p_current.date_id = d_current.date_id
-    LEFT JOIN fact_stock_prices p_prev ON s.stock_id = p_prev.stock_id
-    LEFT JOIN dim_dates d_prev ON p_prev.date_id = d_prev.date_id 
-        AND d_prev.date = d_current.date - INTERVAL '1 day'
-    LEFT JOIN fact_stock_prices p_week ON s.stock_id = p_week.stock_id
-    LEFT JOIN dim_dates d_week ON p_week.date_id = d_week.date_id 
-        AND d_week.date = d_current.date - INTERVAL '7 days'
-    LEFT JOIN fact_stock_prices p_month ON s.stock_id = p_month.stock_id
-    LEFT JOIN dim_dates d_month ON p_month.date_id = d_month.date_id 
-        AND d_month.date = d_current.date - INTERVAL '30 days'
-    WHERE d_current.date = (SELECT MAX(date) FROM dim_dates WHERE date IN (SELECT DISTINCT date_id FROM fact_stock_prices))
-)
-SELECT 
-    symbol,
-    company_name,
-    sector,
-    performance_metric,
-    current_price,
-    volume,
-    ROW_NUMBER() OVER (ORDER BY performance_metric DESC) as rank
-FROM performance_data
-WHERE performance_metric IS NOT NULL
-ORDER BY performance_metric DESC
-LIMIT $2;
-```
-
-### 6. Health Check and Monitoring
-
-**File: `src/api/routers/health.py`**
-```python
-from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime
-from ..database import DatabaseManager, get_database
-import asyncio
-
-router = APIRouter()
-
-@router.get("/")
-async def health_check():
-    """Basic health check endpoint"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "service": "ticker-converter-api",
-        "version": "2.0.0"
-    }
-
-@router.get("/database")
-async def database_health(db: DatabaseManager = Depends(get_database)):
-    """Database connectivity health check"""
-    try:
-        start_time = datetime.now()
-
-        # Simple query to test database connectivity
-        result = await db.fetch_one("health/database_check.sql")
-
-        end_time = datetime.now()
-        response_time = (end_time - start_time).total_seconds() * 1000
-
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "response_time_ms": round(response_time, 2),
-            "timestamp": datetime.now().isoformat(),
-            "latest_data_date": result["latest_date"] if result else None,
-            "total_records": result["total_records"] if result else 0
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "unhealthy",
-                "database": "disconnected",
-                "error": str(e),
-                "timestamp": datetime.now().isoformat()
-            }
-        )
-
-@router.get("/data")
-async def data_health(db: DatabaseManager = Depends(get_database)):
-    """Data freshness and quality health check"""
-    try:
-        result = await db.fetch_one("health/data_quality_check.sql")
-
-        return {
-            "status": "healthy",
-            "data_quality": "good",
-            "latest_data_date": result["latest_date"],
-            "total_stocks": result["total_stocks"],
-            "total_records": result["total_records"],
-            "data_age_days": result["data_age_days"],
-            "timestamp": datetime.now().isoformat()
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "status": "unhealthy",
-                "data_quality": "poor",
-                "error": str(e),
-                "timestamp": datetime.now().isoformat()
-            }
-        )
-```
-
-**File: `src/api/sql/health/database_check.sql`**
-```sql
--- Basic database connectivity and data check
-SELECT 
-    MAX(d.date) as latest_date,
-    COUNT(*) as total_records
-FROM fact_stock_prices p
-JOIN dim_dates d ON p.date_id = d.date_id;
-```
-
-**File: `src/api/sql/health/data_quality_check.sql`**
-```sql
--- Comprehensive data quality check
-SELECT 
-    MAX(d.date) as latest_date,
-    COUNT(DISTINCT s.symbol) as total_stocks,
-    COUNT(*) as total_records,
-    CURRENT_DATE - MAX(d.date) as data_age_days
-FROM fact_stock_prices p
-JOIN dim_dates d ON p.date_id = d.date_id
-JOIN dim_stocks s ON p.stock_id = s.stock_id;
-```
-
-## Configuration and Deployment
-
-### 1. Environment Variables
-
-**File: `.env`**
+**Verification Command**:
 ```bash
-# Database Configuration
-DATABASE_URL=postgresql://ticker_user:password@localhost:5432/ticker_converter
-DATABASE_MIN_CONNECTIONS=5
-DATABASE_MAX_CONNECTIONS=20
-
-# API Configuration
-API_HOST=0.0.0.0
-API_PORT=8000
-API_WORKERS=4
-API_RELOAD=false
-
-# Security
-SECRET_KEY=your-secret-key-here
-ALLOWED_ORIGINS=["http://localhost:3000", "https://yourdomain.com"]
-
-# Logging
-LOG_LEVEL=INFO
-LOG_FORMAT=json
-
-# Monitoring
-ENABLE_METRICS=true
-METRICS_PORT=9090
+python --version
+# Expected output: Python 3.11.12
 ```
 
-### 2. Docker Configuration
+### System Dependencies
 
-**File: `Dockerfile`**
-```dockerfile
-FROM python:3.11-slim
+#### macOS Requirements
+```bash
+# Install Homebrew (if not already installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
+# Install required system packages
+brew install postgresql@15 git make curl
 
-# Create app directory
-WORKDIR /app
+# Install Python 3.11.12 via pyenv (recommended)
+brew install pyenv
+pyenv install 3.11.12
+pyenv local 3.11.12
+```
+
+#### Ubuntu/Debian Requirements
+```bash
+# Update package manager
+sudo apt update && sudo apt upgrade -y
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+sudo apt install -y postgresql-15 postgresql-contrib git make curl build-essential \
+    libpq-dev python3.11 python3.11-dev python3.11-venv python3-pip
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
-COPY src/ ./src/
-COPY sql/ ./sql/
-
-# Create non-root user
-RUN adduser --disabled-password --gecos '' appuser
-RUN chown -R appuser:appuser /app
-USER appuser
-
-# Expose port
-EXPOSE 8000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-# Run application
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Verify Python version
+python3.11 --version
 ```
 
-### 3. Development Setup
+#### Windows Requirements (PowerShell)
+```powershell
+# Install via Chocolatey (recommended package manager)
+Set-ExecutionPolicy Bypass -Scope Process -Force
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
 
-**File: `run_dev.py`**
-```python
-#!/usr/bin/env python3
-"""Development server runner"""
+# Install required packages
+choco install postgresql git make python311
 
-import uvicorn
-import os
-from pathlib import Path
-
-if __name__ == "__main__":
-    # Load environment variables from .env file
-    from dotenv import load_dotenv
-    load_dotenv()
-
-    # Run development server
-    uvicorn.run(
-        "src.api.main:app",
-        host=os.getenv("API_HOST", "127.0.0.1"),
-        port=int(os.getenv("API_PORT", 8000)),
-        reload=True,
-        reload_dirs=["src"],
-        log_level=os.getenv("LOG_LEVEL", "info").lower()
-    )
+# Verify installation
+python --version
 ```
 
-### 4. Production Deployment
+## Step-by-Step Setup Process
 
-**File: `gunicorn.conf.py`**
-```python
-"""Gunicorn configuration for production deployment"""
+### Phase 1: Repository Setup and Environment Creation
 
-import os
-import multiprocessing
+#### 1.1 Clone Repository
+```bash
+# Clone the repository
+git clone https://github.com/willdeeep/ticker-converter.git
+cd ticker-converter
 
-# Server socket
-bind = f"{os.getenv('API_HOST', '0.0.0.0')}:{os.getenv('API_PORT', 8000)}"
-backlog = 2048
-
-# Worker processes
-workers = int(os.getenv('API_WORKERS', multiprocessing.cpu_count() * 2 + 1))
-worker_class = "uvicorn.workers.UvicornWorker"
-worker_connections = 1000
-max_requests = 1000
-max_requests_jitter = 50
-preload_app = True
-
-# Timeouts
-timeout = 30
-keepalive = 2
-
-# Logging
-accesslog = "-"
-errorlog = "-"
-loglevel = os.getenv('LOG_LEVEL', 'info').lower()
-access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s'
-
-# Process naming
-proc_name = 'ticker-converter-api'
-
-# Server mechanics
-daemon = False
-pidfile = '/tmp/gunicorn.pid'
-user = None
-group = None
-tmp_upload_dir = None
-
-# SSL (for production with HTTPS)
-# keyfile = '/path/to/keyfile'
-# certfile = '/path/to/certfile'
+# Verify you're on the correct branch
+git branch -a
+git checkout dev  # or main, depending on current development branch
 ```
 
-## Performance Optimization
+#### 1.2 Python Environment Setup
+```bash
+# Create virtual environment (Python 3.11.12 required)
+python -m venv .venv
 
-### 1. Connection Pooling
-```python
-# Optimized pool configuration
-self.pool = await asyncpg.create_pool(
-    database_url,
-    min_size=5,                    # Minimum connections
-    max_size=20,                   # Maximum connections
-    max_queries=50000,             # Queries per connection
-    max_inactive_connection_lifetime=300,  # 5 minutes
-    command_timeout=30,            # 30 second query timeout
-    server_settings={
-        'application_name': 'ticker-converter-api',
-        'tcp_keepalives_idle': '600',
-        'tcp_keepalives_interval': '30',
-        'tcp_keepalives_count': '3',
+# Activate virtual environment
+# macOS/Linux:
+source .venv/bin/activate
+
+# Windows:
+.venv\Scripts\activate
+
+# Verify Python version in virtual environment
+python --version
+# Should output: Python 3.11.12
+
+# Upgrade pip to latest version
+pip install --upgrade pip
+```
+
+#### 1.3 Environment Configuration
+```bash
+# Create environment configuration from template
+make setup
+
+# This creates .env file with default values
+# Edit .env file to add your Alpha Vantage API key:
+# ALPHA_VANTAGE_API_KEY=your_api_key_here
+```
+
+**Manual .env Configuration** (if make setup doesn't work):
+```bash
+# Copy template and edit
+cp .env.example .env
+
+# Edit .env file with your preferred editor
+# Required: Add Alpha Vantage API key
+# Optional: Customize database connection settings
+```
+
+### Phase 2: Dependency Installation
+
+#### 2.1 Choose Installation Profile
+
+**For Production Use Only**:
+```bash
+make install
+# Installs core dependencies only (FastAPI, PostgreSQL drivers, Airflow)
+```
+
+**For Development with Testing** (Recommended):
+```bash
+make install-dev
+# Installs everything: core + testing + code quality tools
+# Includes: pytest, pylint, black, isort, mypy, pre-commit
+```
+
+**For Testing Environment Only**:
+```bash
+make install-test
+# Installs core + testing dependencies without development tools
+```
+
+#### 2.2 Verify Installation
+```bash
+# Check installed packages
+pip list
+
+# Verify key dependencies
+python -c "import fastapi, psycopg2, pandas; print('Core dependencies installed')"
+python -c "import pytest, pylint; print('Testing tools installed')" # if using install-dev
+```
+
+### Phase 3: Database Initialization
+
+#### 3.1 PostgreSQL Service Setup
+
+**macOS (Homebrew)**:
+```bash
+# Start PostgreSQL service
+brew services start postgresql@15
+
+# Create database and user
+createdb ticker_converter
+psql ticker_converter -c "CREATE USER willhuntleyclarke WITH SUPERUSER;"
+```
+
+**Ubuntu/Debian**:
+```bash
+# Start PostgreSQL service
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+
+# Create database and user
+sudo -u postgres createdb ticker_converter
+sudo -u postgres psql -c "CREATE USER willhuntleyclarke WITH SUPERUSER;"
+```
+
+**Windows**:
+```powershell
+# PostgreSQL should be running as a Windows service
+# Open Command Prompt as Administrator
+createdb -U postgres ticker_converter
+psql -U postgres -c "CREATE USER willhuntleyclarke WITH SUPERUSER;"
+```
+
+#### 3.2 Database Schema and Data Initialization
+```bash
+# Initialize database with schema and sample data
+make init-db
+
+# This command:
+# 1. Creates all database tables (dimensions, facts, views)
+# 2. Loads the last 30 trading days of stock data
+# 3. Loads corresponding currency exchange rates
+# 4. Creates analytical views for API endpoints
+```
+
+**Alternative Database Setup Options**:
+```bash
+# Schema only (no data loading)
+make init-schema
+
+# Smart initialization (uses local data if available)
+make smart-init-db
+
+# Manual initialization with specific days
+python -m ticker_converter.cli_ingestion --init --days 7
+```
+
+### Phase 4: Service Verification
+
+#### 4.1 Start Airflow Services
+```bash
+# Start Apache Airflow (webserver + scheduler)
+make airflow
+
+# Airflow will be available at:
+# URL: http://localhost:8080
+# Username: admin
+# Password: admin123
+```
+
+#### 4.2 Start FastAPI Development Server
+```bash
+# In a separate terminal window (keep Airflow running)
+# Ensure virtual environment is activated
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+
+# Start FastAPI development server
+make serve
+
+# API will be available at:
+# URL: http://localhost:8000
+# Documentation: http://localhost:8000/docs
+# Health Check: http://localhost:8000/health
+```
+
+#### 4.3 Verify Services are Running
+```bash
+# Check all services
+make status
+
+# Or check individually:
+make airflow-status  # Check Airflow scheduler and webserver
+curl http://localhost:8000/health  # Check FastAPI health endpoint
+```
+
+### Phase 5: Development Workflow Verification
+
+#### 5.1 Run Test Suite
+```bash
+# Execute full test suite with coverage
+make test
+
+# Expected output: All tests pass with >40% coverage
+# Coverage report generated in htmlcov/index.html
+```
+
+#### 5.2 Code Quality Checks
+```bash
+# Run all code quality tools
+make lint
+
+# This runs:
+# - pylint (code analysis)
+# - black (formatting check)
+# - isort (import sorting check)
+# - mypy (type checking)
+
+# Auto-fix formatting issues
+make lint-fix
+```
+
+#### 5.3 Test Data Pipeline
+```bash
+# Run daily ETL pipeline manually
+make run
+
+# This executes:
+# 1. Fetches latest stock data from Alpha Vantage API
+# 2. Fetches latest USD/GBP exchange rates
+# 3. Transforms data using SQL operations
+# 4. Updates analytical views
+```
+
+## Makefile Command Reference
+
+### Installation Commands
+- `make setup` - Create .env file with default configuration
+- `make install` - Install production dependencies only
+- `make install-test` - Install production + testing dependencies
+- `make install-dev` - Install full development environment (recommended)
+
+### Database Commands
+- `make init-db` - Initialize database with last 30 trading days of data
+- `make init-schema` - Create database schema without loading data
+- `make smart-init-db` - Intelligent initialization with local data priority
+- `make teardown-db` - **DANGER**: Completely remove database and all data
+
+### Service Management
+- `make airflow` - Start Apache Airflow (webserver + scheduler)
+- `make airflow-stop` - Stop all Airflow services
+- `make airflow-status` - Check Airflow service status
+- `make serve` - Start FastAPI development server
+- `make status` - Check all service statuses
+
+### Development Workflow
+- `make run` - Execute daily ETL pipeline
+- `make test` - Run test suite with coverage reporting
+- `make lint` - Run all code quality checks
+- `make lint-fix` - Auto-fix code formatting issues
+- `make clean` - Clean build artifacts and cache files
+
+### CI/CD Commands
+- `make act-pr` - Test GitHub Actions locally (requires act)
+- `make help` - Display all available commands with descriptions
+
+## Configuration Details
+
+### Environment Variables (.env)
+
+**Required Configuration**:
+```bash
+# Alpha Vantage API (REQUIRED)
+ALPHA_VANTAGE_API_KEY=your_api_key_here
+
+# Database Configuration (PostgreSQL)
+DATABASE_URL=postgresql://willhuntleyclarke@localhost:5432/ticker_converter
+
+# Alternative individual database settings
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=ticker_converter
+POSTGRES_USER=willhuntleyclarke
+POSTGRES_PASSWORD=  # Leave empty for local development
+```
+
+**Optional Configuration**:
+```bash
+# Airflow Admin User
+AIRFLOW_ADMIN_USERNAME=admin
+AIRFLOW_ADMIN_PASSWORD=admin123
+AIRFLOW_ADMIN_EMAIL=admin@ticker-converter.local
+
+# API Configuration
+API_HOST=127.0.0.1
+API_PORT=8000
+
+# Development Settings
+LOG_LEVEL=INFO
+DEBUG=True
+```
+
+### Alpha Vantage API Key Setup
+
+1. **Get Free API Key**:
+   - Visit: https://www.alphavantage.co/support/#api-key
+   - Sign up for free account
+   - Copy your API key
+
+2. **Add to Environment**:
+   ```bash
+   # Edit .env file
+   ALPHA_VANTAGE_API_KEY=your_actual_api_key_here
+   ```
+
+3. **Verify API Key**:
+   ```bash
+   # Test API connectivity
+   python -c "
+   import os
+   from dotenv import load_dotenv
+   load_dotenv()
+   print(f'API Key configured: {bool(os.getenv(\"ALPHA_VANTAGE_API_KEY\"))}')"
+   ```
+
+## Development Tools and IDE Setup
+
+### VS Code Configuration (Recommended)
+
+**Required Extensions**:
+- Python (ms-python.python)
+- Pylint (ms-python.pylint)
+- Black Formatter (ms-python.black-formatter)
+- isort (ms-python.isort)
+- PostgreSQL (ckolkman.vscode-postgres)
+
+**Workspace Settings** (`.vscode/settings.json`):
+```json
+{
+    "python.defaultInterpreterPath": "./.venv/bin/python",
+    "python.formatting.provider": "black",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": ["tests/"],
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        ".pytest_cache": true,
+        ".mypy_cache": true
     }
-)
+}
 ```
 
-### 2. Query Optimization
-```sql
--- Use appropriate indexes
-CREATE INDEX CONCURRENTLY idx_fact_stock_prices_symbol_date 
-ON fact_stock_prices(stock_id, date_id DESC);
+### Pre-commit Hooks Setup
 
-CREATE INDEX CONCURRENTLY idx_fact_stock_prices_date 
-ON fact_stock_prices(date_id DESC);
+```bash
+# Install pre-commit hooks (included in make install-dev)
+pre-commit install
 
--- Use query hints for complex queries
-/*+ IndexScan(p idx_fact_stock_prices_symbol_date) */
-SELECT ... FROM fact_stock_prices p ...
+# Test pre-commit hooks
+pre-commit run --all-files
+
+# Pre-commit will now run automatically on git commit
 ```
 
-### 3. Caching Strategy
-```python
-import aioredis
-from functools import wraps
+## Troubleshooting Common Issues
 
-# Redis caching decorator
-def cache_result(expiry: int = 300):
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            cache_key = f"{func.__name__}:{hash(str(args) + str(kwargs))}"
+### Python Version Problems
 
-            # Try to get from cache
-            cached = await redis.get(cache_key)
-            if cached:
-                return json.loads(cached)
+**Symptom**: ImportError or syntax errors with modern Python features
+```bash
+# Verify Python version
+python --version
 
-            # Execute function and cache result
-            result = await func(*args, **kwargs)
-            await redis.setex(cache_key, expiry, json.dumps(result, default=str))
-            return result
-        return wrapper
-    return decorator
+# If not 3.11.12, install correct version:
+# macOS with pyenv:
+pyenv install 3.11.12
+pyenv local 3.11.12
 
-# Apply to expensive endpoints
-@cache_result(expiry=600)  # 10 minutes
-async def get_top_performers(...):
-    ...
+# Ubuntu:
+sudo apt install python3.11 python3.11-venv
+
+# Recreate virtual environment
+rm -rf .venv
+python3.11 -m venv .venv
+source .venv/bin/activate
 ```
 
-## Testing Strategy
+### Database Connection Issues
 
-### 1. Unit Tests
-```python
-import pytest
-from httpx import AsyncClient
-from src.api.main import app
+**Symptom**: Connection refused or authentication failed
+```bash
+# Check PostgreSQL service status
+# macOS:
+brew services list | grep postgresql
 
-@pytest.mark.asyncio
-async def test_get_stock_prices():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.get("/api/v1/stocks/AAPL/prices?limit=10")
+# Ubuntu:
+sudo systemctl status postgresql
 
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) <= 10
-    assert data[0]["symbol"] == "AAPL"
+# Test database connection
+psql postgresql://willhuntleyclarke@localhost:5432/ticker_converter
 
-@pytest.mark.asyncio
-async def test_invalid_stock_symbol():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.get("/api/v1/stocks/INVALID/prices")
-
-    assert response.status_code == 404
-    assert "not found" in response.json()["detail"]
+# If connection fails, recreate database:
+make teardown-db
+createdb ticker_converter
+make init-db
 ```
 
-### 2. Integration Tests
-```python
-@pytest.mark.asyncio
-async def test_database_integration():
-    """Test database connectivity and basic queries"""
-    db = DatabaseManager()
-    await db.connect()
+### Airflow Issues
 
-    try:
-        result = await db.fetch_all("stocks/get_stock_prices.sql", 
-                                   symbol="AAPL", start_date=None, 
-                                   end_date=None, limit=1)
-        assert len(result) > 0
-        assert result[0]["symbol"] == "AAPL"
-    finally:
-        await db.disconnect()
+**Symptom**: Airflow web UI not accessible or DAGs not appearing
+```bash
+# Check Airflow processes
+make airflow-status
+
+# Reset Airflow (nuclear option)
+make teardown-airflow
+make airflow
+
+# Check DAG syntax
+python dags/daily_etl_dag.py
+
+# View Airflow logs
+tail -f ~/airflow/logs/scheduler/latest/*.log
 ```
 
-## Monitoring and Observability
+### API Import Errors
 
-### 1. Metrics Collection
-```python
-from prometheus_client import Counter, Histogram, generate_latest
+**Symptom**: Module not found errors when starting FastAPI
+```bash
+# Ensure you're in virtual environment
+source .venv/bin/activate
 
-# Metrics
-REQUEST_COUNT = Counter('api_requests_total', 'Total API requests', ['method', 'endpoint'])
-REQUEST_DURATION = Histogram('api_request_duration_seconds', 'Request duration')
+# Verify installation
+pip list | grep fastapi
 
-@app.middleware("http")
-async def add_metrics(request, call_next):
-    start_time = time.time()
+# Reinstall dependencies
+make install-dev
 
-    response = await call_next(request)
-
-    REQUEST_COUNT.labels(method=request.method, endpoint=request.url.path).inc()
-    REQUEST_DURATION.observe(time.time() - start_time)
-
-    return response
-
-@app.get("/metrics")
-async def metrics():
-    return Response(generate_latest(), media_type="text/plain")
+# Check Python path
+python -c "import sys; print('\n'.join(sys.path))"
 ```
 
-### 2. Structured Logging
-```python
-import structlog
+### Permission Issues
 
-logger = structlog.get_logger()
+**Symptom**: Permission denied errors on macOS/Linux
+```bash
+# Fix virtual environment permissions
+chmod -R 755 .venv/
 
-@app.middleware("http")
-async def logging_middleware(request, call_next):
-    start_time = time.time()
+# Fix database permissions
+sudo chown -R $(whoami) ~/airflow/
 
-    response = await call_next(request)
-
-    logger.info(
-        "api_request",
-        method=request.method,
-        path=request.url.path,
-        status_code=response.status_code,
-        duration=time.time() - start_time,
-        user_agent=request.headers.get("user-agent"),
-        remote_addr=request.client.host
-    )
-
-    return response
+# Fix PostgreSQL permissions (if needed)
+sudo -u postgres psql -c "ALTER USER willhuntleyclarke CREATEDB;"
 ```
 
-This FastAPI implementation provides a high-performance, SQL-centric API that directly executes optimized queries against PostgreSQL, eliminating the complexity of ORMs while maintaining type safety and comprehensive documentation. The architecture supports the Magnificent Seven stocks with robust error handling, monitoring, and scalability features.
+### Make Command Issues
+
+**Symptom**: Make targets fail or command not found
+```bash
+# Install make on macOS
+xcode-select --install
+
+# Install make on Ubuntu
+sudo apt install build-essential
+
+# Run make targets directly if make not available
+cat Makefile  # View targets and run commands manually
+```
+
+## Performance Optimization for Development
+
+### Database Configuration
+
+**Local PostgreSQL Optimization** (`postgresql.conf`):
+```ini
+# Memory settings for development
+shared_buffers = 256MB
+effective_cache_size = 1GB
+work_mem = 4MB
+
+# Connection settings
+max_connections = 20
+listen_addresses = 'localhost'
+
+# Logging for development
+log_statement = 'all'
+log_duration = on
+log_min_duration_statement = 100ms
+```
+
+### Python Development Optimization
+
+**Virtual Environment Optimization**:
+```bash
+# Use faster pip operations
+pip install --upgrade pip setuptools wheel
+
+# Cache pip downloads
+pip config set global.cache-dir ~/.pip-cache
+
+# Parallel installation when possible
+pip install --use-feature=parallel-installs
+```
+
+### IDE Performance Tips
+
+**VS Code Optimization**:
+- Exclude unnecessary directories from indexing
+- Use workspace-specific Python interpreter
+- Enable only required extensions for Python development
+- Configure appropriate file watchers and exclusions
+
+## Next Steps After Setup
+
+### 1. Explore the API
+```bash
+# Open API documentation
+open http://localhost:8000/docs  # macOS
+# or visit http://localhost:8000/docs in browser
+
+# Test endpoints
+curl http://localhost:8000/api/stocks/top-performers
+curl http://localhost:8000/api/stocks/AAPL/prices?limit=5
+```
+
+### 2. Examine Airflow DAGs
+```bash
+# Open Airflow web UI
+open http://localhost:8080  # macOS
+# Username: admin, Password: admin123
+
+# Explore DAG structure
+ls dags/
+cat dags/daily_etl_dag.py
+```
+
+### 3. Review Database Schema
+```bash
+# Connect to PostgreSQL
+psql ticker_converter
+
+# Explore schema
+\dt  # List tables
+\dv  # List views
+SELECT * FROM dim_stocks;
+SELECT * FROM fact_stock_prices LIMIT 5;
+```
+
+### 4. Run Development Workflow
+```bash
+# Make code changes, then run quality checks
+make lint-fix  # Auto-fix formatting
+make test      # Run tests
+make run       # Test ETL pipeline
+```
+
+## Related Documentation
+
+- [Database Design](../architecture/database_design.md) - PostgreSQL schema details and optimization
+- [Airflow Setup](../architecture/airflow_setup.md) - Apache Airflow 3.0.4 configuration and DAG design
+- [CLI Usage](../user_guides/cli_usage.md) - Command-line interface reference
+- [Production Deployment](production.md) - Production configuration and deployment guide
+
+---
+
+**Last Updated**: August 2025 | **Version**: 1.1.0 | **Setup Time**: ~30 minutes
