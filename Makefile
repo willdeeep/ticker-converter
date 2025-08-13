@@ -8,151 +8,185 @@ VENV_NAME := .venv
 BLUE := \033[0;34m
 GREEN := \033[0;32m
 YELLOW := \033[0;33m
+RED := \033[0;31m
 CYAN := \033[0;36m
 NC := \033[0m
 
-.PHONY: help install install-test install-dev init-db run airflow serve teardown-cache teardown-airflow teardown-env teardown-db teardown-all test lint lint-fix clean
+.PHONY: help setup install install-test install-dev init-db airflow test test-ci act-pr lint lint-fix airflow-close db-close clean teardown-cache teardown-env teardown-airflow teardown-db
+
+# ============================================================================
+# HELP
+# ============================================================================
 
 help: ## Show this help message
-	@echo "Available commands:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-15s$(NC) %s\n", $$1, $$2}'
+	@echo -e "$(CYAN)Ticker Converter - Available Commands:$(NC)"
+	@echo ""
+	@echo -e "$(YELLOW)Help:$(NC)"
+	@grep -E '^(help):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@echo ""
+	@echo -e "$(YELLOW)Setup and run:$(NC)"
+	@grep -E '^(setup|install|install-test|install-dev|init-db|airflow):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@echo ""
+	@echo -e "$(YELLOW)Testing:$(NC)"
+	@grep -E '^(test|test-ci|act-pr|lint|lint-fix):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@echo ""
+	@echo -e "$(YELLOW)Shutdown and clean:$(NC)"
+	@grep -E '^(airflow-close|db-close|clean):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@echo ""
+	@echo -e "$(YELLOW)Teardown:$(NC)"
+	@grep -E '^(teardown-cache|teardown-env|teardown-airflow|teardown-db):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@echo ""
 
-# Installation commands
-install: ## Install production dependencies only
+# ============================================================================
+# SETUP AND RUN
+# ============================================================================
+
+setup: ## Sets up environment variables
+	@echo "$(BLUE)Setting up environment variables...$(NC)"
+	@if [ ! -f .env ]; then \
+		echo "$(YELLOW)Creating .env file from .env.example...$(NC)"; \
+		cp .env.example .env; \
+		echo "$(CYAN)Please review and update the .env file with your specific values.$(NC)"; \
+		echo "$(CYAN)Default values have been set from .env.example$(NC)"; \
+	else \
+		echo "$(GREEN).env file already exists$(NC)"; \
+	fi
+
+install: ## Install all running dependencies
 	@echo "$(BLUE)Installing production dependencies...$(NC)"
-	pip install -e .
-	@echo "$(GREEN)Production installation complete$(NC)"
+	@$(PYTHON) -m pip install --upgrade pip
+	@$(PYTHON) -m pip install -e .
+	@echo "$(GREEN)Production dependencies installed$(NC)"
 
 install-test: ## Install production + testing dependencies
 	@echo "$(BLUE)Installing production and testing dependencies...$(NC)"
-	pip install -e ".[test]"
-	@echo "$(GREEN)Testing environment installation complete$(NC)"
+	@$(PYTHON) -m pip install --upgrade pip
+	@$(PYTHON) -m pip install -e ".[test]"
+	@echo "$(GREEN)Production and testing dependencies installed$(NC)"
 
 install-dev: ## Install full development environment
 	@echo "$(BLUE)Installing full development environment...$(NC)"
-	pip install -e ".[dev]"
-	pre-commit install
-	@echo "$(GREEN)Development environment installation complete$(NC)"
+	@$(PYTHON) -m pip install --upgrade pip
+	@$(PYTHON) -m pip install -e ".[dev,test]"
+	@echo "$(GREEN)Full development environment installed$(NC)"
 
-# Operational commands
-init-db: ## Initialize database with last 30 trading days of data
-	@echo "$(BLUE)Initializing database with historical data...$(NC)"
-	@echo "$(YELLOW)This will fetch the last 30 trading days from Alpha Vantage API$(NC)"
-	$(PYTHON) -m $(PACKAGE_NAME).cli_ingestion --init --days=30
-	@echo "$(GREEN)Database initialized successfully$(NC)"
-
-run: ## Run daily data collection for previous trading day
-	@echo "$(BLUE)Running daily data collection...$(NC)"
-	$(PYTHON) -m $(PACKAGE_NAME).cli_ingestion --daily
-	@echo "$(GREEN)Daily data collection completed$(NC)"
+init-db: ## Initialise PostgreSQL database using defaults
+	@echo "$(BLUE)Initializing PostgreSQL database...$(NC)"
+	@$(PYTHON) -m $(PACKAGE_NAME).cli_ingestion init-db
+	@echo "$(GREEN)Database initialization completed$(NC)"
 
 airflow: ## Start Apache Airflow instance with default user
 	@echo "$(BLUE)Starting Apache Airflow...$(NC)"
-	@echo "$(YELLOW)Setting up Airflow database...$(NC)"
-	airflow db init
-	@echo "$(YELLOW)Creating default admin user...$(NC)"
-	airflow users create \
-		--username admin \
-		--firstname Admin \
-		--lastname User \
-		--role Admin \
-		--email admin@ticker-converter.local \
-		--password admin123 2>/dev/null || echo "User already exists"
-	@echo "$(GREEN)Starting Airflow webserver...$(NC)"
-	@echo "$(CYAN)=== AIRFLOW CONNECTION DETAILS ===$(NC)"
-	@echo "$(GREEN)URL: http://localhost:8080$(NC)"
-	@echo "$(GREEN)Username: admin$(NC)"
-	@echo "$(GREEN)Password: admin123$(NC)"
-	@echo "$(CYAN)=================================$(NC)"
-	airflow webserver --port 8080
+	@$(PYTHON) -m $(PACKAGE_NAME).cli_ingestion start-airflow
+	@echo "$(CYAN)Airflow should be available at: http://localhost:8080$(NC)"
 
-serve: ## Start FastAPI development server
-	@echo "$(BLUE)Starting FastAPI server...$(NC)"
-	@echo "$(CYAN)=== API ENDPOINT URLS ===$(NC)"
-	@echo "$(GREEN)Health Check: http://localhost:8000/health$(NC)"
-	@echo "$(GREEN)API Docs: http://localhost:8000/docs$(NC)"
-	@echo "$(GREEN)Top Performers: http://localhost:8000/api/stocks/top-performers$(NC)"
-	@echo "$(GREEN)Performance Details: http://localhost:8000/api/stocks/performance-details$(NC)"
-	@echo "$(CYAN)========================$(NC)"
-	$(PYTHON) run_api.py
+# ============================================================================
+# TESTING
+# ============================================================================
 
-# Teardown commands
-teardown-cache: ## Remove all cache folders and temporary files
-	@echo "$(BLUE)Removing cache folders and temporary files...$(NC)"
-	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".tox" -exec rm -rf {} + 2>/dev/null || true
-	find . -name "*.pyc" -delete 2>/dev/null || true
-	rm -rf .coverage .pytest_cache htmlcov/ build/ dist/
-	@echo "$(GREEN)Cache cleanup completed$(NC)"
-
-teardown-airflow: ## Shutdown Airflow and remove all Airflow files
-	@echo "$(BLUE)Shutting down Airflow instance...$(NC)"
-	@echo "$(YELLOW)Stopping any running Airflow processes...$(NC)"
-	-pkill -f "airflow webserver" 2>/dev/null || true
-	-pkill -f "airflow scheduler" 2>/dev/null || true
-	-pkill -f "airflow worker" 2>/dev/null || true
-	@sleep 2
-	@echo "$(YELLOW)Removing Airflow runtime files...$(NC)"
-	rm -rf airflow/
-	@echo "$(GREEN)Airflow teardown completed$(NC)"
-
-teardown-env: ## Remove environment file and virtual environment
-	@echo "$(BLUE)Removing environment configuration...$(NC)"
-	@echo "$(YELLOW)Removing .env file...$(NC)"
-	rm -f .env
-	@echo "$(YELLOW)Removing virtual environment...$(NC)"
-	rm -rf $(VENV_NAME)/
-	@echo "$(GREEN)Environment teardown completed$(NC)"
-
-teardown-db: ## Shutdown and remove PostgreSQL database
-	@echo "$(BLUE)Shutting down and removing database...$(NC)"
-	@echo "$(YELLOW)Stopping PostgreSQL service...$(NC)"
-	-brew services stop postgresql@14 2>/dev/null || true
-	-brew services stop postgresql 2>/dev/null || true
-	@echo "$(YELLOW)Removing database data directory...$(NC)"
-	-rm -rf /usr/local/var/postgresql@14/ 2>/dev/null || true
-	-rm -rf /usr/local/var/postgres/ 2>/dev/null || true
-	@echo "$(GREEN)Database teardown completed$(NC)"
-
-teardown-all: ## Complete system teardown (cache, airflow, env, db)
-	@echo "$(BLUE)Performing complete system teardown...$(NC)"
-	@$(MAKE) teardown-cache
-	@$(MAKE) teardown-airflow
-	@$(MAKE) teardown-db
-	@$(MAKE) teardown-env
-	@echo "$(GREEN)Complete system teardown finished$(NC)"
-
-# Quality and testing commands
 test: ## Run test suite with coverage
-	@echo "$(BLUE)Running test suite...$(NC)"
-	pytest tests/ --cov=src/$(PACKAGE_NAME) --cov-report=html --cov-report=term-missing
-	@echo "$(GREEN)Test suite completed$(NC)"
+	@echo "$(BLUE)Running test suite with coverage...$(NC)"
+	@$(PYTHON) -m pytest tests/ --cov=$(PACKAGE_NAME) --cov-report=html --cov-report=term-missing
+	@echo "$(GREEN)Tests completed$(NC)"
+
+test-ci: ## Run all CI tests
+	@echo "$(BLUE)Running CI tests...$(NC)"
+	@$(PYTHON) -m pytest tests/ --cov=$(PACKAGE_NAME) --cov-report=xml --cov-fail-under=80
+	@echo "$(GREEN)CI tests completed$(NC)"
+
+act-pr: ## Runs local GitHub Actions workflow using Act
+	@echo "$(BLUE)Running GitHub Actions workflow locally...$(NC)"
+	@if command -v act >/dev/null 2>&1; then \
+		if [[ "$$(uname -m)" == "arm64" ]]; then \
+			act pull_request --container-architecture linux/amd64; \
+		else \
+			act pull_request; \
+		fi; \
+	else \
+		echo "$(RED)Error: 'act' is not installed. Install it from: https://github.com/nektos/act$(NC)"; \
+		exit 1; \
+	fi
 
 lint: ## Run all code quality checks
 	@echo "$(BLUE)Running code quality checks...$(NC)"
-	pylint src/$(PACKAGE_NAME)/ api/ run_api.py
-	black --check src/$(PACKAGE_NAME)/ api/ tests/ run_api.py
-	isort --check-only src/$(PACKAGE_NAME)/ api/ tests/ run_api.py
-	mypy src/$(PACKAGE_NAME)/ api/
+	@$(PYTHON) -m ruff check .
+	@$(PYTHON) -m ruff format --check .
+	@$(PYTHON) -m mypy $(PACKAGE_NAME)
 	@echo "$(GREEN)Code quality checks completed$(NC)"
 
 lint-fix: ## Auto-fix code quality issues
 	@echo "$(BLUE)Auto-fixing code quality issues...$(NC)"
-	black src/$(PACKAGE_NAME)/ api/ tests/ run_api.py
-	isort src/$(PACKAGE_NAME)/ api/ tests/ run_api.py
-	@echo "$(GREEN)Code formatting applied$(NC)"
+	@$(PYTHON) -m ruff check --fix .
+	@$(PYTHON) -m ruff format .
+	@echo "$(GREEN)Code quality fixes applied$(NC)"
+
+# ============================================================================
+# SHUTDOWN AND CLEAN
+# ============================================================================
+
+airflow-close: ## Closes down Airflow
+	@echo "$(BLUE)Closing Airflow...$(NC)"
+	@if pgrep -f "airflow" > /dev/null; then \
+		pkill -f "airflow" && echo "$(GREEN)Airflow stopped$(NC)"; \
+	else \
+		echo "$(YELLOW)Airflow is not running$(NC)"; \
+	fi
+
+db-close: ## Shuts down local PostgreSQL instance
+	@echo "$(BLUE)Shutting down PostgreSQL...$(NC)"
+	@if pgrep -f "postgres" > /dev/null; then \
+		$(PYTHON) -m $(PACKAGE_NAME).cli_ingestion stop-db && echo "$(GREEN)PostgreSQL stopped$(NC)"; \
+	else \
+		echo "$(YELLOW)PostgreSQL is not running$(NC)"; \
+	fi
 
 clean: ## Clean build artifacts and cache files
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"
-	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -name "*.pyc" -delete 2>/dev/null || true
-	rm -rf build/ dist/ htmlcov/ .coverage
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+	@rm -rf htmlcov/ .coverage
 	@echo "$(GREEN)Cleanup completed$(NC)"
+
+# ============================================================================
+# TEARDOWN
+# ============================================================================
+
+teardown-cache: ## Deletes all build artifacts and testing cache files
+	@echo "$(BLUE)Removing all cache folders and temporary files...$(NC)"
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".tox" -exec rm -rf {} + 2>/dev/null || true
+	@find . -name "*.pyc" -delete 2>/dev/null || true
+	@rm -rf build/ dist/ .coverage
+	@echo "$(GREEN)Cache cleanup completed$(NC)"
+
+teardown-env: ## Remove environment file and virtual environment
+	@echo "$(RED)WARNING: This will delete .env and .venv/ directory$(NC)"
+	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	@echo "$(BLUE)Removing environment files...$(NC)"
+	@rm -rf .env .venv/
+	@echo "$(GREEN)Environment cleanup completed$(NC)"
+
+teardown-airflow: ## Shutdown Airflow and remove all Airflow files
+	@echo "$(RED)WARNING: This will shutdown Airflow and delete all airflow/ files$(NC)"
+	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	@echo "$(BLUE)Shutting down Airflow and removing files...$(NC)"
+	@if pgrep -f "airflow" > /dev/null; then \
+		pkill -f "airflow"; \
+		echo "$(YELLOW)Airflow processes stopped$(NC)"; \
+	fi
+	@rm -rf airflow/
+	@echo "$(GREEN)Airflow teardown completed$(NC)"
+
+teardown-db: ## Shutdown and remove PostgreSQL database
+	@echo "$(RED)WARNING: This will shutdown PostgreSQL and delete the database$(NC)"
+	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	@echo "$(BLUE)Shutting down and removing PostgreSQL database...$(NC)"
+	@$(PYTHON) -m $(PACKAGE_NAME).cli_ingestion teardown-db
+	@echo "$(GREEN)Database teardown completed$(NC)"
