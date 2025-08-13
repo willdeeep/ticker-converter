@@ -238,7 +238,7 @@ def ticker_converter_daily_etl():
     )
 
     clean_transform_data = SQLExecuteQueryOperator(
-        task_id="clean_transform_data", 
+        task_id="clean_transform_data",
         sql=DAGConfig.SQL_FILES["clean_transform_data"]
     )
 

@@ -24,13 +24,13 @@ from airflow.decorators import dag, task
 )
 def test_etl_dag():
     """Test DAG definition using Airflow 3.0 syntax."""
-    
+
     @task
     def test_function():
         """Simple test function."""
         print("Test DAG is working!")
         return "success"
-    
+
     # Execute the test task
     test_function()
 
