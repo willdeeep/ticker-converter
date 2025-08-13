@@ -36,3 +36,11 @@ MANIFEST
 .coverage
 htmlcov/
 .tox/
+
+# Airflow - exclude entire runtime directory
+airflow/
+airflow/*
+airflow/**/*
+!airflow/dags/
+airflow/dags/*.pyc
+airflow/dags/__pycache__/
