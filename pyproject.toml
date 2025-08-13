@@ -24,8 +24,14 @@ classifiers = [
 ]
 
 dependencies = [
+    # Core FastAPI and web framework
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.4.0",
+
     # Database and data processing
     "psycopg2-binary>=2.9.7",
+    "sqlalchemy>=2.0.0",
     "pandas>=2.1.0",
 
     # HTTP client and utilities
@@ -33,23 +39,10 @@ dependencies = [
     "python-dotenv>=1.0.0",
 
     # Workflow orchestration
-    "apache-airflow>=3.0.0",
+    "apache-airflow>=2.7.0",
 ]
 
 [project.optional-dependencies]
-# Database-specific dependencies
-database = [
-    "psycopg2-binary>=2.9.7",
-]
-
-# API-specific dependencies
-api = [
-    "fastapi>=0.104.0",
-    "uvicorn[standard]>=0.24.0",
-    "pydantic>=2.4.0",
-    "asyncpg>=0.28.0",  # Async PostgreSQL driver for API layer
-]
-
 test = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
@@ -58,7 +51,7 @@ test = [
 ]
 
 dev = [
-    "ticker-converter[test,api,database]",
+    "ticker-converter[test]",
     # Code quality tools
     "pylint>=3.0.0",
     "black>=23.0.0",
@@ -67,6 +60,8 @@ dev = [
 
     # Development tools
     "pre-commit>=3.4.0",
+    "ipython>=8.0.0",
+    "jupyter>=1.0.0",
 ]
 
 [project.urls]
@@ -109,7 +104,7 @@ disable = [
 max-line-length = 120
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

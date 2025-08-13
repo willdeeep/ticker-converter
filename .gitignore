@@ -3,8 +3,6 @@
 .python-version
 .DS_Store
 .env
-.env.*
-.env.backup
 raw_data/*/*
 my_docs/
 
@@ -38,8 +36,3 @@ MANIFEST
 .coverage
 htmlcov/
 .tox/
-
-# Airflow
-airflow/airflow.db*
-airflow/logs/
-airflow/simple_auth_manager_passwords.json.generated

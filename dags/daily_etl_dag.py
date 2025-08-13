@@ -7,24 +7,15 @@ This DAG orchestrates the complete ETL process using SQL operators:
 3. Extract and load exchange rates from exchangerate-api.io
 4. Run daily transformations to calculate derived metrics
 5. Run data quality checks
-6. Clean up old data based to retention policies
+6. Clean up old data based on retention policies
 """
 
-import sys
 from datetime import datetime, timedelta
 
 from airflow import DAG
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.empty import EmptyOperator
 from airflow.providers.standard.operators.python import PythonOperator
-
-# Add src to path to import our modules
-sys.path.append("/Users/willhuntleyclarke/repos/interests/ticker-converter/src")
-
-# pylint: disable=wrong-import-position,import-error
-from ticker_converter.data_ingestion.nyse_fetcher import NYSEDataFetcher
-from ticker_converter.data_ingestion.currency_fetcher import CurrencyDataFetcher
-from ticker_converter.data_ingestion.database_manager import DatabaseManager
 
 
 class DAGConfig:
@@ -62,53 +53,23 @@ class DAGConfig:
 def extract_stock_prices() -> None:
     """Extract stock prices from Alpha Vantage API.
 
-    This function calls the Alpha Vantage API for each stock
-    and inserts into staging tables (raw_stock_data).
+    This function would call the Alpha Vantage API for each stock
+    and insert into staging tables or directly into fact_stock_prices.
+    Implementation placeholder for SQL-first architecture.
     """
-    # Initialize components
-    db_manager = DatabaseManager()
-    fetcher = NYSEDataFetcher()
-
-    try:
-        # Fetch data for all Magnificent Seven stocks (last 5 days)
-        all_records = fetcher.fetch_and_prepare_all_data(days_back=5)
-
-        if all_records:
-            # Insert into raw_stock_data table
-            db_manager.insert_stock_data(all_records)
-            print(f"Successfully inserted {len(all_records)} stock records")
-        else:
-            print("No stock data to insert")
-
-    except Exception as e:
-        print(f"Error extracting stock prices: {e}")
-        raise
+    # TODO: Implement Alpha Vantage API integration
+    print("Extracting stock prices from Alpha Vantage API")
 
 
 def extract_exchange_rates() -> None:
     """Extract exchange rates from exchangerate-api.io.
 
-    This function calls the exchange rate API
-    and inserts into staging tables (raw_currency_data).
+    This function would call the exchange rate API
+    and insert into fact_exchange_rates.
+    Implementation placeholder for SQL-first architecture.
     """
-    # Initialize components
-    db_manager = DatabaseManager()
-    fetcher = CurrencyDataFetcher()
-
-    try:
-        # Fetch USD/GBP exchange rates (last 5 days)
-        all_records = fetcher.fetch_and_prepare_fx_data(days_back=5)
-
-        if all_records:
-            # Insert into raw_currency_data table
-            db_manager.insert_currency_data(all_records)
-            print(f"Successfully inserted {len(all_records)} currency records")
-        else:
-            print("No currency data to insert")
-
-    except Exception as e:
-        print(f"Error extracting exchange rates: {e}")
-        raise
+    # TODO: Implement exchange rate API integration
+    print("Extracting exchange rates from API")
 
 
 def create_dimension_load_tasks(dag_instance: DAG) -> list[SQLExecuteQueryOperator]:
@@ -193,10 +154,10 @@ def create_transformation_tasks(dag_instance: DAG) -> list[SQLExecuteQueryOperat
 
 
 # Create the DAG
-dag = DAG(  # pylint: disable=unexpected-keyword-arg
-    dag_id=DAGConfig.DAG_ID,
-    description=DAGConfig.DESCRIPTION,
+dag = DAG(
+    DAGConfig.DAG_ID,
     default_args=DAGConfig.DEFAULT_ARGS,
+    description=DAGConfig.DESCRIPTION,
     schedule=DAGConfig.SCHEDULE,
     catchup=False,
     max_active_runs=1,
@@ -214,13 +175,13 @@ transformation_tasks = create_transformation_tasks(dag)
 
 # Extract individual tasks for easier reference
 # Dimension tasks (3 tasks as defined in DIMENSION_TABLES)
-load_stock_dimension = dimension_tasks[0]  # pylint: disable=unused-variable
-load_date_dimension = dimension_tasks[1]  # pylint: disable=unused-variable
-load_currency_dimension = dimension_tasks[2]  # pylint: disable=unused-variable
+load_stock_dimension = dimension_tasks[0]
+load_date_dimension = dimension_tasks[1]
+load_currency_dimension = dimension_tasks[2]
 
 # Extraction tasks (2 tasks)
-extract_stock_data = extraction_tasks[0]  # pylint: disable=unused-variable
-extract_currency_data = extraction_tasks[1]  # pylint: disable=unused-variable
+extract_stock_data = extraction_tasks[0]
+extract_currency_data = extraction_tasks[1]
 
 # Transformation tasks (3 tasks)
 run_daily_transforms = transformation_tasks[0]

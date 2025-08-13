@@ -1,483 +1,216 @@
 """Database manager for data ingestion operations.
 
-This module handles PostgreSQL database connectivity and operations for the data ingestion
+This module handles database connectivity and operations for the data ingestion
 pipeline, including checking if the database needs initial setup.
 """
 
 import logging
 import os
-import urllib.parse
-from datetime import datetime
+import sqlite3
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import psycopg2
 import psycopg2.extensions
-import psycopg2.extras
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 
 # Load environment variables
 load_dotenv()
 
 
+# Simple config class for database operations
+class SimpleConfig:
+    """Simple configuration class for database operations."""
+
+    def __init__(self) -> None:
+        self.DATABASE_URL = os.getenv("DATABASE_URL")
+
+
+config = SimpleConfig()
+
+
 class DatabaseManager:
-    """Manages PostgreSQL database connections and operations for data ingestion."""
+    """Manager for database operations during data ingestion."""
 
     def __init__(self, connection_string: str | None = None) -> None:
-        """Initialize the DatabaseManager with PostgreSQL connection.
+        """Initialize the database manager.
 
         Args:
-            connection_string: PostgreSQL connection string. If None, will use DATABASE_URL from environment.
+            connection_string: Database connection string. If None, uses config.
         """
-        self.connection_string = connection_string or self._get_connection_string()
+        self.connection_string = connection_string or self._get_default_connection()
+        self.is_sqlite = "sqlite" in self.connection_string.lower()
         self.logger = logging.getLogger(__name__)
 
-    def _get_connection_string(self) -> str:
-        """Get PostgreSQL connection string from environment variables."""
-        database_url = os.getenv("DATABASE_URL")
-        if not database_url:
-            raise ValueError(
-                "DATABASE_URL environment variable is required for PostgreSQL connection"
-            )
+    def _get_default_connection(self) -> str:
+        """Get default database connection from config."""
+        if hasattr(config, "DATABASE_URL") and config.DATABASE_URL:
+            return config.DATABASE_URL
 
-        if not database_url.startswith("postgresql://"):
-            raise ValueError(
-                "DATABASE_URL must be a PostgreSQL connection string (postgresql://...)"
-            )
+        # Fall back to SQLite for development
+        db_path = Path("data/ticker_converter.db")
+        db_path.parent.mkdir(exist_ok=True)
+        return f"sqlite:///{db_path}"
 
-        return database_url
+    def get_connection(self) -> sqlite3.Connection | psycopg2.extensions.connection:
+        """Get database connection based on connection string."""
+        if self.is_sqlite:
+            # Extract path from sqlite:///path format
+            db_path = self.connection_string.replace("sqlite:///", "")
+            return sqlite3.connect(db_path)
 
-    def get_connection(self) -> psycopg2.extensions.connection:
-        """Establish a PostgreSQL database connection."""
+        # PostgreSQL connection
         return psycopg2.connect(self.connection_string)
 
     def execute_query(
-        self, query: str, params: Any = None, fetch_results: bool = False
-    ) -> list[dict[str, Any]] | None:
-        """Execute a query against the PostgreSQL database.
+        self, query: str, params: tuple[Any, ...] | None = None
+    ) -> list[dict[str, Any]]:
+        """Execute a query and return results.
 
         Args:
             query: SQL query to execute
-            params: Parameters for the query
-            fetch_results: Whether to fetch and return results
+            params: Query parameters
 
         Returns:
-            Query results if fetch_results is True, None otherwise
+            List of result dictionaries
         """
-        try:
-            with self.get_connection() as conn:
-                with conn.cursor(
-                    cursor_factory=psycopg2.extras.RealDictCursor
-                ) as cursor:
-                    cursor.execute(query, params)
+        with self.get_connection() as conn:
+            if self.is_sqlite:
+                assert isinstance(conn, sqlite3.Connection)
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute(query, params or ())
+                return [dict(row) for row in cursor.fetchall()]
 
-                    if fetch_results:
-                        results = cursor.fetchall()
-                        return [dict(row) for row in results]
+            # PostgreSQL connection
+            assert isinstance(conn, psycopg2.extensions.connection)
+            with conn.cursor(cursor_factory=RealDictCursor) as pg_cursor:
+                pg_cursor.execute(query, params or ())
+                return [dict(row) for row in pg_cursor.fetchall()]
 
-                    conn.commit()
-                    return None
-
-        except psycopg2.Error as e:
-            self.logger.error("Database query failed: %s", e)
-            raise
-
-    def bulk_insert(
-        self, table_name: str, data: list[dict[str, Any]], on_conflict: str = "NOTHING"
-    ) -> None:
-        """Perform bulk insert into PostgreSQL table.
+    def execute_insert(self, query: str, records: list[dict[str, Any]]) -> int:
+        """Execute bulk insert operation.
 
         Args:
-            table_name: Name of the table to insert into
-            data: List of dictionaries containing the data to insert
-            on_conflict: Conflict resolution strategy (NOTHING, UPDATE, etc.)
-        """
-        if not data:
-            return
-
-        try:
-            with self.get_connection() as conn:
-                with conn.cursor() as cursor:
-                    # PostgreSQL bulk insert using execute_values
-                    columns = list(data[0].keys())
-                    values = [[row[col] for col in columns] for row in data]
-
-                    query = f"""
-                        INSERT INTO {table_name} ({", ".join(columns)})
-                        VALUES %s
-                        ON CONFLICT DO {on_conflict}
-                    """
-
-                    psycopg2.extras.execute_values(
-                        cursor, query, values, template=None, page_size=1000
-                    )
-                    conn.commit()
-
-        except psycopg2.Error as e:
-            self.logger.error("Bulk insert failed for table %s: %s", table_name, e)
-            raise
-
-    def check_stocks_table_empty(self) -> bool:
-        """Check if stocks table exists and is empty."""
-        try:
-            result = self.execute_query(
-                "SELECT COUNT(*) as count FROM dim_stocks LIMIT 1", fetch_results=True
-            )
-            return result[0]["count"] == 0 if result else True
-
-        except psycopg2.Error as e:
-            self.logger.info("Stocks table check failed (table may not exist): %s", e)
-            return True
-
-    def check_exchange_rates_table_empty(self) -> bool:
-        """Check if exchange rates table exists and is empty."""
-        try:
-            result = self.execute_query(
-                "SELECT COUNT(*) as count FROM fact_exchange_rates LIMIT 1",
-                fetch_results=True,
-            )
-            return result[0]["count"] == 0 if result else True
-
-        except psycopg2.Error as e:
-            self.logger.info(
-                "Exchange rates table check failed (table may not exist): %s", e
-            )
-            return True
-
-    def get_latest_stock_date(self, symbol: str) -> datetime | None:
-        """Get the latest date for which we have stock data for a given symbol."""
-        try:
-            query = """
-                SELECT MAX(sp.date) as latest_date
-                FROM fact_stock_prices sp
-                JOIN dim_stocks s ON sp.stock_id = s.id
-                WHERE s.symbol = %s
-            """
-
-            result = self.execute_query(query, (symbol,), fetch_results=True)
-
-            if result and result[0]["latest_date"]:
-                return result[0]["latest_date"]
-            return None
-
-        except psycopg2.Error as e:
-            self.logger.error("Failed to get latest stock date for %s: %s", symbol, e)
-            return None
-
-    def get_latest_exchange_rate_date(
-        self, from_currency: str, to_currency: str
-    ) -> datetime | None:
-        """Get the latest date for exchange rate data."""
-        try:
-            query = """
-                SELECT MAX(date) as latest_date
-                FROM fact_exchange_rates
-                WHERE from_currency = %s AND to_currency = %s
-            """
-
-            result = self.execute_query(
-                query, (from_currency, to_currency), fetch_results=True
-            )
-
-            if result and result[0]["latest_date"]:
-                return result[0]["latest_date"]
-            return None
-
-        except psycopg2.Error as e:
-            self.logger.error(
-                "Failed to get latest exchange rate date for %s/%s: %s",
-                from_currency,
-                to_currency,
-                e,
-            )
-            return None
-
-    def needs_initial_setup(self) -> bool:
-        """Check if database needs initial setup (both stocks and exchange rates are empty)."""
-        return (
-            self.check_stocks_table_empty() and self.check_exchange_rates_table_empty()
-        )
-
-    def get_stock_count(self) -> int:
-        """Get the total number of stocks in the database."""
-        try:
-            result = self.execute_query(
-                "SELECT COUNT(*) as count FROM dim_stocks", fetch_results=True
-            )
-            return result[0]["count"] if result else 0
-
-        except psycopg2.Error as e:
-            self.logger.error("Failed to get stock count: %s", e)
-            return 0
-
-    def get_price_record_count(self) -> int:
-        """Get the total number of price records in the database."""
-        try:
-            result = self.execute_query(
-                "SELECT COUNT(*) as count FROM fact_stock_prices", fetch_results=True
-            )
-            return result[0]["count"] if result else 0
-
-        except psycopg2.Error as e:
-            self.logger.error("Failed to get price record count: %s", e)
-            return 0
-
-    def get_exchange_rate_count(self) -> int:
-        """Get the total number of exchange rate records in the database."""
-        try:
-            result = self.execute_query(
-                "SELECT COUNT(*) as count FROM fact_exchange_rates", fetch_results=True
-            )
-            return result[0]["count"] if result else 0
-
-        except psycopg2.Error as e:
-            self.logger.error("Failed to get exchange rate count: %s", e)
-            return 0
-
-    def create_database_schema(self) -> dict[str, Any]:
-        """Create database schema by executing DDL files in order.
+            query: SQL insert query
+            records: List of record dictionaries to insert
 
         Returns:
-            Dictionary with execution results and any errors
+            Number of records inserted
         """
-        results = {"success": False, "ddl_files_executed": [], "errors": []}
+        if not records:
+            return 0
 
-        try:
-            # Get DDL directory
-            current_dir = Path(__file__).parent.parent.parent.parent
-            ddl_dir = current_dir / "sql" / "ddl"
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
 
-            if not ddl_dir.exists():
-                results["errors"].append(f"DDL directory not found: {ddl_dir}")
-                return results
+            if self.is_sqlite:
+                # SQLite bulk insert
+                cursor.executemany(query, records)
+                inserted_count = cursor.rowcount
+            else:
+                # PostgreSQL bulk insert
+                from psycopg2.extras import (  # pylint: disable=import-outside-toplevel
+                    execute_values,
+                )
 
-            # Get all DDL files and sort them by name (ensures 001_, 002_, etc. order)
-            ddl_files = sorted([f for f in ddl_dir.glob("*.sql") if f.is_file()])
+                # Convert dict records to tuple values
+                columns = list(records[0].keys())
+                values = [[record[col] for col in columns] for record in records]
 
-            if not ddl_files:
-                results["errors"].append(f"No DDL files found in {ddl_dir}")
-                return results
+                execute_values(cursor, query, values)
+                inserted_count = cursor.rowcount
 
-            with self.get_connection() as conn:
-                with conn.cursor() as cursor:
-                    for ddl_file in ddl_files:
-                        ddl_path = ddl_dir / ddl_file
-
-                        with open(ddl_path, "r", encoding="utf-8") as f:
-                            ddl_content = f.read()
-
-                        # Split DDL content into individual statements
-                        # Remove comments and empty lines, then split by semicolon
-                        statements = []
-                        for stmt in ddl_content.split(";"):
-                            # Clean up statement - remove comments and whitespace
-                            cleaned_stmt = []
-                            for line in stmt.split("\n"):
-                                line = line.strip()
-                                if line and not line.startswith("--"):
-                                    cleaned_stmt.append(line)
-
-                            cleaned = " ".join(cleaned_stmt).strip()
-                            if cleaned:  # Only add non-empty statements
-                                statements.append(cleaned)
-
-                        # Execute each statement separately
-                        try:
-                            for i, statement in enumerate(statements):
-                                self.logger.debug(
-                                    "Executing statement %d from %s: %s",
-                                    i + 1,
-                                    ddl_file,
-                                    statement[:100] + "...",
-                                )
-                                cursor.execute(statement)
-                                conn.commit()
-
-                            results["ddl_files_executed"].append(ddl_file.name)
-                            self.logger.info(
-                                "Successfully executed: %s (%d statements)",
-                                ddl_file.name,
-                                len(statements),
-                            )
-
-                        except psycopg2.Error as e:
-                            error_msg = f"Failed to execute {ddl_file.name}: {e}"
-                            results["errors"].append(error_msg)
-                            self.logger.error(error_msg)
-                            # Continue with next file instead of failing completely
-                            continue
-
-            results["success"] = len(results["ddl_files_executed"]) > 0
-
-        except (psycopg2.Error, FileNotFoundError, IOError) as e:
-            error_msg = f"Schema creation failed: {e}"
-            results["errors"].append(error_msg)
-            self.logger.error(error_msg)
-
-        return results
-
-    def teardown_database_schema(self) -> dict[str, Any]:
-        """Drop all tables, views, and database objects.
-
-        Returns:
-            Dictionary with teardown results and any errors
-        """
-        results = {"success": False, "objects_dropped": [], "errors": []}
-
-        try:
-            with self.get_connection() as conn:
-                with conn.cursor() as cursor:
-                    # Get all tables in the public schema
-                    cursor.execute("""
-                        SELECT tablename FROM pg_tables 
-                        WHERE schemaname = 'public'
-                        ORDER BY tablename
-                    """)
-                    tables = [row[0] for row in cursor.fetchall()]
-
-                    # Get all views in the public schema
-                    cursor.execute("""
-                        SELECT viewname FROM pg_views 
-                        WHERE schemaname = 'public'
-                        ORDER BY viewname
-                    """)
-                    views = [row[0] for row in cursor.fetchall()]
-
-                    # Drop views first (they may depend on tables)
-                    for view in views:
-                        try:
-                            cursor.execute(f"DROP VIEW IF EXISTS {view} CASCADE")
-                            conn.commit()
-                            results["objects_dropped"].append(f"view:{view}")
-                            self.logger.info("Dropped view: %s", view)
-                        except psycopg2.Error as e:
-                            error_msg = f"Failed to drop view {view}: {e}"
-                            results["errors"].append(error_msg)
-                            self.logger.warning(error_msg)
-
-                    # Drop tables
-                    for table in tables:
-                        try:
-                            cursor.execute(f"DROP TABLE IF EXISTS {table} CASCADE")
-                            conn.commit()
-                            results["objects_dropped"].append(f"table:{table}")
-                            self.logger.info("Dropped table: %s", table)
-                        except psycopg2.Error as e:
-                            error_msg = f"Failed to drop table {table}: {e}"
-                            results["errors"].append(error_msg)
-                            self.logger.warning(error_msg)
-
-                    # Drop any remaining sequences, functions, etc.
-                    try:
-                        cursor.execute("""
-                            SELECT sequence_name FROM information_schema.sequences 
-                            WHERE sequence_schema = 'public'
-                        """)
-                        sequences = [row[0] for row in cursor.fetchall()]
-
-                        for sequence in sequences:
-                            cursor.execute(
-                                f"DROP SEQUENCE IF EXISTS {sequence} CASCADE"
-                            )
-                            conn.commit()
-                            results["objects_dropped"].append(f"sequence:{sequence}")
-                            self.logger.info("Dropped sequence: %s", sequence)
-
-                    except psycopg2.Error as e:
-                        error_msg = f"Failed to drop sequences: {e}"
-                        results["errors"].append(error_msg)
-                        self.logger.warning(error_msg)
-
-                    results["success"] = True
-                    self.logger.info("Database schema teardown completed")
-
-        except psycopg2.Error as e:
-            error_msg = f"Schema teardown failed: {e}"
-            results["errors"].append(error_msg)
-            self.logger.error(error_msg)
-
-        return results
+            conn.commit()
+            return inserted_count
 
     def is_database_empty(self) -> bool:
-        """Check if database is empty (alias for needs_initial_setup for backward compatibility).
+        """Check if the database has any stock or currency data.
 
         Returns:
-            True if database needs initial setup
-        """
-        return self.needs_initial_setup()
-
-    def health_check(self) -> dict[str, Any]:
-        """Perform database health check.
-
-        Returns:
-            Dictionary with health check results
+            True if database is empty (needs initial setup)
         """
         try:
-            # Parse database URL for display
-            parsed = urllib.parse.urlparse(self.connection_string)
-            db_display_url = f"postgresql://{parsed.hostname}:{parsed.port}/{parsed.path.lstrip('/')}"
+            # Check for stock data
+            stock_count = self.execute_query(
+                "SELECT COUNT(*) as count FROM raw_stock_data"
+            )[0]["count"]
 
-            # Test connection
-            if not self.test_connection():
-                return {
-                    "status": "offline",
-                    "error": "Connection failed",
-                    "database_url": db_display_url,
-                }
+            # Check for currency data
+            currency_count = self.execute_query(
+                "SELECT COUNT(*) as count FROM raw_currency_data"
+            )[0]["count"]
 
-            # Get record counts
-            stock_count = self.get_stock_count()
-            price_count = self.get_price_record_count()
-            currency_count = self.get_exchange_rate_count()
+            is_empty = stock_count == 0 and currency_count == 0
+            self.logger.info(
+                "Database check: %d stock records, %d currency records",
+                stock_count,
+                currency_count,
+            )
 
-            # Get latest dates
-            latest_stock = None
-            latest_currency = None
+            return is_empty
 
-            try:
-                # Get latest stock date for any symbol
-                result = self.execute_query(
-                    "SELECT MAX(sp.date) as latest_date FROM fact_stock_prices sp",
-                    fetch_results=True,
-                )
-                if result and result[0]["latest_date"]:
-                    latest_stock = result[0]["latest_date"]
-            except psycopg2.Error:
-                pass
+        except (sqlite3.Error, psycopg2.Error, OSError) as e:
+            self.logger.warning("Error checking database status: %s", e)
+            # Assume empty if we can't check
+            return True
 
-            try:
-                # Get latest currency date
-                result = self.execute_query(
-                    "SELECT MAX(date) as latest_date FROM fact_exchange_rates",
-                    fetch_results=True,
-                )
-                if result and result[0]["latest_date"]:
-                    latest_currency = result[0]["latest_date"]
-            except psycopg2.Error:
-                pass
+    def get_latest_stock_date(self, symbol: str | None = None) -> datetime | None:
+        """Get the latest date for stock data.
 
-            return {
-                "status": "online",
-                "database_url": db_display_url,
-                "stock_records": stock_count,
-                "price_records": price_count,
-                "currency_records": currency_count,
-                "latest_stock_date": latest_stock.isoformat() if latest_stock else None,
-                "latest_currency_date": latest_currency.isoformat()
-                if latest_currency
-                else None,
-                "is_empty": self.is_database_empty(),
-            }
+        Args:
+            symbol: Specific symbol to check, or None for any symbol
 
-        except Exception as e:
-            # Parse database URL for display in error case too
-            parsed = urllib.parse.urlparse(self.connection_string)
-            db_display_url = f"postgresql://{parsed.hostname}:{parsed.port}/{parsed.path.lstrip('/')}"
+        Returns:
+            Latest date or None if no data
+        """
+        try:
+            if symbol:
+                query = "SELECT MAX(data_date) as latest_date FROM raw_stock_data WHERE symbol = ?"
+                params = (symbol,)
+            else:
+                query = "SELECT MAX(data_date) as latest_date FROM raw_stock_data"
+                params = None
 
-            return {"status": "error", "error": str(e), "database_url": db_display_url}
+            result = self.execute_query(query, params)
+            latest_date = result[0]["latest_date"] if result else None
+
+            if isinstance(latest_date, str):
+                return datetime.strptime(latest_date, "%Y-%m-%d")
+            if latest_date:
+                return latest_date
+
+        except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
+            self.logger.error("Error getting latest stock date: %s", e)
+
+        return None
+
+    def get_latest_currency_date(self) -> datetime | None:
+        """Get the latest date for currency data.
+
+        Returns:
+            Latest date or None if no data
+        """
+        try:
+            result = self.execute_query(
+                "SELECT MAX(data_date) as latest_date FROM raw_currency_data"
+            )
+            latest_date = result[0]["latest_date"] if result else None
+
+            if isinstance(latest_date, str):
+                return datetime.strptime(latest_date, "%Y-%m-%d")
+            if latest_date:
+                return latest_date
+
+        except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
+            self.logger.error("Error getting latest currency date: %s", e)
+
+        return None
 
     def insert_stock_data(self, records: list[dict[str, Any]]) -> int:
-        """Insert stock data records into raw_stock_data table.
+        """Insert stock data records.
 
         Args:
             records: List of stock data records
@@ -488,17 +221,33 @@ class DatabaseManager:
         if not records:
             return 0
 
+        # Prepare insert query for raw_stock_data table
+        insert_query = """
+        INSERT INTO raw_stock_data
+        (symbol, data_date, open_price, high_price, low_price, close_price, volume, source, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (symbol, data_date, source) DO NOTHING
+        """
+
+        if not self.is_sqlite:
+            # PostgreSQL syntax
+            insert_query = """
+            INSERT INTO raw_stock_data
+            (symbol, data_date, open_price, high_price, low_price, close_price, volume, source, created_at)
+            VALUES %s
+            ON CONFLICT (symbol, data_date, source) DO NOTHING
+            """
+
         try:
-            # Insert into raw_stock_data table
-            self.bulk_insert("raw_stock_data", records, on_conflict="NOTHING")
-            self.logger.info("Inserted %d stock data records", len(records))
-            return len(records)
-        except Exception as e:
-            self.logger.error("Failed to insert stock data: %s", e)
+            inserted = self.execute_insert(insert_query, records)
+            self.logger.info("Inserted %d stock data records", inserted)
+            return inserted
+        except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
+            self.logger.error("Error inserting stock data: %s", e)
             return 0
 
     def insert_currency_data(self, records: list[dict[str, Any]]) -> int:
-        """Insert currency data records into raw_currency_data table.
+        """Insert currency data records.
 
         Args:
             records: List of currency data records
@@ -509,13 +258,29 @@ class DatabaseManager:
         if not records:
             return 0
 
+        # Prepare insert query for raw_currency_data table
+        insert_query = """
+        INSERT INTO raw_currency_data
+        (from_currency, to_currency, data_date, exchange_rate, source, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT (from_currency, to_currency, data_date, source) DO NOTHING
+        """
+
+        if not self.is_sqlite:
+            # PostgreSQL syntax
+            insert_query = """
+            INSERT INTO raw_currency_data
+            (from_currency, to_currency, data_date, exchange_rate, source, created_at)
+            VALUES %s
+            ON CONFLICT (from_currency, to_currency, data_date, source) DO NOTHING
+            """
+
         try:
-            # Insert into raw_currency_data table
-            self.bulk_insert("raw_currency_data", records, on_conflict="NOTHING")
-            self.logger.info("Inserted %d currency data records", len(records))
-            return len(records)
-        except Exception as e:
-            self.logger.error("Failed to insert currency data: %s", e)
+            inserted = self.execute_insert(insert_query, records)
+            self.logger.info("Inserted %d currency data records", inserted)
+            return inserted
+        except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
+            self.logger.error("Error inserting currency data: %s", e)
             return 0
 
     def get_missing_dates_for_symbol(
@@ -528,22 +293,88 @@ class DatabaseManager:
             days_back: Number of days to check back
 
         Returns:
-            List of missing dates (simplified - just returns empty list for now)
+            List of missing dates
         """
-        # Simplified implementation - in a full implementation, this would check
-        # for missing business days in the date range
-        self.logger.info(
-            "Checking missing dates for %s (last %d days)", symbol, days_back
-        )
-        return []
+        try:
+            end_date = datetime.now().date()
+            start_date = end_date - timedelta(days=days_back)
 
-    def test_connection(self) -> bool:
-        """Test the PostgreSQL database connection."""
+            # Get existing dates for this symbol
+            existing_query = """
+            SELECT DISTINCT data_date
+            FROM raw_stock_data
+            WHERE symbol = ? AND data_date >= ? AND data_date <= ?
+            """
+
+            existing_results = self.execute_query(
+                existing_query, (symbol, start_date, end_date)
+            )
+            existing_dates = {
+                (
+                    datetime.strptime(row["data_date"], "%Y-%m-%d").date()
+                    if isinstance(row["data_date"], str)
+                    else row["data_date"]
+                )
+                for row in existing_results
+            }
+
+            # Generate all business days in range (rough approximation)
+            all_dates = []
+            current_date = start_date
+            while current_date <= end_date:
+                # Skip weekends (rough filter)
+                if current_date.weekday() < 5:  # Monday = 0, Friday = 4
+                    all_dates.append(current_date)
+                current_date += timedelta(days=1)
+
+            # Find missing dates
+            missing_dates = [date for date in all_dates if date not in existing_dates]
+
+            return [
+                datetime.combine(date, datetime.min.time()) for date in missing_dates
+            ]
+
+        except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
+            self.logger.error("Error finding missing dates for %s: %s", symbol, e)
+            return []
+
+    def health_check(self) -> dict[str, Any]:
+        """Perform database health check.
+
+        Returns:
+            Dictionary with health check results
+        """
         try:
             with self.get_connection() as conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("SELECT 1")
-                    return True
-        except psycopg2.Error as e:
-            self.logger.error("Database connection test failed: %s", e)
-            return False
+                cursor = conn.cursor()
+
+                # Basic connectivity test
+                cursor.execute("SELECT 1")
+
+                # Get table counts
+                stock_count = self.execute_query(
+                    "SELECT COUNT(*) as count FROM raw_stock_data"
+                )[0]["count"]
+                currency_count = self.execute_query(
+                    "SELECT COUNT(*) as count FROM raw_currency_data"
+                )[0]["count"]
+
+                # Get date ranges
+                latest_stock = self.get_latest_stock_date()
+                latest_currency = self.get_latest_currency_date()
+
+                return {
+                    "status": "healthy",
+                    "stock_records": stock_count,
+                    "currency_records": currency_count,
+                    "latest_stock_date": (
+                        latest_stock.isoformat() if latest_stock else None
+                    ),
+                    "latest_currency_date": (
+                        latest_currency.isoformat() if latest_currency else None
+                    ),
+                    "is_empty": self.is_database_empty(),
+                }
+
+        except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
+            return {"status": "error", "error": str(e)}

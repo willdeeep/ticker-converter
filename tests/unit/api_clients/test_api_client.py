@@ -42,7 +42,9 @@ class TestAlphaVantageClient:
             ):
                 AlphaVantageClient()
 
-    def test_client_uses_config_api_key(self, mock_config):  # pylint: disable=unused-argument
+    def test_client_uses_config_api_key(
+        self, mock_config
+    ):  # pylint: disable=unused-argument
         """Test client uses config API key when none provided."""
         client = AlphaVantageClient()
         assert client.api_key == "test_api_key"
@@ -70,7 +72,9 @@ class TestAlphaVantageClient:
         )  # Rate limiting (12 seconds for free tier)
 
     @patch("time.sleep")
-    def test_make_request_api_error(self, mock_sleep, alpha_vantage_client):  # pylint: disable=unused-argument
+    def test_make_request_api_error(
+        self, mock_sleep, alpha_vantage_client
+    ):  # pylint: disable=unused-argument
         """Test API error handling."""
         error_response = {"Error Message": "Invalid API call"}
         mock_response = Mock()
@@ -114,7 +118,9 @@ class TestAlphaVantageClient:
         assert mock_sleep.call_count == 2
 
     @patch("time.sleep")
-    def test_make_request_max_retries_exceeded(self, mock_sleep, alpha_vantage_client):  # pylint: disable=unused-argument
+    def test_make_request_max_retries_exceeded(
+        self, mock_sleep, alpha_vantage_client
+    ):  # pylint: disable=unused-argument
         """Test max retries exceeded."""
         with patch.object(
             alpha_vantage_client.session,

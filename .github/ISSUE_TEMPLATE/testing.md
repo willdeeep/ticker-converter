@@ -148,7 +148,7 @@ responses>=0.23.1
 ```
 
 ### Database Testing Strategy
-- [ ] PostgreSQL test database for integration tests
+- [ ] In-memory SQLite for unit tests
 - [ ] PostgreSQL container for integration tests
 - [ ] Test data factories
 - [ ] Database migration testing
