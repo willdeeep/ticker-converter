@@ -5,6 +5,7 @@ This is a simple test DAG to verify Airflow is working correctly.
 """
 
 from datetime import datetime, timedelta
+
 from airflow.decorators import dag, task
 
 

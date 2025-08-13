@@ -191,7 +191,9 @@ class NYSEDataFetcher:
                     if isinstance(converted_date, datetime):
                         return converted_date
                 except (ValueError, TypeError):
-                    self.logger.warning("Could not convert date %s to datetime", latest_date)
+                    self.logger.warning(
+                        "Could not convert date %s to datetime", latest_date
+                    )
         except (ValueError, KeyError, TypeError, AttributeError) as e:
             self.logger.error("Error getting latest date for %s: %s", symbol, e)
 

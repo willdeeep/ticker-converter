@@ -238,8 +238,7 @@ def ticker_converter_daily_etl():
     )
 
     clean_transform_data = SQLExecuteQueryOperator(
-        task_id="clean_transform_data",
-        sql=DAGConfig.SQL_FILES["clean_transform_data"]
+        task_id="clean_transform_data", sql=DAGConfig.SQL_FILES["clean_transform_data"]
     )
 
     # Create task instances
@@ -254,8 +253,14 @@ def ticker_converter_daily_etl():
     start_task >> [extract_stock_task, extract_exchange_task]
 
     # Step 3: After JSON files are created, load them into PostgreSQL in parallel
-    extract_stock_task >> [load_raw_stock_data_to_postgres, load_raw_exchange_data_to_postgres]
-    extract_exchange_task >> [load_raw_stock_data_to_postgres, load_raw_exchange_data_to_postgres]
+    extract_stock_task >> [
+        load_raw_stock_data_to_postgres,
+        load_raw_exchange_data_to_postgres,
+    ]
+    extract_exchange_task >> [
+        load_raw_stock_data_to_postgres,
+        load_raw_exchange_data_to_postgres,
+    ]
 
     # After both raw data loads complete, run the clean and transform step
     [
