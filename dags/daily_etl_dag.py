@@ -15,16 +15,17 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# Add the src directory to the Python path
-sys.path.append("/Users/willhuntleyclarke/repos/interests/ticker-converter/src")
-
 from airflow.decorators import dag, task
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.empty import EmptyOperator
 
+# Add the src directory to the Python path (must be before ticker_converter imports)
+sys.path.append("/Users/willhuntleyclarke/repos/interests/ticker-converter/src")
+
+# These imports depend on the path modification above
+# pylint: disable=wrong-import-position
 from ticker_converter.data_ingestion.currency_fetcher import CurrencyDataFetcher
 from ticker_converter.data_ingestion.nyse_fetcher import NYSEDataFetcher
-from ticker_converter.data_ingestion.orchestrator import DataIngestionOrchestrator
 
 
 class DAGConfig:
