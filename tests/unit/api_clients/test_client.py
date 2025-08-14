@@ -65,8 +65,8 @@ class TestAlphaVantageClient:
         assert result == {"test": "data"}
         client.session.get.assert_called_once()
 
-    @patch("src.ticker_converter.api_clients.client.requests.get")
-    def test_make_request_rate_limit_error(self, mock_get):
+    @patch.object(AlphaVantageClient, "_setup_sync_session")
+    def test_make_request_rate_limit_error(self, mock_setup):
         """Test API rate limit error handling."""
         # Setup mock response for rate limit
         mock_response = Mock()
@@ -74,9 +74,10 @@ class TestAlphaVantageClient:
         mock_response.json.return_value = {
             "Error Message": "You have reached the 5 API requests per minute limit"
         }
-        mock_get.return_value = mock_response
 
         client = AlphaVantageClient(api_key="test_key")
+        client.session = Mock()
+        client.session.get.return_value = mock_response
 
         with pytest.raises(AlphaVantageRateLimitError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
@@ -97,41 +98,39 @@ class TestAlphaVantageClient:
         with pytest.raises(AlphaVantageAuthenticationError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
-    @patch("src.ticker_converter.api_clients.client.requests.get")
-    def test_make_request_http_error(self, mock_get):
+    @patch.object(AlphaVantageClient, "_setup_sync_session")
+    def test_make_request_http_error(self, mock_setup):
         """Test HTTP error handling."""
         # Setup mock response for HTTP error
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.raise_for_status.side_effect = requests.HTTPError("Server Error")
-        mock_response.json.return_value = (
-            {}
-        )  # Empty response to avoid error message parsing
-        mock_get.return_value = mock_response
 
         client = AlphaVantageClient(api_key="test_key")
+        client.session = Mock()
+        client.session.get.return_value = mock_response
 
         with pytest.raises(AlphaVantageRequestError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
-    @patch("src.ticker_converter.api_clients.client.requests.get")
-    def test_make_request_timeout(self, mock_get):
+    @patch.object(AlphaVantageClient, "_setup_sync_session")
+    def test_make_request_timeout(self, mock_setup):
         """Test timeout error handling."""
-        # Setup mock for timeout - this should raise exception before getting response
-        mock_get.side_effect = Timeout("Request timed out")
-
+        # Setup mock for timeout
         client = AlphaVantageClient(api_key="test_key")
+        client.session = Mock()
+        client.session.get.side_effect = Timeout("Request timed out")
 
         with pytest.raises(AlphaVantageTimeoutError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
-    @patch("src.ticker_converter.api_clients.client.requests.get")
-    def test_make_request_connection_error(self, mock_get):
+    @patch.object(AlphaVantageClient, "_setup_sync_session")
+    def test_make_request_connection_error(self, mock_setup):
         """Test connection error handling."""
-        # Setup mock for connection error - this should raise exception before getting response
-        mock_get.side_effect = RequestException("Connection failed")
-
+        # Setup mock for connection error
         client = AlphaVantageClient(api_key="test_key")
+        client.session = Mock()
+        client.session.get.side_effect = RequestException("Connection failed")
 
         with pytest.raises(AlphaVantageRequestError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
