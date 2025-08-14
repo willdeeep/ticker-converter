@@ -1,40 +1,31 @@
-"""NYSE stock data fetcher for Magnificent Seven companies.
-
-This module handles f        results = {}
-
-        self.logger.info("Fetching data for         for symbol, df in stock_data.items():
-            records = self.prepare_for_sql_insert(df, symbol)
-            all_records.extend(records)
-            self.logger.info("Prepared %d records for %s", len(records), symbol)
-
-        self.logger.info("Total prepared records: %d", len(all_records))icent Seven companies (%d days)", days_back)
-
-        for symbol in self.MAGNIFICENT_SEVEN:
-            df = self.fetch_daily_data(symbol, days_back)
-            if df is not None:
-                results[symbol] = df
-            else:
-                self.logger.warning("Failed to fetch data for %s", symbol)
-
-        self.logger.info("Successfully fetched data for %d companies", len(results))y stock data for the Magnificent Seven companies
-(AAPL, MSFT, AMZN, GOOGL, META, NVDA, TSLA) and storing it in SQL tables.
-"""
-
-import logging
-from datetime import datetime
-from typing import Any
+"""NYSfrom datetime import date
+from typing import Any, ClassVar
 
 import pandas as pd
 
-from ..api_clients.api_client import AlphaVantageClient
+from ..api_clients.api_client import AlphaVantageAPIError
 from ..api_clients.constants import OutputSize
+from .base_fetcher import BaseDataFetcherdata fetcher for Magnificent Seven companies.
+
+This module handles fetching daily stock data for the Magnificent Seven companies
+(AAPL, MSFT, AMZN, GOOGL, META, NVDA, TSLA) and storing it in SQL tables.
+"""
+
+from datetime import date, datetime
+from typing import Any, ClassVar
+
+import pandas as pd
+
+from ..api_clients.api_client import AlphaVantageAPIError, AlphaVantageClient
+from ..api_clients.constants import OutputSize
+from .base_fetcher import BaseDataFetcher
 
 
-class NYSEDataFetcher:
+class NYSEDataFetcher(BaseDataFetcher):
     """Fetcher for NYSE stock data focusing on Magnificent Seven companies."""
 
     # Magnificent Seven companies
-    MAGNIFICENT_SEVEN = [
+    MAGNIFICENT_SEVEN: ClassVar[list[str]] = [
         "AAPL",  # Apple Inc.
         "MSFT",  # Microsoft Corporation
         "AMZN",  # Amazon.com Inc.
@@ -44,64 +35,65 @@ class NYSEDataFetcher:
         "TSLA",  # Tesla Inc.
     ]
 
-    def __init__(self, api_client: AlphaVantageClient | None = None):
-        """Initialize the NYSE data fetcher.
-
-        Args:
-            api_client: Alpha Vantage API client. If None, creates a new instance.
-        """
-        self.api_client = api_client or AlphaVantageClient()
-        self.logger = logging.getLogger(__name__)
+    # Required columns for stock data validation
+    REQUIRED_COLUMNS: ClassVar[list[str]] = [
+        "Date",
+        "Open",
+        "High",
+        "Low",
+        "Close",
+        "Volume",
+    ]
 
     def fetch_daily_data(self, symbol: str, days_back: int = 10) -> pd.DataFrame | None:
         """Fetch daily stock data for a specific symbol.
 
         Args:
-            symbol: Stock symbol (e.g., 'AAPL')
-            days_back: Number of days of historical data to fetch (for initial setup)
+            symbol: Stock symbol to fetch
+            days_back: Number of days of historical data to fetch
 
         Returns:
-            DataFrame with daily stock data or None if fetch fails
+            DataFrame with daily stock data or None if error
         """
         try:
-            self.logger.info("Fetching daily data for %s", symbol)
+            self.logger.info("Fetching %d days of data for %s", days_back, symbol)
 
-            # Determine output size based on days requested
-            output_size = OutputSize.FULL if days_back > 100 else OutputSize.COMPACT
+            # Get data from Alpha Vantage
+            df = self.api_client.get_daily_stock_data(symbol, OutputSize.COMPACT)
 
-            df = self.api_client.get_daily_stock_data(symbol, output_size)
-
-            if df.empty:
-                self.logger.warning("No data returned for %s", symbol)
+            if not self._validate_dataframe(df, self.REQUIRED_COLUMNS):
                 return None
 
-            # Filter to the requested number of days
-            df_filtered = df.head(days_back)
+            # Filter to requested number of days
+            df_filtered = df.tail(days_back) if days_back > 0 else df
 
             self.logger.info(
                 "Retrieved %d days of data for %s", len(df_filtered), symbol
             )
             return df_filtered
 
+        except AlphaVantageAPIError as e:
+            self._handle_api_error(e, f"fetching data for {symbol}")
+            return None
         except (ValueError, KeyError, TypeError, pd.errors.ParserError) as e:
-            self.logger.error("Error fetching data for %s: %s", symbol, e)
+            self._handle_data_error(e, f"fetching data for {symbol}")
             return None
 
     def fetch_magnificent_seven_data(
         self, days_back: int = 10
     ) -> dict[str, pd.DataFrame]:
-        """Fetch daily data for all Magnificent Seven companies.
+        """Fetch data for all Magnificent Seven companies.
 
         Args:
             days_back: Number of days of historical data to fetch
 
         Returns:
-            Dictionary mapping symbols to their DataFrames
+            Dictionary mapping symbol to DataFrame
         """
         results = {}
 
         self.logger.info(
-            "Fetching data for Magnificent Seven companies (%s days)", days_back
+            f"Fetching data for Magnificent Seven companies ({days_back} days)"
         )
 
         for symbol in self.MAGNIFICENT_SEVEN:
@@ -109,12 +101,9 @@ class NYSEDataFetcher:
             if df is not None:
                 results[symbol] = df
             else:
-                self.logger.warning("Failed to fetch data for %s", symbol)
+                self.logger.warning(f"Failed to fetch data for {symbol}")
 
-        self.logger.info(
-            "Successfully fetched data for {len(results)}/%s companies",
-            len(self.MAGNIFICENT_SEVEN),
-        )
+        self.logger.info(f"Successfully fetched data for {len(results)} companies")
         return results
 
     def prepare_for_sql_insert(
@@ -129,23 +118,34 @@ class NYSEDataFetcher:
         Returns:
             List of dictionaries ready for SQL insertion
         """
+        if not self._validate_dataframe(df, self.REQUIRED_COLUMNS):
+            return []
+
         records = []
+        base_record = self._create_base_record()
 
         for _, row in df.iterrows():
-            record = {
-                "symbol": symbol,
-                "data_date": (
-                    row["Date"].date() if hasattr(row["Date"], "date") else row["Date"]
-                ),
-                "open_price": float(row["Open"]),
-                "high_price": float(row["High"]),
-                "low_price": float(row["Low"]),
-                "close_price": float(row["Close"]),
-                "volume": int(row["Volume"]),
-                "source": "alpha_vantage",
-                "created_at": datetime.now(),
-            }
-            records.append(record)
+            try:
+                record = {
+                    "symbol": symbol,
+                    "data_date": self._safe_date_conversion(row["Date"]),
+                    "open_price": self._safe_float_conversion(
+                        row["Open"], "open_price"
+                    ),
+                    "high_price": self._safe_float_conversion(
+                        row["High"], "high_price"
+                    ),
+                    "low_price": self._safe_float_conversion(row["Low"], "low_price"),
+                    "close_price": self._safe_float_conversion(
+                        row["Close"], "close_price"
+                    ),
+                    "volume": self._safe_int_conversion(row["Volume"], "volume"),
+                    **base_record,
+                }
+                records.append(record)
+            except Exception as e:
+                self.logger.warning(f"Skipping invalid row for {symbol}: {e}")
+                continue
 
         return records
 
@@ -159,51 +159,41 @@ class NYSEDataFetcher:
             List of all records ready for SQL insertion
         """
         all_records = []
-
         stock_data = self.fetch_magnificent_seven_data(days_back)
 
         for symbol, df in stock_data.items():
             records = self.prepare_for_sql_insert(df, symbol)
             all_records.extend(records)
-            self.logger.info("Prepared {len(records)} records for %s", symbol)
+            self.logger.info(f"Prepared {len(records)} records for {symbol}")
 
-        self.logger.info("Total records prepared for insertion: %s", len(all_records))
+        self.logger.info(f"Total records prepared for insertion: {len(all_records)}")
         return all_records
 
-    def get_latest_available_date(self, symbol: str) -> datetime | None:
+    def get_latest_available_date(self, symbol: str) -> date | None:
         """Get the latest available date for a symbol from the API.
 
         Args:
             symbol: Stock symbol
 
         Returns:
-            Latest available date or None if not available
+            Latest available date or None if error
         """
         try:
-            df = self.api_client.get_daily_stock_data(symbol, OutputSize.COMPACT)
-            if not df.empty:
-                latest_date = df["Date"].max()
-                if isinstance(latest_date, datetime):
-                    return latest_date
-                # Convert pandas Timestamp to datetime if needed
-                try:
-                    converted_date = pd.to_datetime(latest_date).to_pydatetime()
-                    if isinstance(converted_date, datetime):
-                        return converted_date
-                except (ValueError, TypeError):
-                    self.logger.warning(
-                        "Could not convert date %s to datetime", latest_date
-                    )
-        except (ValueError, KeyError, TypeError, AttributeError) as e:
-            self.logger.error("Error getting latest date for %s: %s", symbol, e)
+            df = self.fetch_daily_data(symbol, days_back=1)
+            if df is not None and not df.empty:
+                latest_date = df.iloc[-1]["Date"]
+                return self._safe_date_conversion(latest_date)
+            return None
 
-        return None
+        except (ValueError, KeyError, TypeError, IndexError) as e:
+            self._handle_data_error(e, f"getting latest date for {symbol}")
+            return None
 
-    def check_data_freshness(self) -> dict[str, datetime]:
-        """Check latest available dates for all Magnificent Seven companies.
+    def check_data_freshness(self) -> dict[str, date]:
+        """Check data freshness for all Magnificent Seven stocks.
 
         Returns:
-            Dictionary mapping symbols to their latest available dates
+            Dictionary mapping symbol to latest available date
         """
         freshness = {}
 

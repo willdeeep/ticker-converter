@@ -24,7 +24,7 @@ class DataIngestionOrchestrator:
         db_manager: DatabaseManager | None = None,
         nyse_fetcher: NYSEDataFetcher | None = None,
         currency_fetcher: CurrencyDataFetcher | None = None,
-    ):
+    ) -> None:
         """Initialize the data ingestion orchestrator.
 
         Args:
@@ -47,10 +47,41 @@ class DataIngestionOrchestrator:
             Dictionary with setup results
         """
         self.logger.info(
-            "Starting initial database setup with %d days of data", days_back
+            f"Starting initial database setup with {days_back} days of data"
         )
 
-        results: dict[str, Any] = {
+        results = self._create_base_result(days_back)
+
+        try:
+            # Fetch and insert stock data
+            stock_result = self._process_stock_data(days_back)
+            results.update(stock_result)
+
+            # Fetch and insert currency data
+            currency_result = self._process_currency_data(days_back)
+            results.update(currency_result)
+
+            results["setup_completed"] = datetime.now().isoformat()
+            self.logger.info(
+                f"Initial setup completed. Total records: {results['total_records_inserted']}"
+            )
+
+        except Exception as e:
+            self.logger.error(f"Unexpected error during initial setup: {e}")
+            results["errors"].append(f"Unexpected error: {e}")
+
+        return results
+
+    def _create_base_result(self, days_back: int) -> dict[str, Any]:
+        """Create base result dictionary.
+
+        Args:
+            days_back: Number of days requested
+
+        Returns:
+            Base result dictionary
+        """
+        return {
             "setup_started": datetime.now().isoformat(),
             "days_requested": days_back,
             "stock_data": {},
@@ -59,70 +90,67 @@ class DataIngestionOrchestrator:
             "errors": [],
         }
 
-        try:
-            # 1. Fetch stock data for Magnificent Seven
-            self.logger.info("Fetching stock data for Magnificent Seven companies")
-            stock_records = self.nyse_fetcher.fetch_and_prepare_all_data(days_back)
+    def _process_stock_data(self, days_back: int) -> dict[str, Any]:
+        """Process stock data fetching and insertion.
 
-            if stock_records:
-                stock_inserted = self.db_manager.insert_stock_data(stock_records)
-                results["stock_data"] = {
-                    "records_fetched": len(stock_records),
-                    "records_inserted": stock_inserted,
-                    "companies": self.nyse_fetcher.MAGNIFICENT_SEVEN,
-                }
-                results["total_records_inserted"] += stock_inserted
-                self.logger.info(
-                    "Stock data setup complete: %d records inserted", stock_inserted
-                )
-            else:
-                results["errors"].append("Failed to fetch stock data")
-                self.logger.error("Failed to fetch any stock data")
+        Args:
+            days_back: Number of days to fetch
 
-            # 2. Fetch currency conversion data
-            self.logger.info("Fetching USD/GBP currency conversion data")
-            currency_records = self.currency_fetcher.fetch_and_prepare_fx_data(
-                days_back
-            )
+        Returns:
+            Dictionary with stock processing results
+        """
+        self.logger.info("Fetching stock data for Magnificent Seven companies")
 
-            if currency_records:
-                currency_inserted = self.db_manager.insert_currency_data(
-                    currency_records
-                )
-                results["currency_data"] = {
-                    "records_fetched": len(currency_records),
-                    "records_inserted": currency_inserted,
-                    "currency_pair": f"{self.currency_fetcher.FROM_CURRENCY}/{self.currency_fetcher.TO_CURRENCY}",
-                }
-                results["total_records_inserted"] += currency_inserted
-                self.logger.info(
-                    "Currency data setup complete: %d records inserted",
-                    currency_inserted,
-                )
-            else:
-                results["errors"].append("Failed to fetch currency data")
-                self.logger.error("Failed to fetch currency data")
+        stock_records = self.nyse_fetcher.fetch_and_prepare_all_data(days_back)
+        if not stock_records:
+            error_msg = "Failed to fetch stock data"
+            self.logger.error(error_msg)
+            return {"errors": [error_msg], "total_records_inserted": 0}
 
-            # 3. Final status
-            results["setup_completed"] = datetime.now().isoformat()
-            results["success"] = not results["errors"]
+        stock_inserted = self.db_manager.insert_stock_data(stock_records)
+        self.logger.info(
+            f"Stock data setup complete: {stock_inserted} records inserted"
+        )
 
-            if results["success"]:
-                self.logger.info(
-                    "Initial setup completed successfully: %d total records",
-                    results["total_records_inserted"],
-                )
-            else:
-                self.logger.warning(
-                    "Initial setup completed with errors: %s", results["errors"]
-                )
+        return {
+            "stock_data": {
+                "records_fetched": len(stock_records),
+                "records_inserted": stock_inserted,
+                "companies": self.nyse_fetcher.MAGNIFICENT_SEVEN,
+            },
+            "total_records_inserted": stock_inserted,
+        }
 
-        except (ValueError, TypeError, AttributeError, RuntimeError) as e:
-            results["errors"].append(f"Setup failed: {str(e)}")
-            results["success"] = False
-            self.logger.error("Initial setup failed: %s", str(e))
+    def _process_currency_data(self, days_back: int) -> dict[str, Any]:
+        """Process currency data fetching and insertion.
 
-        return results
+        Args:
+            days_back: Number of days to fetch
+
+        Returns:
+            Dictionary with currency processing results
+        """
+        self.logger.info("Fetching USD/GBP currency conversion data")
+
+        currency_records = self.currency_fetcher.fetch_and_prepare_fx_data(days_back)
+        if not currency_records:
+            error_msg = "Failed to fetch currency data"
+            self.logger.error(error_msg)
+            return {"errors": [error_msg]}
+
+        currency_inserted = self.db_manager.insert_currency_data(currency_records)
+        self.logger.info(
+            f"Currency data setup complete: {currency_inserted} records inserted"
+        )
+
+        return {
+            "currency_data": {
+                "records_fetched": len(currency_records),
+                "records_inserted": currency_inserted,
+                "currency_pair": f"{self.currency_fetcher.FROM_CURRENCY}/{self.currency_fetcher.TO_CURRENCY}",
+            },
+            "total_records_inserted": currency_inserted,
+        }
 
     def perform_daily_update(self) -> dict[str, Any]:
         """Perform daily data update for current/recent data.

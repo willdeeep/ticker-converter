@@ -20,7 +20,7 @@ class TestNYSEDataFetcher:
         expected_symbols = ["AAPL", "MSFT", "AMZN", "GOOGL", "META", "NVDA", "TSLA"]
         assert fetcher.MAGNIFICENT_SEVEN == expected_symbols
 
-    @patch("src.ticker_converter.data_ingestion.nyse_fetcher.AlphaVantageClient")
+    @patch("src.ticker_converter.data_ingestion.base_fetcher.AlphaVantageClient")
     def test_fetch_daily_data_success(self, mock_client_class):
         """Test successful daily data fetch."""
         # Mock API client
@@ -94,7 +94,7 @@ class TestCurrencyDataFetcher:
         assert fetcher.FROM_CURRENCY == "USD"
         assert fetcher.TO_CURRENCY == "GBP"
 
-    @patch("src.ticker_converter.data_ingestion.currency_fetcher.AlphaVantageClient")
+    @patch("src.ticker_converter.data_ingestion.base_fetcher.AlphaVantageClient")
     def test_fetch_current_exchange_rate_success(self, mock_client_class):
         """Test successful current exchange rate fetch."""
         # Mock API client

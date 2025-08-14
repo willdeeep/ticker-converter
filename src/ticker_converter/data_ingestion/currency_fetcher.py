@@ -4,31 +4,25 @@ This module handles fetching daily USD/GBP exchange rates and storing them
 in SQL tables for use with stock price conversions.
 """
 
-import logging
-from datetime import datetime
-from typing import Any
+from datetime import date, datetime
+from typing import Any, ClassVar
 
 import pandas as pd
 
-from ..api_clients.api_client import AlphaVantageAPIError, AlphaVantageClient
+from ..api_clients.api_client import AlphaVantageAPIError
 from ..api_clients.constants import OutputSize
+from .base_fetcher import BaseDataFetcher
 
 
-class CurrencyDataFetcher:
+class CurrencyDataFetcher(BaseDataFetcher):
     """Fetcher for USD/GBP currency conversion data."""
 
     # Currency pair configuration
-    FROM_CURRENCY = "USD"
-    TO_CURRENCY = "GBP"
+    FROM_CURRENCY: ClassVar[str] = "USD"
+    TO_CURRENCY: ClassVar[str] = "GBP"
 
-    def __init__(self, api_client: AlphaVantageClient | None = None):
-        """Initialize the currency data fetcher.
-
-        Args:
-            api_client: Alpha Vantage API client. If None, creates a new instance.
-        """
-        self.api_client = api_client or AlphaVantageClient()
-        self.logger = logging.getLogger(__name__)
+    # Required columns for currency data validation
+    REQUIRED_COLUMNS: ClassVar[list[str]] = ["Date"]
 
     def fetch_current_exchange_rate(self) -> dict[str, Any] | None:
         """Fetch the current USD/GBP exchange rate.
@@ -38,9 +32,7 @@ class CurrencyDataFetcher:
         """
         try:
             self.logger.info(
-                "Fetching current %s/%s exchange rate",
-                self.FROM_CURRENCY,
-                self.TO_CURRENCY,
+                f"Fetching current {self.FROM_CURRENCY}/{self.TO_CURRENCY} exchange rate"
             )
 
             response = self.api_client.get_currency_exchange_rate(
@@ -59,26 +51,29 @@ class CurrencyDataFetcher:
                     "1. From_Currency Code", self.FROM_CURRENCY
                 ),
                 "to_currency": rate_data.get("3. To_Currency Code", self.TO_CURRENCY),
-                "exchange_rate": float(rate_data.get("5. Exchange Rate", 0)),
+                "exchange_rate": self._safe_float_conversion(
+                    rate_data.get("5. Exchange Rate", 0), "exchange_rate"
+                ),
                 "last_refreshed": rate_data.get("6. Last Refreshed", ""),
                 "timezone": rate_data.get("7. Time Zone", "UTC"),
-                "bid_price": float(rate_data.get("8. Bid Price", 0)),
-                "ask_price": float(rate_data.get("9. Ask Price", 0)),
+                "bid_price": self._safe_float_conversion(
+                    rate_data.get("8. Bid Price", 0), "bid_price"
+                ),
+                "ask_price": self._safe_float_conversion(
+                    rate_data.get("9. Ask Price", 0), "ask_price"
+                ),
             }
 
             self.logger.info(
-                "Current %s/%s rate: %.6f",
-                self.FROM_CURRENCY,
-                self.TO_CURRENCY,
-                result["exchange_rate"],
+                f"Current {self.FROM_CURRENCY}/{self.TO_CURRENCY} rate: {result['exchange_rate']:.6f}"
             )
             return result
 
         except AlphaVantageAPIError as e:
-            self.logger.error("API error fetching exchange rate: %s", e)
+            self._handle_api_error(e, "fetching current exchange rate")
             return None
         except (ValueError, KeyError, TypeError) as e:
-            self.logger.error("Data processing error fetching exchange rate: %s", e)
+            self._handle_data_error(e, "processing current exchange rate")
             return None
 
     def fetch_daily_fx_data(self, days_back: int = 10) -> pd.DataFrame | None:
@@ -132,45 +127,64 @@ class CurrencyDataFetcher:
         Returns:
             List of dictionaries ready for SQL insertion
         """
+        if not self._validate_dataframe(df, self.REQUIRED_COLUMNS):
+            return []
+
         records = []
+        base_record = self._create_base_record()
 
         for _, row in df.iterrows():
-            # Handle different possible column names from Alpha Vantage
-            exchange_rate = None
-            if "Close" in row:
-                exchange_rate = float(row["Close"])
-            elif "4. close" in row:
-                exchange_rate = float(row["4. close"])
-            else:
-                # Try to find any numeric column that could be the rate
-                for col in df.columns:
-                    if col not in [
-                        "Date",
-                        "From_Symbol",
-                        "To_Symbol",
-                    ] and pd.api.types.is_numeric_dtype(df[col]):
-                        exchange_rate = float(row[col])
-                        break
+            try:
+                # Handle different possible column names from Alpha Vantage
+                exchange_rate = self._extract_exchange_rate(row, df.columns)
 
-            if exchange_rate is None:
-                self.logger.warning(
-                    "Could not determine exchange rate for row: %s", row
-                )
+                if exchange_rate is None:
+                    self.logger.warning(
+                        f"Could not determine exchange rate for row: {row}"
+                    )
+                    continue
+
+                record = {
+                    "from_currency": self.FROM_CURRENCY,
+                    "to_currency": self.TO_CURRENCY,
+                    "data_date": self._safe_date_conversion(row["Date"]),
+                    "exchange_rate": exchange_rate,
+                    **base_record,
+                }
+                records.append(record)
+            except Exception as e:
+                self.logger.warning(f"Skipping invalid currency row: {e}")
                 continue
 
-            record = {
-                "from_currency": self.FROM_CURRENCY,
-                "to_currency": self.TO_CURRENCY,
-                "data_date": (
-                    row["Date"].date() if hasattr(row["Date"], "date") else row["Date"]
-                ),
-                "exchange_rate": exchange_rate,
-                "source": "alpha_vantage",
-                "created_at": datetime.now(),
-            }
-            records.append(record)
-
         return records
+
+    def _extract_exchange_rate(self, row: pd.Series, columns: pd.Index) -> float | None:
+        """Extract exchange rate from row, handling various column formats.
+
+        Args:
+            row: DataFrame row
+            columns: Available columns
+
+        Returns:
+            Exchange rate as float or None if not found
+        """
+        # Try common column names in order of preference
+        rate_columns = ["Close", "4. close", "close"]
+
+        for col in rate_columns:
+            if col in row:
+                return self._safe_float_conversion(row[col], "exchange_rate")
+
+        # Try to find any numeric column that could be the rate
+        for col in columns:
+            if col not in [
+                "Date",
+                "From_Symbol",
+                "To_Symbol",
+            ] and pd.api.types.is_numeric_dtype(row[col]):
+                return self._safe_float_conversion(row[col], "exchange_rate")
+
+        return None
 
     def prepare_current_rate_for_sql(
         self, rate_data: dict[str, Any]
