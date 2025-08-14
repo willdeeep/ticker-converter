@@ -1,4 +1,13 @@
-"""Alpha Vantage API client for financial data."""
+"""Alpha Vantage API client with comprehensive error handling and async support.
+
+This module provides a robust client for the Alpha Vantage API with features including:
+- Synchronous and asynchronous request methods
+- Exponential backoff retry logic with jitter
+- Comprehensive error handling with custom exception hierarchy
+- Rate limiting and timeout management
+- Context manager support for resource cleanup
+- Detailed logging for debugging and monitoring
+"""
 
 import asyncio
 import logging
@@ -9,13 +18,12 @@ import aiohttp
 import pandas as pd
 import requests
 
+from ..config import get_api_config
 from .constants import (
     AlphaVantageFunction,
     AlphaVantageResponseKey,
     AlphaVantageValueKey,
-    APIConfig,
     OutputSize,
-    get_api_config,
 )
 
 
@@ -42,7 +50,7 @@ class AlphaVantageClient:
     financial data with proper error handling, retry logic, and rate limiting.
     """
 
-    def __init__(self, api_key: str | None = None, config: APIConfig | None = None):
+    def __init__(self, api_key: str | None = None, config: Any | None = None):
         """Initialize the Alpha Vantage client.
 
         Args:
@@ -53,7 +61,7 @@ class AlphaVantageClient:
             AlphaVantageConfigError: If API key is invalid or missing.
         """
         self.config = config or get_api_config()
-        self.api_key = api_key or self.config.api_key
+        self.api_key = api_key or self.config.api_key.get_secret_value()
         self.logger = logging.getLogger(__name__)
 
         if not self.api_key or self.api_key == "demo":
@@ -87,23 +95,23 @@ class AlphaVantageClient:
         """Get the rate limit delay for backwards compatibility."""
         return self.config.rate_limit_delay
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "AlphaVantageClient":
         """Async context manager entry."""
         self._aio_session = aiohttp.ClientSession(
             timeout=aiohttp.ClientTimeout(total=self.config.timeout)
         )
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Async context manager exit."""
         if self._aio_session:
             await self._aio_session.close()
 
-    def close(self):
+    def close(self) -> None:
         """Close synchronous session."""
         self.session.close()
 
-    async def aclose(self):
+    async def aclose(self) -> None:
         """Close asynchronous session."""
         if self._aio_session:
             await self._aio_session.close()
@@ -198,7 +206,8 @@ class AlphaVantageClient:
         Returns:
             Delay in seconds.
         """
-        return min(self.config.rate_limit_delay * (2**attempt), 300)  # Max 5 minutes
+        delay = self.config.rate_limit_delay * (2**attempt)
+        return min(int(delay), 300)  # Max 5 minutes
 
     async def make_request_async(self, params: dict[str, Any]) -> dict[str, Any]:
         """Make an async request to the Alpha Vantage API with retry logic.
