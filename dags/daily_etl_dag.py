@@ -192,6 +192,7 @@ def monitor_etl_process() -> None:
 )
 def ticker_converter_daily_etl():
     """Ticker converter daily ETL DAG using Airflow 3.0 syntax."""
+    # pylint: disable=pointless-statement
 
     @task
     def extract_stock_data_to_json():
@@ -250,35 +251,37 @@ def ticker_converter_daily_etl():
 
     # Define task dependencies following the 6-step ETL process:
     # Step 1 & 2: Start with parallel data extraction to JSON files
-    start_task >> [extract_stock_task, extract_exchange_task]
+    start_task >> [
+        extract_stock_task,
+        extract_exchange_task,
+    ]  # pylint: disable=pointless-statement
 
     # Step 3: After JSON files are created, load them into PostgreSQL in parallel
-    extract_stock_task >> [
-        load_raw_stock_data_to_postgres,
-        load_raw_exchange_data_to_postgres,
-    ]
-    extract_exchange_task >> [
+    [
+        extract_stock_task,
+        extract_exchange_task,
+    ] >> [  # pylint: disable=pointless-statement
         load_raw_stock_data_to_postgres,
         load_raw_exchange_data_to_postgres,
     ]
 
     # After both raw data loads complete, run the clean and transform step
-    [
+    [  # pylint: disable=pointless-statement
         load_raw_stock_data_to_postgres,
         load_raw_exchange_data_to_postgres,
     ] >> clean_transform_data
 
     # Step 4: Run data quality checks after transformation
-    clean_transform_data >> quality_checks_task
+    clean_transform_data >> quality_checks_task  # pylint: disable=pointless-statement
 
     # Step 5: Monitor ETL process after quality checks
-    quality_checks_task >> monitor_task
+    quality_checks_task >> monitor_task  # pylint: disable=pointless-statement
 
     # Step 6: Clean up old data after monitoring
-    monitor_task >> cleanup_task
+    monitor_task >> cleanup_task  # pylint: disable=pointless-statement
 
     # End the DAG
-    cleanup_task >> end_task
+    cleanup_task >> end_task  # pylint: disable=pointless-statement
 
 
 # Instantiate the DAG
