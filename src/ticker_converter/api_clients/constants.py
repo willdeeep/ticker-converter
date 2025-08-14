@@ -14,7 +14,7 @@ class AlphaVantageFunction(str, Enum):
     CURRENCY_EXCHANGE_RATE = "CURRENCY_EXCHANGE_RATE"
     FX_DAILY = "FX_DAILY"
     DIGITAL_CURRENCY_DAILY = "DIGITAL_CURRENCY_DAILY"
-    
+
     def __str__(self) -> str:
         """Return the string value."""
         return self.value
@@ -28,7 +28,7 @@ class AlphaVantageResponseKey(str, Enum):
     REALTIME_CURRENCY_EXCHANGE_RATE = "Realtime Currency Exchange Rate"
     ERROR_MESSAGE = "Error Message"
     NOTE = "Note"
-    
+
     def __str__(self) -> str:
         """Return the string value."""
         return self.value
@@ -44,7 +44,7 @@ class AlphaVantageValueKey(str, Enum):
     VOLUME = "5. volume"
     EXCHANGE_RATE = "5. Exchange Rate"
     LAST_REFRESHED = "6. Last Refreshed"
-    
+
     def __str__(self) -> str:
         """Return the string value."""
         return self.value
@@ -55,7 +55,7 @@ class OutputSize(str, Enum):
 
     COMPACT = "compact"
     FULL = "full"
-    
+
     def __str__(self) -> str:
         """Return the string value."""
         return self.value

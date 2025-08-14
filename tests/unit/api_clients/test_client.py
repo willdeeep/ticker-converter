@@ -82,18 +82,19 @@ class TestAlphaVantageClient:
         with pytest.raises(AlphaVantageRateLimitError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
-    @patch("src.ticker_converter.api_clients.client.requests.get")
-    def test_make_request_invalid_api_key(self, mock_get):
+    @patch.object(AlphaVantageClient, "_setup_sync_session")
+    def test_make_request_invalid_api_key(self, mock_setup):
         """Test invalid API key error handling."""
-        # Setup mock response for invalid API key
+        # Setup mock response for pure authentication error (no rate limit keywords)
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "Error Message": "Invalid API call. Please retry or visit the documentation"
+            "Error Message": "Invalid API call. Please retry or visit the documentation (https://www.alphavantage.co/documentation/). If the error persists, please contact support."
         }
-        mock_get.return_value = mock_response
-
-        client = AlphaVantageClient(api_key="invalid_key")
+        
+        client = AlphaVantageClient(api_key="test_invalid_key")
+        client.session = Mock()
+        client.session.get.return_value = mock_response
 
         with pytest.raises(AlphaVantageAuthenticationError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
