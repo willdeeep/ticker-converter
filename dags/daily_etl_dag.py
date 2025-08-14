@@ -80,7 +80,7 @@ def extract_stock_prices_to_json() -> None:
     raw_data_path.mkdir(parents=True, exist_ok=True)
 
     # Extract stock data using the refactored fetcher
-    stock_data = nyse_fetcher.fetch_daily_data()
+    stock_data = nyse_fetcher.fetch_and_prepare_all_data()
 
     # Save to JSON file with timestamp
     filename = f"stock_prices_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
@@ -106,7 +106,7 @@ def extract_exchange_rates_to_json() -> None:
     raw_data_path.mkdir(parents=True, exist_ok=True)
 
     # Extract exchange rate data using the refactored fetcher
-    exchange_data = currency_fetcher.fetch_exchange_rates()
+    exchange_data = currency_fetcher.fetch_and_prepare_fx_data()
 
     # Save to JSON file with timestamp
     filename = f"exchange_rates_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"

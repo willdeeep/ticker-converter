@@ -95,7 +95,7 @@ class NYSEFetcher:
     def fetch_daily_data(self, symbol: str, days: int = 30) -> List[MarketDataPoint]:
         """
         Fetch historical daily data with intelligent error handling.
-        
+
         Features:
         - Rate limiting compliance (5 calls/minute for free tier)
         - Exponential backoff for transient errors
@@ -121,7 +121,7 @@ class CurrencyFetcher:
     def fetch_exchange_rates(self, days: int = 30) -> List[CurrencyRate]:
         """
         Retrieve historical exchange rates with failover support.
-        
+
         Features:
         - Multiple API provider support (primary/secondary)
         - Automatic failover for service reliability
@@ -294,7 +294,7 @@ def market_data_pipeline():
     def fetch_stock_data():
         """Python task: API data ingestion only."""
         from ticker_converter.data_ingestion.orchestrator import Orchestrator
-        
+
         orchestrator = Orchestrator()
         return orchestrator.run_stock_data_ingestion()
 
@@ -302,10 +302,10 @@ def market_data_pipeline():
     def fetch_currency_data():
         """Python task: Currency API ingestion only."""
         from ticker_converter.data_ingestion.orchestrator import Orchestrator
-        
+
         orchestrator = Orchestrator()
         return orchestrator.run_currency_data_ingestion()
-        
+
     # SQL-only transformation tasks
     load_dimensions = PostgresOperator(
         task_id='load_dimensions',

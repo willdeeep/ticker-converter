@@ -15,24 +15,24 @@ def add_type_annotations_to_file(file_path: Path) -> bool:
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        
+
         original_content = content
-        
+
         # Pattern to match test functions without return type annotations
         # This matches: def test_function_name(params):
         pattern = r'^(\s*def\s+(?:test_|pytest_)[a-zA-Z_][a-zA-Z0-9_]*\s*\([^)]*\))(\s*):(\s*)$'
-        
+
         def replacement(match):
             indent = match.group(1)
             colon_and_spaces = match.group(3)
             return f"{indent} -> None:{colon_and_spaces}"
-        
+
         # Apply the replacement
         content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
-        
+
         # Also handle fixture functions and other common patterns
         fixture_pattern = r'^(\s*def\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\([^)]*\))(\s*):(\s*)$'
-        
+
         def fixture_replacement(match):
             line = match.group(0)
             # Skip if already has type annotation
@@ -43,12 +43,12 @@ def add_type_annotations_to_file(file_path: Path) -> bool:
                 return line
             # Skip if it clearly returns something (has 'return' in docstring area)
             return line  # For now, be conservative
-        
+
         if content != original_content:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
             return True
-        
+
         return False
 
     except Exception as e:
