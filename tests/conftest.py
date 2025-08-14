@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 import pandas as pd
 import pytest
 
-from src.ticker_converter.api_clients.api_client import AlphaVantageClient
+from src.ticker_converter.api_clients import AlphaVantageClient
 from src.ticker_converter.api_clients.constants import APIConfig
 
 

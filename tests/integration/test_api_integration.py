@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src.ticker_converter.api_clients.api_client import (
+from src.ticker_converter.api_clients import (
     AlphaVantageAPIError,
     AlphaVantageClient,
 )

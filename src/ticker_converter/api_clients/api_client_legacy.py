@@ -7,16 +7,22 @@ This module provides a robust client for the Alpha Vantage API with features inc
 - Rate limiting and timeout management
 - Context manager support for resource cleanup
 - Detailed logging for debugging and monitoring
+- Modern Python 3.11 type hints and patterns
+- Enhanced security and connection pooling
 """
 
 import asyncio
 import logging
+import random
+import sys
 import time
 from typing import Any
 
 import aiohttp
 import pandas as pd
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from ..config import get_api_config
 from .constants import (
@@ -29,6 +35,16 @@ from .constants import (
 
 class AlphaVantageAPIError(Exception):
     """Base exception for Alpha Vantage API errors."""
+
+    def __init__(self, message: str, error_code: str | None = None) -> None:
+        """Initialize with message and optional error code.
+
+        Args:
+            message: Error message
+            error_code: Optional error code from API
+        """
+        super().__init__(message)
+        self.error_code = error_code
 
 
 class AlphaVantageRateLimitError(AlphaVantageAPIError):
@@ -43,14 +59,33 @@ class AlphaVantageConfigError(AlphaVantageAPIError):
     """Exception for configuration-related errors."""
 
 
+class AlphaVantageAuthenticationError(AlphaVantageAPIError):
+    """Exception for authentication/authorization errors."""
+
+
+class AlphaVantageTimeoutError(AlphaVantageAPIError):
+    """Exception for request timeout errors."""
+
+
+class AlphaVantageDataError(AlphaVantageAPIError):
+    """Exception for data validation/format errors."""
+
+
 class AlphaVantageClient:
     """Client for Alpha Vantage financial data API.
 
     Provides both synchronous and asynchronous methods for fetching
     financial data with proper error handling, retry logic, and rate limiting.
+
+    Features:
+    - Connection pooling for improved performance
+    - Exponential backoff with jitter
+    - Comprehensive error handling
+    - Request/response logging
+    - Modern async patterns
     """
 
-    def __init__(self, api_key: str | None = None, config: Any | None = None):
+    def __init__(self, api_key: str | None = None, config: Any | None = None) -> None:
         """Initialize the Alpha Vantage client.
 
         Args:
@@ -67,13 +102,57 @@ class AlphaVantageClient:
         if not self.api_key or self.api_key == "demo":
             raise AlphaVantageConfigError("Valid Alpha Vantage API key is required")
 
-        self.session = requests.Session()
+        # Setup session with connection pooling and retry strategy
+        self.session = self._create_session()
         self._aio_session: aiohttp.ClientSession | None = None
 
         self.logger.info(
-            "Alpha Vantage client initialized with %d max retries",
+            "Alpha Vantage client initialized with %d max retries and %ds rate limit",
             self.config.max_retries,
+            self.config.rate_limit_delay,
         )
+
+    def _create_session(self) -> requests.Session:
+        """Create HTTP session with connection pooling and retry strategy.
+
+        Returns:
+            Configured requests session
+        """
+        self.logger.debug("Creating HTTP session with connection pooling")
+        session = requests.Session()
+
+        # Configure retry strategy at the urllib3 level
+        retry_strategy = Retry(
+            total=0,  # We handle retries at application level
+            connect=2,  # Only retry connection errors
+            read=2,
+            status_forcelist=[500, 502, 503, 504],  # Server errors
+            backoff_factor=1,
+        )
+
+        # Setup HTTP adapter with connection pooling
+        adapter = HTTPAdapter(
+            pool_connections=10,  # Number of connection pools to cache
+            pool_maxsize=20,  # Maximum number of connections to save in pool
+            max_retries=retry_strategy,
+        )
+
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+
+        # Set common headers
+        session.headers.update(
+            {
+                "User-Agent": f"ticker-converter/{self.config.__class__.__name__}",
+                "Accept": "application/json",
+                "Accept-Encoding": "gzip, deflate",
+            }
+        )
+
+        self.logger.debug(
+            "HTTP session created with pool size 20 and 10 connections per pool"
+        )
+        return session
 
     @property
     def base_url(self) -> str:
@@ -96,25 +175,57 @@ class AlphaVantageClient:
         return self.config.rate_limit_delay
 
     async def __aenter__(self) -> "AlphaVantageClient":
-        """Async context manager entry."""
+        """Async context manager entry with connection pooling."""
+        self.logger.debug("Initializing async HTTP session with connection pooling")
+
+        connector = aiohttp.TCPConnector(
+            limit=20,  # Total connection limit
+            limit_per_host=10,  # Connection limit per host
+            ttl_dns_cache=300,  # DNS cache TTL
+            use_dns_cache=True,
+            enable_cleanup_closed=True,
+        )
+
+        timeout = aiohttp.ClientTimeout(
+            total=self.config.timeout,
+            connect=30,  # Connection timeout
+            sock_read=self.config.timeout,  # Socket read timeout
+        )
+
         self._aio_session = aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=self.config.timeout)
+            connector=connector,
+            timeout=timeout,
+            headers={
+                "User-Agent": f"TickerConverter/1.0 (Python/{sys.version.split()[0]})"
+            },
+        )
+
+        self.logger.debug(
+            "Async HTTP session created with connector limits: %d total, %d per host",
+            20,
+            10,
         )
         return self
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Async context manager exit."""
         if self._aio_session:
+            self.logger.debug("Closing async HTTP session")
             await self._aio_session.close()
+            self.logger.debug("Async HTTP session closed")
 
     def close(self) -> None:
         """Close synchronous session."""
+        self.logger.debug("Closing synchronous HTTP session")
         self.session.close()
+        self.logger.debug("Synchronous HTTP session closed")
 
     async def aclose(self) -> None:
         """Close asynchronous session."""
         if self._aio_session:
+            self.logger.debug("Closing async HTTP session via aclose")
             await self._aio_session.close()
+            self.logger.debug("Async HTTP session closed via aclose")
 
     def make_request(self, params: dict[str, Any]) -> dict[str, Any]:
         """Make a request to the Alpha Vantage API with retry logic.
@@ -145,11 +256,30 @@ class AlphaVantageClient:
                 )
 
                 response = self.session.get(
-                    self.config.base_url, params=params, timeout=self.config.timeout
+                    self.config.base_url,
+                    params=params,
+                    timeout=self.config.timeout,
+                    stream=False,  # Ensure connection is closed after response
                 )
+
+                # Enhanced status code handling
+                if response.status_code == 401:
+                    raise AlphaVantageAuthenticationError("Invalid API key")
+                elif response.status_code == 403:
+                    raise AlphaVantageAuthenticationError("API access forbidden")
+                elif response.status_code == 429:
+                    raise AlphaVantageRateLimitError("Rate limit exceeded (HTTP 429)")
+
                 response.raise_for_status()
 
-                data: dict[str, Any] = response.json()
+                try:
+                    data: dict[str, Any] = response.json()
+                except ValueError as e:
+                    raise AlphaVantageDataError(f"Invalid JSON response: {e}") from e
+
+                # Log response size for monitoring
+                response_size = len(response.content)
+                self.logger.debug("Response received: %d bytes", response_size)
 
                 # Check for API errors
                 if AlphaVantageResponseKey.ERROR_MESSAGE.value in data:
@@ -163,8 +293,11 @@ class AlphaVantageClient:
                     self.logger.warning("Rate limit detected: %s", note_msg)
 
                     if attempt < self.config.max_retries - 1:
-                        wait_time = self._calculate_backoff_delay(attempt)
-                        self.logger.info("Backing off for %d seconds", wait_time)
+                        wait_time = self._calculate_backoff_delay_with_jitter(attempt)
+                        self.logger.info(
+                            "Rate limit detected, backing off for %.1f seconds",
+                            wait_time,
+                        )
                         time.sleep(wait_time)
                         continue
 
@@ -187,8 +320,8 @@ class AlphaVantageClient:
                 )
 
                 if attempt < self.config.max_retries - 1:
-                    wait_time = self._calculate_backoff_delay(attempt)
-                    self.logger.info("Retrying in %d seconds", wait_time)
+                    wait_time = self._calculate_backoff_delay_with_jitter(attempt)
+                    self.logger.info("Retrying in %.1f seconds", wait_time)
                     time.sleep(wait_time)
                     continue
 
@@ -209,6 +342,27 @@ class AlphaVantageClient:
         delay = self.config.rate_limit_delay * (2**attempt)
         return min(int(delay), 300)  # Max 5 minutes
 
+    def _calculate_backoff_delay_with_jitter(self, attempt: int) -> float:
+        """Calculate exponential backoff delay with jitter.
+
+        Jitter helps prevent thundering herd problems when multiple
+        clients retry simultaneously.
+
+        Args:
+            attempt: Current attempt number (0-based).
+
+        Returns:
+            Delay in seconds with jitter.
+        """
+        base_delay = self.config.rate_limit_delay * (2**attempt)
+        max_delay = min(base_delay, 300)  # Max 5 minutes
+
+        # Add jitter: random factor between 0.5 and 1.5
+        jitter = 0.5 + random.random()
+        delay_with_jitter = max_delay * jitter
+
+        return min(delay_with_jitter, 300.0)
+
     async def make_request_async(self, params: dict[str, Any]) -> dict[str, Any]:
         """Make an async request to the Alpha Vantage API with retry logic.
 
@@ -219,6 +373,9 @@ class AlphaVantageClient:
             JSON response from the API.
 
         Raises:
+            AlphaVantageAuthenticationError: If API key is invalid.
+            AlphaVantageTimeoutError: If request times out.
+            AlphaVantageDataError: If response data is invalid.
             AlphaVantageRateLimitError: If rate limit is exceeded.
             AlphaVantageRequestError: If the request fails.
             AlphaVantageAPIError: For other API errors.
@@ -242,13 +399,56 @@ class AlphaVantageClient:
                     params.get("function", "unknown"),
                 )
 
+                timeout = aiohttp.ClientTimeout(total=self.config.timeout)
                 async with self._aio_session.get(
-                    self.config.base_url, params=params
+                    self.config.base_url, params=params, timeout=timeout
                 ) as response:
-                    response.raise_for_status()
-                    data: dict[str, Any] = await response.json()
+                    # Enhanced HTTP status code handling
+                    if response.status == 401 or response.status == 403:
+                        error_text = await response.text()
+                        self.logger.error(
+                            "Authentication failed (status %d): %s",
+                            response.status,
+                            error_text,
+                        )
+                        raise AlphaVantageAuthenticationError(
+                            f"Invalid API key or insufficient permissions (HTTP {response.status})"
+                        )
 
-                # Check for API errors
+                    if response.status == 429:
+                        self.logger.warning("Rate limit hit (HTTP 429)")
+                        if attempt < self.config.max_retries - 1:
+                            wait_time = self._calculate_backoff_delay_with_jitter(
+                                attempt
+                            )
+                            self.logger.info(
+                                "Rate limit backoff: %.2f seconds", wait_time
+                            )
+                            await asyncio.sleep(wait_time)
+                            continue
+                        else:
+                            raise AlphaVantageRateLimitError(
+                                f"Rate limit exceeded after {self.config.max_retries} attempts (HTTP 429)"
+                            )
+
+                    if not (200 <= response.status < 300):
+                        error_text = await response.text()
+                        self.logger.error(
+                            "HTTP error %d: %s", response.status, error_text
+                        )
+                        raise AlphaVantageRequestError(
+                            f"HTTP {response.status}: {error_text}"
+                        )
+
+                    try:
+                        data: dict[str, Any] = await response.json()
+                    except (ValueError, aiohttp.ContentTypeError) as e:
+                        self.logger.error("Failed to parse JSON response: %s", str(e))
+                        raise AlphaVantageDataError(
+                            "Invalid JSON response from API"
+                        ) from e
+
+                # Check for API errors in response data
                 if AlphaVantageResponseKey.ERROR_MESSAGE.value in data:
                     error_msg = data[AlphaVantageResponseKey.ERROR_MESSAGE.value]
                     self.logger.error("API error received: %s", error_msg)
@@ -257,22 +457,40 @@ class AlphaVantageClient:
                 if AlphaVantageResponseKey.NOTE.value in data:
                     # Rate limit hit, wait and retry
                     note_msg = data[AlphaVantageResponseKey.NOTE.value]
-                    self.logger.warning("Rate limit detected: %s", note_msg)
+                    self.logger.warning("Rate limit detected in response: %s", note_msg)
 
                     if attempt < self.config.max_retries - 1:
-                        wait_time = self._calculate_backoff_delay(attempt)
-                        self.logger.info("Backing off for %d seconds", wait_time)
+                        wait_time = self._calculate_backoff_delay_with_jitter(attempt)
+                        self.logger.info("Rate limit backoff: %.2f seconds", wait_time)
                         await asyncio.sleep(wait_time)
                         continue
-
-                    raise AlphaVantageRateLimitError(
-                        f"Rate limit exceeded after {self.config.max_retries} attempts: {note_msg}"
-                    )
+                    else:
+                        raise AlphaVantageRateLimitError(
+                            f"Rate limit exceeded after {self.config.max_retries} attempts: {note_msg}"
+                        )
 
                 # Apply rate limiting and return data
                 await asyncio.sleep(self.config.rate_limit_delay)
                 self.logger.debug("Async API request successful")
                 return data
+
+            except asyncio.TimeoutError as e:
+                last_exception = e
+                self.logger.warning(
+                    "Async request timeout (attempt %d/%d)",
+                    attempt + 1,
+                    self.config.max_retries,
+                )
+
+                if attempt < self.config.max_retries - 1:
+                    wait_time = self._calculate_backoff_delay_with_jitter(attempt)
+                    self.logger.info("Timeout retry in %.2f seconds", wait_time)
+                    await asyncio.sleep(wait_time)
+                    continue
+                else:
+                    raise AlphaVantageTimeoutError(
+                        f"Request timed out after {self.config.max_retries} attempts"
+                    ) from e
 
             except aiohttp.ClientError as e:
                 last_exception = e
@@ -284,8 +502,8 @@ class AlphaVantageClient:
                 )
 
                 if attempt < self.config.max_retries - 1:
-                    wait_time = self._calculate_backoff_delay(attempt)
-                    self.logger.info("Retrying in %d seconds", wait_time)
+                    wait_time = self._calculate_backoff_delay_with_jitter(attempt)
+                    self.logger.info("Retrying in %.2f seconds", wait_time)
                     await asyncio.sleep(wait_time)
                     continue
 
