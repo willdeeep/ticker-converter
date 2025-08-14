@@ -3,10 +3,10 @@
 import pytest
 
 from src.ticker_converter.api_clients.constants import (
-    OutputSize,
     AlphaVantageFunction,
     AlphaVantageResponseKey,
     AlphaVantageValueKey,
+    OutputSize,
 )
 
 
@@ -17,7 +17,7 @@ class TestConstants:
         """Test OutputSize enumeration values."""
         assert OutputSize.COMPACT == "compact"
         assert OutputSize.FULL == "full"
-        
+
         # Test string conversion
         assert str(OutputSize.COMPACT) == "compact"
         assert str(OutputSize.FULL) == "full"
@@ -27,7 +27,7 @@ class TestConstants:
         # Test equality
         assert OutputSize.COMPACT == "compact"
         assert OutputSize.FULL == "full"
-        
+
         # Test inequality
         assert OutputSize.COMPACT != "full"
         assert OutputSize.FULL != "compact"
@@ -45,7 +45,10 @@ class TestConstants:
         """Test AlphaVantageResponseKey enumeration values."""
         assert AlphaVantageResponseKey.TIME_SERIES_DAILY == "Time Series (Daily)"
         assert AlphaVantageResponseKey.TIME_SERIES_FX_DAILY == "Time Series (FX Daily)"
-        assert AlphaVantageResponseKey.REALTIME_CURRENCY_EXCHANGE_RATE == "Realtime Currency Exchange Rate"
+        assert (
+            AlphaVantageResponseKey.REALTIME_CURRENCY_EXCHANGE_RATE
+            == "Realtime Currency Exchange Rate"
+        )
         assert AlphaVantageResponseKey.ERROR_MESSAGE == "Error Message"
         assert AlphaVantageResponseKey.NOTE == "Note"
 
@@ -65,7 +68,7 @@ class TestConstants:
         assert "compact" in [e.value for e in OutputSize]
         assert "full" in [e.value for e in OutputSize]
         assert "invalid" not in [e.value for e in OutputSize]
-        
+
         # Test Function membership
         assert "TIME_SERIES_DAILY" in [e.value for e in AlphaVantageFunction]
         assert "OVERVIEW" in [e.value for e in AlphaVantageFunction]
@@ -78,7 +81,7 @@ class TestConstants:
         assert len(output_sizes) == 2
         assert OutputSize.COMPACT in output_sizes
         assert OutputSize.FULL in output_sizes
-        
+
         # Test Function iteration
         functions = list(AlphaVantageFunction)
         assert len(functions) >= 6  # At least 6 functions defined
@@ -91,7 +94,7 @@ class TestConstants:
         assert OutputSize.COMPACT == "compact"
         assert OutputSize.COMPACT != "COMPACT"
         assert OutputSize.COMPACT != "Compact"
-        
+
         # Functions should be uppercase
         assert AlphaVantageFunction.TIME_SERIES_DAILY == "TIME_SERIES_DAILY"
         assert AlphaVantageFunction.TIME_SERIES_DAILY != "time_series_daily"
@@ -110,11 +113,11 @@ class TestConstants:
         # Test OutputSize uniqueness
         output_size_values = [e.value for e in OutputSize]
         assert len(output_size_values) == len(set(output_size_values))
-        
+
         # Test Function uniqueness
         function_values = [e.value for e in AlphaVantageFunction]
         assert len(function_values) == len(set(function_values))
-        
+
         # Test ResponseKey uniqueness
         response_key_values = [e.value for e in AlphaVantageResponseKey]
         assert len(response_key_values) == len(set(response_key_values))
@@ -125,23 +128,25 @@ class TestConstants:
         assert str(OutputSize.COMPACT) == "compact"
         assert str(AlphaVantageFunction.TIME_SERIES_DAILY) == "TIME_SERIES_DAILY"
         assert str(AlphaVantageResponseKey.TIME_SERIES_DAILY) == "Time Series (Daily)"
-        
+
         # Test that repr() shows the enum member
         assert "OutputSize.COMPACT" in repr(OutputSize.COMPACT)
-        assert "AlphaVantageFunction.TIME_SERIES_DAILY" in repr(AlphaVantageFunction.TIME_SERIES_DAILY)
+        assert "AlphaVantageFunction.TIME_SERIES_DAILY" in repr(
+            AlphaVantageFunction.TIME_SERIES_DAILY
+        )
 
     def test_enum_attribute_access(self):
         """Test that enum members can be accessed as attributes."""
         # Test attribute access
-        assert hasattr(OutputSize, 'COMPACT')
-        assert hasattr(OutputSize, 'FULL')
-        assert hasattr(AlphaVantageFunction, 'TIME_SERIES_DAILY')
-        assert hasattr(AlphaVantageFunction, 'OVERVIEW')
-        
+        assert hasattr(OutputSize, "COMPACT")
+        assert hasattr(OutputSize, "FULL")
+        assert hasattr(AlphaVantageFunction, "TIME_SERIES_DAILY")
+        assert hasattr(AlphaVantageFunction, "OVERVIEW")
+
         # Test that invalid attributes raise AttributeError
         with pytest.raises(AttributeError):
             _ = OutputSize.INVALID
-        
+
         with pytest.raises(AttributeError):
             _ = AlphaVantageFunction.INVALID
 
@@ -150,12 +155,12 @@ class TestConstants:
         # Enum members should equal their string values
         assert OutputSize.COMPACT == "compact"
         assert AlphaVantageFunction.TIME_SERIES_DAILY == "TIME_SERIES_DAILY"
-        
+
         # Enum members should not equal other types
         assert OutputSize.COMPACT != 1
         assert OutputSize.COMPACT != ["compact"]
         assert OutputSize.COMPACT != {"value": "compact"}
-        
+
         # Enum members should not equal None
         assert OutputSize.COMPACT is not None
         assert OutputSize.COMPACT != None
@@ -165,7 +170,10 @@ class TestConstants:
         # Test that response keys match Alpha Vantage API documentation
         assert AlphaVantageResponseKey.TIME_SERIES_DAILY == "Time Series (Daily)"
         assert AlphaVantageResponseKey.ERROR_MESSAGE == "Error Message"
-        assert AlphaVantageResponseKey.REALTIME_CURRENCY_EXCHANGE_RATE == "Realtime Currency Exchange Rate"
+        assert (
+            AlphaVantageResponseKey.REALTIME_CURRENCY_EXCHANGE_RATE
+            == "Realtime Currency Exchange Rate"
+        )
 
     def test_value_key_consistency(self):
         """Test that value keys are consistent with Alpha Vantage format."""
@@ -175,9 +183,9 @@ class TestConstants:
             AlphaVantageValueKey.HIGH,
             AlphaVantageValueKey.LOW,
             AlphaVantageValueKey.CLOSE,
-            AlphaVantageValueKey.VOLUME
+            AlphaVantageValueKey.VOLUME,
         ]
-        
+
         for i, key in enumerate(ohlcv_keys, 1):
             assert key.startswith(f"{i}.")
             assert " " in key  # Should have space after number

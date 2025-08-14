@@ -3,7 +3,7 @@ Airflow DAG for daily stock data ETL pipeline.
 
 This DAG orchestrates the complete ETL process using SQL operators:
 1. Extract stock prices from Alpha Vantage API using the refactored data ingestion modules
-2. Extract and load exchange rates from exchangerate-api.io 
+2. Extract and load exchange rates from exchangerate-api.io
 3. Use SQL operators to clean, transform and load data all data into PostgreSQL database
 4. Run data quality checks
 5. Monitor and log ETL process
@@ -22,9 +22,9 @@ from airflow.decorators import dag, task
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.empty import EmptyOperator
 
-from ticker_converter.data_ingestion.orchestrator import DataIngestionOrchestrator
-from ticker_converter.data_ingestion.nyse_fetcher import NYSEDataFetcher
 from ticker_converter.data_ingestion.currency_fetcher import CurrencyDataFetcher
+from ticker_converter.data_ingestion.nyse_fetcher import NYSEDataFetcher
+from ticker_converter.data_ingestion.orchestrator import DataIngestionOrchestrator
 
 
 class DAGConfig:
@@ -74,7 +74,7 @@ def extract_stock_prices_to_json() -> None:
     """
     # Initialize the NYSE data fetcher with proper configuration
     nyse_fetcher = NYSEDataFetcher()
-    
+
     # Ensure raw data directory exists
     raw_data_path = Path(DAGConfig.RAW_DATA_DIR)
     raw_data_path.mkdir(parents=True, exist_ok=True)
@@ -100,7 +100,7 @@ def extract_exchange_rates_to_json() -> None:
     """
     # Initialize the currency data fetcher with proper configuration
     currency_fetcher = CurrencyDataFetcher()
-    
+
     # Ensure raw data directory exists
     raw_data_path = Path(DAGConfig.RAW_DATA_DIR)
     raw_data_path.mkdir(parents=True, exist_ok=True)

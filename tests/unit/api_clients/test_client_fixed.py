@@ -11,12 +11,12 @@ from src.ticker_converter.api_clients.client import AlphaVantageClient
 from src.ticker_converter.api_clients.constants import OutputSize
 from src.ticker_converter.api_clients.exceptions import (
     AlphaVantageAPIError,
+    AlphaVantageRequestError,
     AlphaVantageAuthenticationError,
-    AlphaVantageConfigError,
     AlphaVantageDataError,
     AlphaVantageRateLimitError,
-    AlphaVantageRequestError,
     AlphaVantageTimeoutError,
+    AlphaVantageConfigError,
 )
 
 
@@ -41,7 +41,7 @@ class TestAlphaVantageClient:
 
     def test_client_initialization_no_api_key(self):
         """Test client initialization with no API key raises error."""
-        with patch.dict("os.environ", {}, clear=True):
+        with patch.dict('os.environ', {}, clear=True):
             with pytest.raises(AlphaVantageConfigError):
                 AlphaVantageClient()
 
@@ -53,7 +53,7 @@ class TestAlphaVantageClient:
         mock_response.json.return_value = {"test": "data"}
 
         client = AlphaVantageClient(api_key="test_key")
-
+        
         # Mock the session.get method directly
         client.session.get = Mock(return_value=mock_response)
 
@@ -184,7 +184,9 @@ class TestAlphaVantageClient:
         mock_make_request.return_value = mock_response
 
         client = AlphaVantageClient(api_key="test_key")
-        result = client.get_intraday_stock_data("AAPL", "5min", OutputSize.COMPACT)
+        result = client.get_intraday_stock_data(
+            "AAPL", "5min", OutputSize.COMPACT
+        )
 
         assert isinstance(result, pd.DataFrame)
         assert not result.empty

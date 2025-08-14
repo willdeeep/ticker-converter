@@ -1,14 +1,15 @@
 """Unit tests for Alpha Vantage API data processors."""
 
 from unittest.mock import Mock
+
 import pandas as pd
 import pytest
 
 from src.ticker_converter.api_clients.data_processors import (
     convert_time_series_to_dataframe,
+    parse_time_series_key,
     process_company_overview,
     process_currency_exchange_rate,
-    parse_time_series_key,
 )
 from src.ticker_converter.api_clients.exceptions import AlphaVantageDataError
 
@@ -26,20 +27,20 @@ class TestDataProcessors:
                     "2. high": "225.00",
                     "3. low": "219.00",
                     "4. close": "224.50",
-                    "5. volume": "1000000"
+                    "5. volume": "1000000",
                 },
                 "2025-08-13": {
                     "1. open": "218.00",
                     "2. high": "223.00",
                     "3. low": "217.00",
                     "4. close": "221.50",
-                    "5. volume": "900000"
-                }
+                    "5. volume": "900000",
+                },
             }
         }
-        
+
         df = convert_time_series_to_dataframe(raw_data, "Time Series (Daily)")
-        
+
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 2
         assert "open" in df.columns
@@ -47,14 +48,14 @@ class TestDataProcessors:
         assert "low" in df.columns
         assert "close" in df.columns
         assert "volume" in df.columns
-        
+
         # Check data types
         assert df["open"].dtype == "float64"
         assert df["high"].dtype == "float64"
         assert df["low"].dtype == "float64"
         assert df["close"].dtype == "float64"
         assert df["volume"].dtype == "int64"
-        
+
         # Check index is datetime
         assert isinstance(df.index, pd.DatetimeIndex)
 
@@ -67,20 +68,20 @@ class TestDataProcessors:
                     "2. high": "225.00",
                     "3. low": "219.00",
                     "4. close": "224.50",
-                    "5. volume": "10000"
+                    "5. volume": "10000",
                 },
                 "2025-08-14 15:55:00": {
                     "1. open": "218.00",
                     "2. high": "223.00",
                     "3. low": "217.00",
                     "4. close": "221.50",
-                    "5. volume": "9000"
-                }
+                    "5. volume": "9000",
+                },
             }
         }
-        
+
         df = convert_time_series_to_dataframe(raw_data, "Time Series (5min)")
-        
+
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 2
         assert isinstance(df.index, pd.DatetimeIndex)
@@ -93,19 +94,19 @@ class TestDataProcessors:
                     "1. open": "0.7340",
                     "2. high": "0.7360",
                     "3. low": "0.7330",
-                    "4. close": "0.7350"
+                    "4. close": "0.7350",
                 },
                 "2025-08-13": {
                     "1. open": "0.7320",
                     "2. high": "0.7345",
                     "3. low": "0.7315",
-                    "4. close": "0.7340"
-                }
+                    "4. close": "0.7340",
+                },
             }
         }
-        
+
         df = convert_time_series_to_dataframe(raw_data, "Time Series FX (Daily)")
-        
+
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 2
         assert "open" in df.columns
@@ -118,22 +119,17 @@ class TestDataProcessors:
     def test_convert_time_series_missing_key(self):
         """Test handling of missing time series key."""
         raw_data = {
-            "Meta Data": {
-                "1. Information": "Daily Prices",
-                "2. Symbol": "AAPL"
-            }
+            "Meta Data": {"1. Information": "Daily Prices", "2. Symbol": "AAPL"}
             # Missing time series data
         }
-        
+
         with pytest.raises(AlphaVantageDataError, match="No time series data found"):
             convert_time_series_to_dataframe(raw_data, "Time Series (Daily)")
 
     def test_convert_time_series_empty_data(self):
         """Test handling of empty time series data."""
-        raw_data = {
-            "Time Series (Daily)": {}
-        }
-        
+        raw_data = {"Time Series (Daily)": {}}
+
         with pytest.raises(AlphaVantageDataError, match="No time series data found"):
             convert_time_series_to_dataframe(raw_data, "Time Series (Daily)")
 
@@ -146,12 +142,14 @@ class TestDataProcessors:
                     "2. high": "225.00",
                     "3. low": "219.00",
                     "4. close": "224.50",
-                    "5. volume": "1000000"
+                    "5. volume": "1000000",
                 }
             }
         }
-        
-        with pytest.raises(AlphaVantageDataError, match="Error parsing time series data"):
+
+        with pytest.raises(
+            AlphaVantageDataError, match="Error parsing time series data"
+        ):
             convert_time_series_to_dataframe(raw_data, "Time Series (Daily)")
 
     def test_process_company_overview_success(self):
@@ -198,11 +196,11 @@ class TestDataProcessors:
             "200DayMovingAverage": "195.30",
             "SharesOutstanding": "15500000000",
             "DividendDate": "2025-05-16",
-            "ExDividendDate": "2025-05-10"
+            "ExDividendDate": "2025-05-10",
         }
-        
+
         result = process_company_overview(raw_data)
-        
+
         assert result["symbol"] == "AAPL"
         assert result["name"] == "Apple Inc"
         assert result["sector"] == "TECHNOLOGY"
@@ -218,12 +216,12 @@ class TestDataProcessors:
         raw_data = {
             "Symbol": "AAPL",
             "Name": "Apple Inc",
-            "Sector": "TECHNOLOGY"
+            "Sector": "TECHNOLOGY",
             # Missing many fields
         }
-        
+
         result = process_company_overview(raw_data)
-        
+
         assert result["symbol"] == "AAPL"
         assert result["name"] == "Apple Inc"
         assert result["sector"] == "TECHNOLOGY"
@@ -237,11 +235,11 @@ class TestDataProcessors:
             "Name": "Apple Inc",
             "MarketCapitalization": "None",  # Invalid number
             "PERatio": "N/A",  # Invalid number
-            "Beta": "invalid"  # Invalid number
+            "Beta": "invalid",  # Invalid number
         }
-        
+
         result = process_company_overview(raw_data)
-        
+
         assert result["symbol"] == "AAPL"
         assert result["name"] == "Apple Inc"
         assert result["market_cap"] is None
@@ -260,12 +258,12 @@ class TestDataProcessors:
                 "6. Last Refreshed": "2025-08-14 16:00:00",
                 "7. Time Zone": "UTC",
                 "8. Bid Price": "0.73490000",
-                "9. Ask Price": "0.73510000"
+                "9. Ask Price": "0.73510000",
             }
         }
-        
+
         result = process_currency_exchange_rate(raw_data)
-        
+
         assert result["from_currency"] == "USD"
         assert result["to_currency"] == "GBP"
         assert result["exchange_rate"] == 0.735
@@ -276,8 +274,10 @@ class TestDataProcessors:
     def test_process_currency_exchange_rate_missing_data(self):
         """Test currency exchange rate processing with missing data."""
         raw_data = {}
-        
-        with pytest.raises(AlphaVantageDataError, match="No currency exchange rate data found"):
+
+        with pytest.raises(
+            AlphaVantageDataError, match="No currency exchange rate data found"
+        ):
             process_currency_exchange_rate(raw_data)
 
     def test_process_currency_exchange_rate_invalid_rate(self):
@@ -286,59 +286,44 @@ class TestDataProcessors:
             "Realtime Currency Exchange Rate": {
                 "1. From_Currency Code": "USD",
                 "3. To_Currency Code": "GBP",
-                "5. Exchange Rate": "invalid_rate"
+                "5. Exchange Rate": "invalid_rate",
             }
         }
-        
+
         with pytest.raises(AlphaVantageDataError, match="Error parsing exchange rate"):
             process_currency_exchange_rate(raw_data)
 
     def test_parse_time_series_key_daily(self):
         """Test parsing of daily time series key."""
-        raw_data = {
-            "Time Series (Daily)": {},
-            "Meta Data": {}
-        }
-        
+        raw_data = {"Time Series (Daily)": {}, "Meta Data": {}}
+
         key = parse_time_series_key(raw_data)
         assert key == "Time Series (Daily)"
 
     def test_parse_time_series_key_intraday(self):
         """Test parsing of intraday time series key."""
-        raw_data = {
-            "Time Series (5min)": {},
-            "Meta Data": {}
-        }
-        
+        raw_data = {"Time Series (5min)": {}, "Meta Data": {}}
+
         key = parse_time_series_key(raw_data)
         assert key == "Time Series (5min)"
 
     def test_parse_time_series_key_forex(self):
         """Test parsing of forex time series key."""
-        raw_data = {
-            "Time Series FX (Daily)": {},
-            "Meta Data": {}
-        }
-        
+        raw_data = {"Time Series FX (Daily)": {}, "Meta Data": {}}
+
         key = parse_time_series_key(raw_data)
         assert key == "Time Series FX (Daily)"
 
     def test_parse_time_series_key_digital_currency(self):
         """Test parsing of digital currency time series key."""
-        raw_data = {
-            "Time Series (Digital Currency Daily)": {},
-            "Meta Data": {}
-        }
-        
+        raw_data = {"Time Series (Digital Currency Daily)": {}, "Meta Data": {}}
+
         key = parse_time_series_key(raw_data)
         assert key == "Time Series (Digital Currency Daily)"
 
     def test_parse_time_series_key_not_found(self):
         """Test parsing when no time series key is found."""
-        raw_data = {
-            "Meta Data": {},
-            "Some Other Key": {}
-        }
-        
+        raw_data = {"Meta Data": {}, "Some Other Key": {}}
+
         with pytest.raises(AlphaVantageDataError, match="No time series data found"):
             parse_time_series_key(raw_data)

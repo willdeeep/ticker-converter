@@ -11,12 +11,10 @@ from src.ticker_converter.api_clients.client import AlphaVantageClient
 from src.ticker_converter.api_clients.constants import OutputSize
 from src.ticker_converter.api_clients.exceptions import (
     AlphaVantageAPIError,
-    AlphaVantageAuthenticationError,
-    AlphaVantageConfigError,
-    AlphaVantageDataError,
+    AlphaVantageConnectionError,
+    AlphaVantageInvalidAPIKeyError,
+    AlphaVantageInvalidFunctionError,
     AlphaVantageRateLimitError,
-    AlphaVantageRequestError,
-    AlphaVantageTimeoutError,
 )
 
 
@@ -25,45 +23,39 @@ class TestAlphaVantageClient:
 
     def test_client_initialization(self):
         """Test client initialization with default and custom settings."""
-        # Test with default settings (should use environment variable)
+        # Test with default settings
         client = AlphaVantageClient()
         assert client.api_key is not None
         assert client.base_url == "https://www.alphavantage.co/query"
         assert client.timeout == 30
         assert client.max_retries == 3
 
-        # Test with custom API key
-        custom_client = AlphaVantageClient(api_key="custom_key")
+        # Test with custom settings
+        custom_client = AlphaVantageClient(
+            api_key="custom_key", timeout=60, max_retries=5
+        )
         assert custom_client.api_key == "custom_key"
-        assert custom_client.base_url == "https://www.alphavantage.co/query"
-        assert custom_client.timeout == 30
-        assert custom_client.max_retries == 3
+        assert custom_client.timeout == 60
+        assert custom_client.max_retries == 5
 
-    def test_client_initialization_no_api_key(self):
-        """Test client initialization with no API key raises error."""
-        with patch.dict("os.environ", {}, clear=True):
-            with pytest.raises(AlphaVantageConfigError):
-                AlphaVantageClient()
-
-    def test_make_request_success(self):
+    @patch("src.ticker_converter.api_clients.client.requests.get")
+    def test_make_request_success(self, mock_get):
         """Test successful API request."""
         # Setup mock response
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"test": "data"}
+        mock_get.return_value = mock_response
 
         client = AlphaVantageClient(api_key="test_key")
 
-        # Mock the session.get method directly
-        client.session.get = Mock(return_value=mock_response)
-
         # Test successful request
-        result = client.make_request(
+        result = client._make_request(
             {"function": "TIME_SERIES_DAILY", "symbol": "AAPL"}
         )
 
         assert result == {"test": "data"}
-        client.session.get.assert_called_once()
+        mock_get.assert_called_once()
 
     @patch("src.ticker_converter.api_clients.client.requests.get")
     def test_make_request_rate_limit_error(self, mock_get):
@@ -79,7 +71,7 @@ class TestAlphaVantageClient:
         client = AlphaVantageClient(api_key="test_key")
 
         with pytest.raises(AlphaVantageRateLimitError):
-            client.make_request({"function": "TIME_SERIES_DAILY"})
+            client._make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch("src.ticker_converter.api_clients.client.requests.get")
     def test_make_request_invalid_api_key(self, mock_get):
@@ -94,8 +86,8 @@ class TestAlphaVantageClient:
 
         client = AlphaVantageClient(api_key="invalid_key")
 
-        with pytest.raises(AlphaVantageAuthenticationError):
-            client.make_request({"function": "TIME_SERIES_DAILY"})
+        with pytest.raises(AlphaVantageInvalidAPIKeyError):
+            client._make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch("src.ticker_converter.api_clients.client.requests.get")
     def test_make_request_http_error(self, mock_get):
@@ -108,8 +100,8 @@ class TestAlphaVantageClient:
 
         client = AlphaVantageClient(api_key="test_key")
 
-        with pytest.raises(AlphaVantageRequestError):
-            client.make_request({"function": "TIME_SERIES_DAILY"})
+        with pytest.raises(AlphaVantageConnectionError):
+            client._make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch("src.ticker_converter.api_clients.client.requests.get")
     def test_make_request_timeout(self, mock_get):
@@ -119,8 +111,8 @@ class TestAlphaVantageClient:
 
         client = AlphaVantageClient(api_key="test_key")
 
-        with pytest.raises(AlphaVantageTimeoutError):
-            client.make_request({"function": "TIME_SERIES_DAILY"})
+        with pytest.raises(AlphaVantageConnectionError):
+            client._make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch("src.ticker_converter.api_clients.client.requests.get")
     def test_make_request_connection_error(self, mock_get):
@@ -130,10 +122,10 @@ class TestAlphaVantageClient:
 
         client = AlphaVantageClient(api_key="test_key")
 
-        with pytest.raises(AlphaVantageRequestError):
-            client.make_request({"function": "TIME_SERIES_DAILY"})
+        with pytest.raises(AlphaVantageConnectionError):
+            client._make_request({"function": "TIME_SERIES_DAILY"})
 
-    @patch.object(AlphaVantageClient, "make_request")
+    @patch.object(AlphaVantageClient, "_make_request")
     def test_get_daily_stock_data_success(self, mock_make_request):
         """Test successful daily stock data retrieval."""
         # Setup mock response
@@ -162,7 +154,7 @@ class TestAlphaVantageClient:
         assert "close" in result.columns
         assert "volume" in result.columns
 
-    @patch.object(AlphaVantageClient, "make_request")
+    @patch.object(AlphaVantageClient, "_make_request")
     def test_get_intraday_stock_data_success(self, mock_make_request):
         """Test successful intraday stock data retrieval."""
         # Setup mock response
@@ -184,12 +176,66 @@ class TestAlphaVantageClient:
         mock_make_request.return_value = mock_response
 
         client = AlphaVantageClient(api_key="test_key")
-        result = client.get_intraday_stock_data("AAPL", "5min", OutputSize.COMPACT)
+        result = client.get_intraday_stock_data(
+            "AAPL", "5min", OutputSize.COMPACT
+        )
 
         assert isinstance(result, pd.DataFrame)
         assert not result.empty
 
-    @patch.object(AlphaVantageClient, "make_request")
+    @patch.object(AlphaVantageClient, "_make_request")
+    def test_get_company_overview_success(self, mock_make_request):
+        """Test successful company overview retrieval."""
+        # Setup mock response
+        mock_response = {
+            "Symbol": "AAPL",
+            "AssetType": "Common Stock",
+            "Name": "Apple Inc",
+            "Description": "Apple Inc. designs, manufactures, and markets smartphones",
+            "Exchange": "NASDAQ",
+            "Currency": "USD",
+            "Country": "USA",
+            "Sector": "TECHNOLOGY",
+            "Industry": "Electronic Computers",
+            "MarketCapitalization": "3000000000000",
+        }
+        mock_make_request.return_value = mock_response
+
+        client = AlphaVantageClient(api_key="test_key")
+        result = client.get_company_overview("AAPL")
+
+        assert result["Symbol"] == "AAPL"
+        assert result["Name"] == "Apple Inc"
+        assert result["Sector"] == "TECHNOLOGY"
+
+    @patch.object(AlphaVantageClient, "_make_request")
+    def test_get_currency_exchange_rate_success(self, mock_make_request):
+        """Test successful currency exchange rate retrieval."""
+        # Setup mock response
+        mock_response = {
+            "Realtime Currency Exchange Rate": {
+                "1. From_Currency Code": "USD",
+                "2. From_Currency Name": "United States Dollar",
+                "3. To_Currency Code": "GBP",
+                "4. To_Currency Name": "British Pound Sterling",
+                "5. Exchange Rate": "0.73500000",
+                "6. Last Refreshed": "2025-08-14 16:00:00",
+                "7. Time Zone": "UTC",
+                "8. Bid Price": "0.73490000",
+                "9. Ask Price": "0.73510000",
+            }
+        }
+        mock_make_request.return_value = mock_response
+
+        client = AlphaVantageClient(api_key="test_key")
+        result = client.get_currency_exchange_rate("USD", "GBP")
+
+        assert result["from_currency"] == "USD"
+        assert result["to_currency"] == "GBP"
+        assert "exchange_rate" in result
+        assert "last_refreshed" in result
+
+    @patch.object(AlphaVantageClient, "_make_request")
     def test_get_forex_daily_success(self, mock_make_request):
         """Test successful forex daily data retrieval."""
         # Setup mock response
@@ -216,7 +262,7 @@ class TestAlphaVantageClient:
         assert isinstance(result, pd.DataFrame)
         assert not result.empty
 
-    @patch.object(AlphaVantageClient, "make_request")
+    @patch.object(AlphaVantageClient, "_make_request")
     def test_get_digital_currency_daily_success(self, mock_make_request):
         """Test successful digital currency daily data retrieval."""
         # Setup mock response
@@ -261,7 +307,17 @@ class TestAlphaVantageClient:
         with pytest.raises(ValueError, match="Symbol cannot be empty"):
             client.get_daily_stock_data(None, OutputSize.COMPACT)
 
-    @patch.object(AlphaVantageClient, "make_request")
+    def test_invalid_currency_validation(self):
+        """Test validation of invalid currency codes."""
+        client = AlphaVantageClient(api_key="test_key")
+
+        with pytest.raises(ValueError, match="Currency codes cannot be empty"):
+            client.get_currency_exchange_rate("", "GBP")
+
+        with pytest.raises(ValueError, match="Currency codes cannot be empty"):
+            client.get_currency_exchange_rate("USD", "")
+
+    @patch.object(AlphaVantageClient, "_make_request")
     def test_empty_response_handling(self, mock_make_request):
         """Test handling of empty or malformed responses."""
         # Test empty response
@@ -272,7 +328,7 @@ class TestAlphaVantageClient:
         with pytest.raises(AlphaVantageAPIError, match="No data available"):
             client.get_daily_stock_data("AAPL", OutputSize.COMPACT)
 
-    @patch.object(AlphaVantageClient, "make_request")
+    @patch.object(AlphaVantageClient, "_make_request")
     def test_malformed_time_series_response(self, mock_make_request):
         """Test handling of malformed time series response."""
         # Test response with missing time series data

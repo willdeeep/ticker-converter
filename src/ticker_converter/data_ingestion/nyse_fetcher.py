@@ -10,8 +10,8 @@ from typing import Any, ClassVar
 import pandas as pd
 
 from ..api_clients.client import AlphaVantageClient
-from ..api_clients.exceptions import AlphaVantageAPIError
 from ..api_clients.constants import OutputSize
+from ..api_clients.exceptions import AlphaVantageAPIError
 from .base_fetcher import BaseDataFetcher
 
 
