@@ -6,10 +6,8 @@ import pandas as pd
 import pytest
 import requests
 
-from src.ticker_converter.api_clients.api_client import (
-    AlphaVantageAPIError,
-    AlphaVantageClient,
-)
+from src.ticker_converter.api_clients.client import AlphaVantageClient
+from src.ticker_converter.api_clients.exceptions import AlphaVantageAPIError
 
 
 class TestAlphaVantageClient:
@@ -30,7 +28,7 @@ class TestAlphaVantageClient:
         """Test client raises error when no API key provided."""
         # Mock config to return empty API key
         with patch(
-            "src.ticker_converter.api_clients.api_client.get_api_config"
+            "src.ticker_converter.api_clients.client.get_api_config"
         ) as mock_get_config:
             mock_get_config.side_effect = ValueError(
                 "ALPHA_VANTAGE_API_KEY environment variable is required"

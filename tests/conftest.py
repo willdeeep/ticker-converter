@@ -66,7 +66,7 @@ def test_api_config() -> APIConfig:
 def mock_config():
     """Mock configuration for testing (backwards compatibility)."""
     with patch(
-        "src.ticker_converter.api_clients.api_client.get_api_config"
+        "src.ticker_converter.api_clients.client.get_api_config"
     ) as mock_get_config:
         mock_cfg = APIConfig(
             api_key="test_api_key",

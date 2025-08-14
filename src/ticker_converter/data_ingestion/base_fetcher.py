@@ -11,7 +11,8 @@ from typing import Any, ClassVar
 
 import pandas as pd
 
-from ..api_clients.api_client import AlphaVantageAPIError, AlphaVantageClient
+from ..api_clients.client import AlphaVantageClient
+from ..api_clients.exceptions import AlphaVantageAPIError
 
 
 class BaseDataFetcher(ABC):

@@ -1,11 +1,4 @@
-"""NYSfrom datetime import date
-from typing import Any, ClassVar
-
-import pandas as pd
-
-from ..api_clients.api_client import AlphaVantageAPIError
-from ..api_clients.constants import OutputSize
-from .base_fetcher import BaseDataFetcherdata fetcher for Magnificent Seven companies.
+"""NYSE data fetcher for Magnificent Seven companies.
 
 This module handles fetching daily stock data for the Magnificent Seven companies
 (AAPL, MSFT, AMZN, GOOGL, META, NVDA, TSLA) and storing it in SQL tables.
@@ -16,7 +9,8 @@ from typing import Any, ClassVar
 
 import pandas as pd
 
-from ..api_clients.api_client import AlphaVantageAPIError, AlphaVantageClient
+from ..api_clients.client import AlphaVantageClient
+from ..api_clients.exceptions import AlphaVantageAPIError
 from ..api_clients.constants import OutputSize
 from .base_fetcher import BaseDataFetcher
 
