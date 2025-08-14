@@ -116,6 +116,19 @@ python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+# Remove global ignore - be explicit about missing imports
+ignore_missing_imports = false
+# Strict mode for better type safety
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+# Per-module configurations for specific libraries that need it
+[[tool.mypy.overrides]]
+module = [
+    "psycopg2.*",
+    "airflow.*", 
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
