@@ -651,7 +651,7 @@ class CurrencyRate(BaseModel):
                 raise ValueError("Bid rate must be less than ask rate")
 
             # Check if main rate is within bid/ask spread
-            if not (self.bid_rate <= self.rate <= self.ask_rate):
+            if not self.bid_rate <= self.rate <= self.ask_rate:
                 raise ValueError("Exchange rate must be between bid and ask rates")
 
             # Check for reasonable spread (should be < 10% for major pairs)

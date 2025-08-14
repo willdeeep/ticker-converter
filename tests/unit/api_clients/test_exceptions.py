@@ -14,7 +14,7 @@ from src.ticker_converter.api_clients.exceptions import (
 class TestAlphaVantageExceptions:
     """Test suite for Alpha Vantage API exceptions."""
 
-    def test_base_exception(self):
+    def test_base_exception(self) -> None:
         """Test the base AlphaVantageAPIError."""
         message = "Test error message"
         error = AlphaVantageAPIError(message)
@@ -22,7 +22,7 @@ class TestAlphaVantageExceptions:
         assert str(error) == message
         assert isinstance(error, Exception)
 
-    def test_base_exception_with_error_code(self):
+    def test_base_exception_with_error_code(self) -> None:
         """Test base exception with error code."""
         message = "API Error"
         error_code = "ERR_001"
@@ -31,7 +31,7 @@ class TestAlphaVantageExceptions:
         assert str(error) == message
         assert error.error_code == error_code
 
-    def test_rate_limit_error(self):
+    def test_rate_limit_error(self) -> None:
         """Test AlphaVantageRateLimitError."""
         message = "Rate limit exceeded"
         error = AlphaVantageRateLimitError(message)
@@ -39,7 +39,7 @@ class TestAlphaVantageExceptions:
         assert str(error) == message
         assert isinstance(error, AlphaVantageAPIError)
 
-    def test_rate_limit_error_with_error_code(self):
+    def test_rate_limit_error_with_error_code(self) -> None:
         """Test rate limit error with error code."""
         message = "Rate limit exceeded"
         error_code = "RATE_LIMIT"
@@ -48,7 +48,7 @@ class TestAlphaVantageExceptions:
         assert str(error) == message
         assert error.error_code == error_code
 
-    def test_request_error(self):
+    def test_request_error(self) -> None:
         """Test AlphaVantageRequestError."""
         message = "Request failed"
         error = AlphaVantageRequestError(message)
@@ -56,7 +56,7 @@ class TestAlphaVantageExceptions:
         assert str(error) == message
         assert isinstance(error, AlphaVantageAPIError)
 
-    def test_config_error(self):
+    def test_config_error(self) -> None:
         """Test AlphaVantageConfigError."""
         message = "Configuration error"
         error = AlphaVantageConfigError(message)
@@ -64,7 +64,7 @@ class TestAlphaVantageExceptions:
         assert str(error) == message
         assert isinstance(error, AlphaVantageAPIError)
 
-    def test_authentication_error(self):
+    def test_authentication_error(self) -> None:
         """Test AlphaVantageAuthenticationError."""
         message = "Authentication failed"
         error = AlphaVantageAuthenticationError(message)
@@ -72,7 +72,7 @@ class TestAlphaVantageExceptions:
         assert str(error) == message
         assert isinstance(error, AlphaVantageAPIError)
 
-    def test_timeout_error(self):
+    def test_timeout_error(self) -> None:
         """Test AlphaVantageTimeoutError."""
         message = "Request timed out"
         error = AlphaVantageTimeoutError(message)
@@ -80,7 +80,7 @@ class TestAlphaVantageExceptions:
         assert str(error) == message
         assert isinstance(error, AlphaVantageAPIError)
 
-    def test_data_error(self):
+    def test_data_error(self) -> None:
         """Test AlphaVantageDataError."""
         message = "Data parsing failed"
         error = AlphaVantageDataError(message)
@@ -88,7 +88,7 @@ class TestAlphaVantageExceptions:
         assert str(error) == message
         assert isinstance(error, AlphaVantageAPIError)
 
-    def test_exception_inheritance_chain(self):
+    def test_exception_inheritance_chain(self) -> None:
         """Test that all exceptions properly inherit from base exception."""
         exceptions = [
             AlphaVantageRateLimitError("test"),
@@ -103,7 +103,7 @@ class TestAlphaVantageExceptions:
             assert isinstance(exc, AlphaVantageAPIError)
             assert isinstance(exc, Exception)
 
-    def test_exception_error_code_preservation(self):
+    def test_exception_error_code_preservation(self) -> None:
         """Test that error codes are preserved through inheritance."""
         error_code = "TEST_CODE"
 
@@ -126,7 +126,7 @@ class TestAlphaVantageExceptions:
         data_error = AlphaVantageDataError("data error", error_code)
         assert data_error.error_code == error_code
 
-    def test_exception_str_and_repr(self):
+    def test_exception_str_and_repr(self) -> None:
         """Test string and repr methods of exceptions."""
         message = "Test error message"
 
@@ -145,7 +145,7 @@ class TestAlphaVantageExceptions:
         assert str(timeout_error) == message
         assert "AlphaVantageTimeoutError" in repr(timeout_error)
 
-    def test_exception_equality(self):
+    def test_exception_equality(self) -> None:
         """Test exception equality comparison."""
         message = "Test message"
 
@@ -163,7 +163,7 @@ class TestAlphaVantageExceptions:
         auth_error = AlphaVantageAuthenticationError(message)
         assert type(rate_error) != type(auth_error)
 
-    def test_exception_with_none_values(self):
+    def test_exception_with_none_values(self) -> None:
         """Test exceptions with None values for optional parameters."""
         # Test with None message
         error1 = AlphaVantageAPIError(None)

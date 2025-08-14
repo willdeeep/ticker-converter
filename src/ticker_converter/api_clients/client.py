@@ -187,7 +187,7 @@ class AlphaVantageClient:
                 )
 
                 # Enhanced HTTP status code handling
-                if response.status_code == 401 or response.status_code == 403:
+                if response.status_code in (401, 403):
                     self.logger.error(
                         "Authentication failed (status %d): %s",
                         response.status_code,
@@ -362,7 +362,7 @@ class AlphaVantageClient:
                     self.base_url, params=prepared_params, timeout=timeout
                 ) as response:
                     # Enhanced HTTP status code handling
-                    if response.status == 401 or response.status == 403:
+                    if response.status in (401, 403):
                         error_text = await response.text()
                         self.logger.error(
                             "Authentication failed (status %d): %s",
@@ -387,7 +387,7 @@ class AlphaVantageClient:
                                 f"Rate limit exceeded after {self.max_retries} attempts (HTTP 429)"
                             )
 
-                    if not (200 <= response.status < 300):
+                    if not 200 <= response.status < 300:
                         error_text = await response.text()
                         self.logger.error(
                             "HTTP error %d: %s", response.status, error_text

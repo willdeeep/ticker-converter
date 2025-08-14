@@ -83,7 +83,7 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 def market_data_pipeline():
     """
     Modern Airflow 3.0.4 DAG implementing SQL-centric ETL pipeline.
-    
+
     Features:
     - @dag decorator for clean configuration
     - SQL operators for all transformations
@@ -103,10 +103,10 @@ def fetch_stock_data():
     No business logic - pure data ingestion.
     """
     from ticker_converter.data_ingestion.orchestrator import Orchestrator
-    
+
     orchestrator = Orchestrator()
     result = orchestrator.run_stock_data_ingestion()
-    
+
     # Return metadata for downstream tasks
     return {
         'symbols_processed': result.get('symbols_count', 0),
@@ -121,10 +121,10 @@ def fetch_currency_data():
     Focused solely on data retrieval.
     """
     from ticker_converter.data_ingestion.orchestrator import Orchestrator
-    
+
     orchestrator = Orchestrator()
     result = orchestrator.run_currency_data_ingestion()
-    
+
     return {
         'rates_processed': result.get('rates_count', 0),
         'api_source': result.get('source', 'unknown')
@@ -269,7 +269,7 @@ from airflow import settings
 def create_postgres_connection():
     """Create PostgreSQL connection for ETL operations."""
     session = settings.Session()
-    
+
     conn = Connection(
         conn_id='postgres_default',
         conn_type='postgres',
@@ -283,7 +283,7 @@ def create_postgres_connection():
             'sslmode': 'prefer'
         })
     )
-    
+
     session.merge(conn)
     session.commit()
     session.close()
@@ -394,17 +394,17 @@ logging.getLogger('airflow.providers.postgres').setLevel(logging.DEBUG)
 def monitor_pipeline_health():
     """Monitor overall pipeline health and performance."""
     from ticker_converter.monitoring import PipelineMonitor
-    
+
     monitor = PipelineMonitor()
     metrics = monitor.collect_pipeline_metrics()
-    
+
     # Alert on anomalies
     if metrics['data_freshness_hours'] > 24:
         raise AirflowException("Data freshness exceeds threshold")
-    
+
     if metrics['error_rate_percent'] > 5:
         raise AirflowException("Error rate exceeds threshold")
-    
+
     return metrics
 ```
 

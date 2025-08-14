@@ -45,7 +45,7 @@ def _configure_test_environment() -> None:
         print("This will consume your Alpha Vantage API quota!")
 
 
-def pytest_configure(config):  # pylint: disable=unused-argument
+def pytest_configure(config) -> None:  # pylint: disable=unused-argument
     """Configure pytest with safety checks for API usage."""
     _configure_test_environment()
 
@@ -63,7 +63,7 @@ def test_api_config() -> APIConfig:
 
 
 @pytest.fixture
-def mock_config():
+def mock_config() -> Any:
     """Mock configuration for testing (backwards compatibility)."""
     with patch(
         "src.ticker_converter.api_clients.client.get_api_config"
@@ -163,7 +163,7 @@ def sample_company_overview() -> dict[str, Any]:
 
 
 @pytest.fixture
-def mock_requests_session():
+def mock_requests_session() -> Any:
     """Mock requests session for API testing."""
     with patch("requests.Session") as mock_session_class:
         mock_session = Mock()
@@ -176,7 +176,7 @@ def alpha_vantage_client(
     test_api_config: APIConfig,  # pylint: disable=redefined-outer-name
 ) -> AlphaVantageClient:
     """Alpha Vantage client instance for testing."""
-    return AlphaVantageClient(api_key="test_api_key", config=test_api_config)
+    return AlphaVantageClient(api_key="test_api_key")
 
 
 @pytest.fixture

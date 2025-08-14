@@ -163,34 +163,34 @@ def monitor_etl_process() -> None:
     tags=DAGConfig.TAGS,
     default_args=DAGConfig.DEFAULT_ARGS,
 )
-def ticker_converter_daily_etl():
+def ticker_converter_daily_etl() -> None:
     """Ticker converter daily ETL DAG using Airflow 3.0 syntax."""
     # pylint: disable=pointless-statement
 
     @task
-    def extract_stock_data_to_json():
+    def extract_stock_data_to_json() -> None:
         """Extract stock prices to JSON files."""
         extract_stock_prices_to_json()
 
     @task
-    def extract_exchange_rates_to_json_task():
+    def extract_exchange_rates_to_json_task() -> None:
         """Extract exchange rates to JSON files."""
         extract_exchange_rates_to_json()
 
     @task
-    def run_data_quality_checks():
+    def run_data_quality_checks() -> str:
         """Run data quality checks."""
         print("Running data quality checks...")
         # Placeholder for quality checks
         return "quality_checks_passed"
 
     @task
-    def monitor_etl_process_task():
+    def monitor_etl_process_task() -> None:
         """Monitor ETL process."""
         monitor_etl_process()
 
     @task
-    def cleanup_old_data():
+    def cleanup_old_data() -> str:
         """Clean up old data."""
         print("Cleaning up old data...")
         # Placeholder for cleanup logic

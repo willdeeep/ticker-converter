@@ -18,7 +18,7 @@ from api.models import StockPerformanceDetails, TopPerformerStock
 class TestModelBuilders:
     """Test the model builder functions."""
 
-    def test_build_top_performer_stock(self):
+    def test_build_top_performer_stock(self) -> None:
         """Test building TopPerformerStock from database row."""
         row = {
             "symbol": "AAPL",
@@ -43,7 +43,7 @@ class TestModelBuilders:
         assert result.trade_date == date(2024, 1, 15)
         assert result.performance_rank == 1
 
-    def test_build_top_performer_stock_with_nulls(self):
+    def test_build_top_performer_stock_with_nulls(self) -> None:
         """Test building TopPerformerStock with null values."""
         row = {
             "symbol": "MSFT",
@@ -63,7 +63,7 @@ class TestModelBuilders:
         assert result.daily_return is None
         assert result.performance_rank is None
 
-    def test_build_stock_performance_details(self):
+    def test_build_stock_performance_details(self) -> None:
         """Test building StockPerformanceDetails from database row."""
         row = {
             "symbol": "GOOGL",

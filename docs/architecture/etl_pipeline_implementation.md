@@ -91,7 +91,7 @@ Our data pipeline addresses these challenges through a **three-layer approach**:
 ```python
 class NYSEFetcher:
     """Fetches daily OHLCV data for Magnificent Seven stocks."""
-    
+
     def fetch_daily_data(self, symbol: str, days: int = 30) -> List[MarketDataPoint]:
         """
         Fetch historical daily data with intelligent error handling.
@@ -117,7 +117,7 @@ class NYSEFetcher:
 ```python
 class CurrencyFetcher:
     """Fetches USD/GBP exchange rates from financial APIs."""
-    
+
     def fetch_exchange_rates(self, days: int = 30) -> List[CurrencyRate]:
         """
         Retrieve historical exchange rates with failover support.
@@ -289,7 +289,7 @@ from datetime import datetime, timedelta
 )
 def market_data_pipeline():
     """Modern Airflow 3.0.4 DAG with @dag decorator."""
-    
+
     @task(task_id='extract_stock_data')
     def fetch_stock_data():
         """Python task: API data ingestion only."""
@@ -297,7 +297,7 @@ def market_data_pipeline():
         
         orchestrator = Orchestrator()
         return orchestrator.run_stock_data_ingestion()
-    
+
     @task(task_id='extract_currency_rates')  
     def fetch_currency_data():
         """Python task: Currency API ingestion only."""
@@ -312,25 +312,25 @@ def market_data_pipeline():
         postgres_conn_id='postgres_default',
         sql='sql/etl/load_dimensions.sql'
     )
-    
+
     daily_transform = PostgresOperator(
         task_id='daily_transform', 
         postgres_conn_id='postgres_default',
         sql='sql/etl/daily_transform.sql'
     )
-    
+
     data_quality_checks = PostgresOperator(
         task_id='data_quality_checks',
         postgres_conn_id='postgres_default', 
         sql='sql/etl/data_quality_checks.sql'
     )
-    
+
     refresh_views = PostgresOperator(
         task_id='refresh_views',
         postgres_conn_id='postgres_default',
         sql='sql/etl/refresh_analytical_views.sql'
     )
-    
+
     # Task dependencies - linear pipeline for simplicity
     [fetch_stock_data(), fetch_currency_data()] >> load_dimensions
     load_dimensions >> daily_transform >> data_quality_checks >> refresh_views
@@ -390,7 +390,7 @@ async def get_top_performers(
     db: asyncpg.Connection = Depends(get_database_connection)
 ):
     """Get top performing stocks by daily return."""
-    
+
     query = """
         SELECT symbol, company_name, daily_return_pct, close_usd, date
         FROM v_stock_performance
@@ -398,7 +398,7 @@ async def get_top_performers(
         ORDER BY daily_return_pct DESC
         LIMIT $1;
     """
-    
+
     results = await db.fetch(query, limit)
     return [dict(record) for record in results]
 
@@ -409,7 +409,7 @@ async def get_performance_details(
     db: asyncpg.Connection = Depends(get_database_connection)
 ):
     """Get detailed performance metrics for a specific stock."""
-    
+
     query = """
         SELECT 
             symbol, company_name, date, close_usd, daily_return_pct,
@@ -419,7 +419,7 @@ async def get_performance_details(
           AND date >= CURRENT_DATE - INTERVAL '%s days'
         ORDER BY date DESC;
     """
-    
+
     results = await db.fetch(query, symbol, days)
     return [dict(record) for record in results]
 ```

@@ -14,14 +14,14 @@ from ticker_converter.data_ingestion.orchestrator import DataIngestionOrchestrat
 class TestNYSEDataFetcher:
     """Test NYSE data fetcher functionality."""
 
-    def test_magnificent_seven_symbols(self):
+    def test_magnificent_seven_symbols(self) -> None:
         """Test that Magnificent Seven symbols are correctly defined."""
         fetcher = NYSEDataFetcher()
         expected_symbols = ["AAPL", "MSFT", "AMZN", "GOOGL", "META", "NVDA", "TSLA"]
         assert fetcher.MAGNIFICENT_SEVEN == expected_symbols
 
     @patch("src.ticker_converter.data_ingestion.base_fetcher.AlphaVantageClient")
-    def test_fetch_daily_data_success(self, mock_client_class):
+    def test_fetch_daily_data_success(self, mock_client_class) -> None:
         """Test successful daily data fetch."""
         # Mock API client
         mock_client = Mock()
@@ -56,7 +56,7 @@ class TestNYSEDataFetcher:
             "Symbol",
         ]
 
-    def test_prepare_for_sql_insert(self):
+    def test_prepare_for_sql_insert(self) -> None:
         """Test data preparation for SQL insertion."""
         fetcher = NYSEDataFetcher()
 
@@ -88,14 +88,14 @@ class TestNYSEDataFetcher:
 class TestCurrencyDataFetcher:
     """Test currency data fetcher functionality."""
 
-    def test_currency_pair_configuration(self):
+    def test_currency_pair_configuration(self) -> None:
         """Test currency pair is correctly configured."""
         fetcher = CurrencyDataFetcher()
         assert fetcher.FROM_CURRENCY == "USD"
         assert fetcher.TO_CURRENCY == "GBP"
 
     @patch("src.ticker_converter.data_ingestion.base_fetcher.AlphaVantageClient")
-    def test_fetch_current_exchange_rate_success(self, mock_client_class):
+    def test_fetch_current_exchange_rate_success(self, mock_client_class) -> None:
         """Test successful current exchange rate fetch."""
         # Mock API client
         mock_client = Mock()
@@ -123,7 +123,7 @@ class TestCurrencyDataFetcher:
         assert result["to_currency"] == "GBP"
         assert result["exchange_rate"] == 0.7850
 
-    def test_prepare_current_rate_for_sql(self):
+    def test_prepare_current_rate_for_sql(self) -> None:
         """Test current rate data preparation for SQL."""
         fetcher = CurrencyDataFetcher()
 
@@ -146,7 +146,7 @@ class TestCurrencyDataFetcher:
 class TestDataIngestionOrchestrator:
     """Test data ingestion orchestrator functionality."""
 
-    def test_orchestrator_initialization(self):
+    def test_orchestrator_initialization(self) -> None:
         """Test orchestrator initializes with default components."""
         orchestrator = DataIngestionOrchestrator()
 
@@ -155,7 +155,7 @@ class TestDataIngestionOrchestrator:
         assert orchestrator.currency_fetcher is not None
 
     @patch("src.ticker_converter.data_ingestion.orchestrator.DatabaseManager")
-    def test_run_full_ingestion_empty_database(self, mock_db_manager_class):
+    def test_run_full_ingestion_empty_database(self, mock_db_manager_class) -> None:
         """Test full ingestion with empty database performs initial setup."""
         # Mock database manager
         mock_db_manager = Mock()
@@ -188,7 +188,7 @@ class TestDataIngestionOrchestrator:
             mock_setup.assert_called_once_with(days_back=10)
 
     @patch("src.ticker_converter.data_ingestion.orchestrator.DatabaseManager")
-    def test_run_full_ingestion_existing_data(self, mock_db_manager_class):
+    def test_run_full_ingestion_existing_data(self, mock_db_manager_class) -> None:
         """Test full ingestion with existing data performs daily update."""
         # Mock database manager
         mock_db_manager = Mock()
@@ -275,7 +275,7 @@ class TestIntegration:
         assert all(record["from_currency"] == "USD" for record in currency_records)
         assert all(record["to_currency"] == "GBP" for record in currency_records)
 
-    def test_magnificent_seven_coverage(self):
+    def test_magnificent_seven_coverage(self) -> None:
         """Test that we're covering all Magnificent Seven companies."""
         fetcher = NYSEDataFetcher()
 

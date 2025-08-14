@@ -13,7 +13,7 @@ from src.ticker_converter.api_clients.constants import (
 class TestConstants:
     """Test suite for Alpha Vantage API constants."""
 
-    def test_output_size_enum(self):
+    def test_output_size_enum(self) -> None:
         """Test OutputSize enumeration values."""
         assert OutputSize.COMPACT == "compact"
         assert OutputSize.FULL == "full"
@@ -22,7 +22,7 @@ class TestConstants:
         assert str(OutputSize.COMPACT) == "compact"
         assert str(OutputSize.FULL) == "full"
 
-    def test_output_size_comparison(self):
+    def test_output_size_comparison(self) -> None:
         """Test OutputSize comparison operations."""
         # Test equality
         assert OutputSize.COMPACT == "compact"
@@ -32,7 +32,7 @@ class TestConstants:
         assert OutputSize.COMPACT != "full"
         assert OutputSize.FULL != "compact"
 
-    def test_alpha_vantage_function_enum(self):
+    def test_alpha_vantage_function_enum(self) -> None:
         """Test AlphaVantageFunction enumeration values."""
         assert AlphaVantageFunction.TIME_SERIES_DAILY == "TIME_SERIES_DAILY"
         assert AlphaVantageFunction.TIME_SERIES_INTRADAY == "TIME_SERIES_INTRADAY"
@@ -41,7 +41,7 @@ class TestConstants:
         assert AlphaVantageFunction.FX_DAILY == "FX_DAILY"
         assert AlphaVantageFunction.DIGITAL_CURRENCY_DAILY == "DIGITAL_CURRENCY_DAILY"
 
-    def test_alpha_vantage_response_key_enum(self):
+    def test_alpha_vantage_response_key_enum(self) -> None:
         """Test AlphaVantageResponseKey enumeration values."""
         assert AlphaVantageResponseKey.TIME_SERIES_DAILY == "Time Series (Daily)"
         assert AlphaVantageResponseKey.TIME_SERIES_FX_DAILY == "Time Series (FX Daily)"
@@ -52,7 +52,7 @@ class TestConstants:
         assert AlphaVantageResponseKey.ERROR_MESSAGE == "Error Message"
         assert AlphaVantageResponseKey.NOTE == "Note"
 
-    def test_alpha_vantage_value_key_enum(self):
+    def test_alpha_vantage_value_key_enum(self) -> None:
         """Test AlphaVantageValueKey enumeration values."""
         assert AlphaVantageValueKey.OPEN == "1. open"
         assert AlphaVantageValueKey.HIGH == "2. high"
@@ -62,7 +62,7 @@ class TestConstants:
         assert AlphaVantageValueKey.EXCHANGE_RATE == "5. Exchange Rate"
         assert AlphaVantageValueKey.LAST_REFRESHED == "6. Last Refreshed"
 
-    def test_enum_membership(self):
+    def test_enum_membership(self) -> None:
         """Test membership checks for enums."""
         # Test OutputSize membership
         assert "compact" in [e.value for e in OutputSize]
@@ -74,7 +74,7 @@ class TestConstants:
         assert "OVERVIEW" in [e.value for e in AlphaVantageFunction]
         assert "invalid" not in [e.value for e in AlphaVantageFunction]
 
-    def test_enum_iteration(self):
+    def test_enum_iteration(self) -> None:
         """Test iteration over enum values."""
         # Test OutputSize iteration
         output_sizes = list(OutputSize)
@@ -88,7 +88,7 @@ class TestConstants:
         assert AlphaVantageFunction.TIME_SERIES_DAILY in functions
         assert AlphaVantageFunction.OVERVIEW in functions
 
-    def test_enum_case_sensitivity(self):
+    def test_enum_case_sensitivity(self) -> None:
         """Test that enum values are case-sensitive."""
         # OutputSize should be lowercase
         assert OutputSize.COMPACT == "compact"
@@ -99,7 +99,7 @@ class TestConstants:
         assert AlphaVantageFunction.TIME_SERIES_DAILY == "TIME_SERIES_DAILY"
         assert AlphaVantageFunction.TIME_SERIES_DAILY != "time_series_daily"
 
-    def test_value_key_numbering(self):
+    def test_value_key_numbering(self) -> None:
         """Test that value keys have correct Alpha Vantage numbering."""
         # Alpha Vantage uses specific numbering for OHLCV data
         assert AlphaVantageValueKey.OPEN.startswith("1.")
@@ -108,7 +108,7 @@ class TestConstants:
         assert AlphaVantageValueKey.CLOSE.startswith("4.")
         assert AlphaVantageValueKey.VOLUME.startswith("5.")
 
-    def test_enum_unique_values(self):
+    def test_enum_unique_values(self) -> None:
         """Test that enum values are unique."""
         # Test OutputSize uniqueness
         output_size_values = [e.value for e in OutputSize]
@@ -122,7 +122,7 @@ class TestConstants:
         response_key_values = [e.value for e in AlphaVantageResponseKey]
         assert len(response_key_values) == len(set(response_key_values))
 
-    def test_enum_string_representation(self):
+    def test_enum_string_representation(self) -> None:
         """Test string representation of enum members."""
         # Test that str() returns the value
         assert str(OutputSize.COMPACT) == "compact"
@@ -135,7 +135,7 @@ class TestConstants:
             AlphaVantageFunction.TIME_SERIES_DAILY
         )
 
-    def test_enum_attribute_access(self):
+    def test_enum_attribute_access(self) -> None:
         """Test that enum members can be accessed as attributes."""
         # Test attribute access
         assert hasattr(OutputSize, "COMPACT")
@@ -150,7 +150,7 @@ class TestConstants:
         with pytest.raises(AttributeError):
             _ = AlphaVantageFunction.INVALID
 
-    def test_enum_comparison_types(self):
+    def test_enum_comparison_types(self) -> None:
         """Test comparison between enum members and different types."""
         # Enum members should equal their string values
         assert OutputSize.COMPACT == "compact"
@@ -165,7 +165,7 @@ class TestConstants:
         assert OutputSize.COMPACT is not None
         assert OutputSize.COMPACT != None
 
-    def test_response_key_values(self):
+    def test_response_key_values(self) -> None:
         """Test specific response key values."""
         # Test that response keys match Alpha Vantage API documentation
         assert AlphaVantageResponseKey.TIME_SERIES_DAILY == "Time Series (Daily)"
@@ -175,7 +175,7 @@ class TestConstants:
             == "Realtime Currency Exchange Rate"
         )
 
-    def test_value_key_consistency(self):
+    def test_value_key_consistency(self) -> None:
         """Test that value keys are consistent with Alpha Vantage format."""
         # Test OHLCV keys follow Alpha Vantage pattern
         ohlcv_keys = [

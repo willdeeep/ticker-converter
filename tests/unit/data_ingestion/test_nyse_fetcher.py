@@ -14,7 +14,7 @@ from src.ticker_converter.data_ingestion.nyse_fetcher import NYSEDataFetcher
 class TestNYSEDataFetcher:
     """Test suite for NYSEDataFetcher."""
 
-    def test_initialization_default(self):
+    def test_initialization_default(self) -> None:
         """Test fetcher initialization with default settings."""
         fetcher = NYSEDataFetcher()
 
@@ -30,7 +30,7 @@ class TestNYSEDataFetcher:
         ]
 
     @patch("src.ticker_converter.data_ingestion.nyse_fetcher.AlphaVantageClient")
-    def test_initialization_with_custom_client(self, mock_client_class):
+    def test_initialization_with_custom_client(self, mock_client_class) -> None:
         """Test fetcher initialization with custom API client."""
         mock_client = Mock()
         fetcher = NYSEDataFetcher(api_client=mock_client)
@@ -40,7 +40,7 @@ class TestNYSEDataFetcher:
         mock_client_class.assert_not_called()
 
     @patch.object(NYSEDataFetcher, "_fetch_symbol_data")
-    def test_fetch_daily_data_success(self, mock_fetch_symbol):
+    def test_fetch_daily_data_success(self, mock_fetch_symbol) -> None:
         """Test successful daily data fetching for all symbols."""
         # Setup mock data for each symbol
         mock_data = pd.DataFrame(
@@ -71,7 +71,7 @@ class TestNYSEDataFetcher:
             assert isinstance(result[symbol], dict)
 
     @patch.object(NYSEDataFetcher, "_fetch_symbol_data")
-    def test_fetch_daily_data_with_api_error(self, mock_fetch_symbol):
+    def test_fetch_daily_data_with_api_error(self, mock_fetch_symbol) -> None:
         """Test daily data fetching with API errors for some symbols."""
 
         # Setup mock to raise error for one symbol and succeed for others
@@ -101,7 +101,7 @@ class TestNYSEDataFetcher:
         assert "MSFT" in result
 
     @patch("src.ticker_converter.data_ingestion.nyse_fetcher.AlphaVantageClient")
-    def test_fetch_symbol_data_success(self, mock_client_class):
+    def test_fetch_symbol_data_success(self, mock_client_class) -> None:
         """Test successful symbol data fetching."""
         # Setup mock client
         mock_client = Mock()
@@ -135,7 +135,7 @@ class TestNYSEDataFetcher:
         assert list(result.columns) == ["open", "high", "low", "close", "volume"]
 
     @patch("src.ticker_converter.data_ingestion.nyse_fetcher.AlphaVantageClient")
-    def test_fetch_symbol_data_api_error(self, mock_client_class):
+    def test_fetch_symbol_data_api_error(self, mock_client_class) -> None:
         """Test symbol data fetching with API error."""
         # Setup mock client to raise error
         mock_client = Mock()
@@ -148,7 +148,7 @@ class TestNYSEDataFetcher:
             fetcher._fetch_symbol_data("AAPL", OutputSize.COMPACT)
 
     @patch("src.ticker_converter.data_ingestion.nyse_fetcher.AlphaVantageClient")
-    def test_fetch_symbol_data_empty_response(self, mock_client_class):
+    def test_fetch_symbol_data_empty_response(self, mock_client_class) -> None:
         """Test symbol data fetching with empty response."""
         # Setup mock client to return empty DataFrame
         mock_client = Mock()
@@ -161,7 +161,7 @@ class TestNYSEDataFetcher:
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 0
 
-    def test_fetch_single_symbol_success(self):
+    def test_fetch_single_symbol_success(self) -> None:
         """Test fetching data for a single symbol."""
         with patch.object(NYSEDataFetcher, "_fetch_symbol_data") as mock_fetch:
             mock_data = pd.DataFrame(
@@ -184,7 +184,7 @@ class TestNYSEDataFetcher:
             assert isinstance(result, pd.DataFrame)
             assert len(result) == 1
 
-    def test_fetch_single_symbol_with_custom_output_size(self):
+    def test_fetch_single_symbol_with_custom_output_size(self) -> None:
         """Test fetching single symbol with custom output size."""
         with patch.object(NYSEDataFetcher, "_fetch_symbol_data") as mock_fetch:
             mock_data = pd.DataFrame(
@@ -204,7 +204,7 @@ class TestNYSEDataFetcher:
 
             mock_fetch.assert_called_once_with("AAPL", OutputSize.FULL)
 
-    def test_fetch_single_symbol_invalid_symbol(self):
+    def test_fetch_single_symbol_invalid_symbol(self) -> None:
         """Test fetching single symbol with invalid symbol."""
         fetcher = NYSEDataFetcher()
 
@@ -214,7 +214,7 @@ class TestNYSEDataFetcher:
         with pytest.raises(ValueError, match="Symbol cannot be empty"):
             fetcher.fetch_single_symbol(None)
 
-    def test_get_supported_symbols(self):
+    def test_get_supported_symbols(self) -> None:
         """Test getting list of supported symbols."""
         fetcher = NYSEDataFetcher()
         symbols = fetcher.get_supported_symbols()
@@ -225,7 +225,7 @@ class TestNYSEDataFetcher:
         assert "MSFT" in symbols
         assert "GOOGL" in symbols
 
-    def test_is_symbol_supported(self):
+    def test_is_symbol_supported(self) -> None:
         """Test checking if a symbol is supported."""
         fetcher = NYSEDataFetcher()
 
@@ -238,7 +238,7 @@ class TestNYSEDataFetcher:
         assert fetcher.is_symbol_supported("INVALID") is False
         assert fetcher.is_symbol_supported("XYZ") is False
 
-    def test_is_symbol_supported_case_insensitive(self):
+    def test_is_symbol_supported_case_insensitive(self) -> None:
         """Test that symbol support check is case insensitive."""
         fetcher = NYSEDataFetcher()
 
@@ -247,7 +247,7 @@ class TestNYSEDataFetcher:
         assert fetcher.is_symbol_supported("Aapl") is True
 
     @patch.object(NYSEDataFetcher, "_fetch_symbol_data")
-    def test_fetch_custom_symbols(self, mock_fetch_symbol):
+    def test_fetch_custom_symbols(self, mock_fetch_symbol) -> None:
         """Test fetching data for custom list of symbols."""
         # Setup mock data
         mock_data = pd.DataFrame(
@@ -276,7 +276,7 @@ class TestNYSEDataFetcher:
         for symbol in custom_symbols:
             assert symbol in result
 
-    def test_fetch_custom_symbols_empty_list(self):
+    def test_fetch_custom_symbols_empty_list(self) -> None:
         """Test fetching custom symbols with empty list."""
         fetcher = NYSEDataFetcher()
         result = fetcher.fetch_custom_symbols([])
@@ -284,7 +284,7 @@ class TestNYSEDataFetcher:
         assert isinstance(result, dict)
         assert len(result) == 0
 
-    def test_fetch_custom_symbols_with_duplicates(self):
+    def test_fetch_custom_symbols_with_duplicates(self) -> None:
         """Test fetching custom symbols with duplicate symbols."""
         with patch.object(NYSEDataFetcher, "_fetch_symbol_data") as mock_fetch:
             mock_data = pd.DataFrame(
@@ -309,7 +309,7 @@ class TestNYSEDataFetcher:
             assert "AAPL" in result
             assert "MSFT" in result
 
-    def test_str_representation(self):
+    def test_str_representation(self) -> None:
         """Test string representation of fetcher."""
         fetcher = NYSEDataFetcher()
         str_repr = str(fetcher)
@@ -317,7 +317,7 @@ class TestNYSEDataFetcher:
         assert "NYSEDataFetcher" in str_repr
         assert "magnificent_seven" in str_repr.lower()
 
-    def test_repr_representation(self):
+    def test_repr_representation(self) -> None:
         """Test repr representation of fetcher."""
         fetcher = NYSEDataFetcher()
         repr_str = repr(fetcher)

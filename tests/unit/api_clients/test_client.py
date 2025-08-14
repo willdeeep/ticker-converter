@@ -23,7 +23,7 @@ from src.ticker_converter.api_clients.exceptions import (
 class TestAlphaVantageClient:
     """Test suite for the refactored AlphaVantageClient."""
 
-    def test_client_initialization(self):
+    def test_client_initialization(self) -> None:
         """Test client initialization with default and custom settings."""
         # Test with default settings (should use environment variable)
         client = AlphaVantageClient()
@@ -39,13 +39,13 @@ class TestAlphaVantageClient:
         assert custom_client.timeout == 30
         assert custom_client.max_retries == 3
 
-    def test_client_initialization_no_api_key(self):
+    def test_client_initialization_no_api_key(self) -> None:
         """Test client initialization with no API key raises error."""
         with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(AlphaVantageConfigError):
                 AlphaVantageClient()
 
-    def test_make_request_success(self):
+    def test_make_request_success(self) -> None:
         """Test successful API request."""
         # Setup mock response
         mock_response = Mock()
@@ -66,7 +66,7 @@ class TestAlphaVantageClient:
         client.session.get.assert_called_once()
 
     @patch.object(AlphaVantageClient, "_setup_sync_session")
-    def test_make_request_rate_limit_error(self, mock_setup):
+    def test_make_request_rate_limit_error(self, mock_setup) -> None:
         """Test API rate limit error handling."""
         # Setup mock response for rate limit
         mock_response = Mock()
@@ -83,7 +83,7 @@ class TestAlphaVantageClient:
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch.object(AlphaVantageClient, "_setup_sync_session")
-    def test_make_request_invalid_api_key(self, mock_setup):
+    def test_make_request_invalid_api_key(self, mock_setup) -> None:
         """Test invalid API key error handling."""
         # Setup mock response for pure authentication error (no rate limit keywords)
         mock_response = Mock()
@@ -91,7 +91,7 @@ class TestAlphaVantageClient:
         mock_response.json.return_value = {
             "Error Message": "Invalid API call. Please retry or visit the documentation (https://www.alphavantage.co/documentation/). If the error persists, please contact support."
         }
-        
+
         client = AlphaVantageClient(api_key="test_invalid_key")
         client.session = Mock()
         client.session.get.return_value = mock_response
@@ -100,7 +100,7 @@ class TestAlphaVantageClient:
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch.object(AlphaVantageClient, "_setup_sync_session")
-    def test_make_request_http_error(self, mock_setup):
+    def test_make_request_http_error(self, mock_setup) -> None:
         """Test HTTP error handling."""
         # Setup mock response for HTTP error
         mock_response = Mock()
@@ -115,7 +115,7 @@ class TestAlphaVantageClient:
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch.object(AlphaVantageClient, "_setup_sync_session")
-    def test_make_request_timeout(self, mock_setup):
+    def test_make_request_timeout(self, mock_setup) -> None:
         """Test timeout error handling."""
         # Setup mock for timeout
         client = AlphaVantageClient(api_key="test_key")
@@ -126,7 +126,7 @@ class TestAlphaVantageClient:
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch.object(AlphaVantageClient, "_setup_sync_session")
-    def test_make_request_connection_error(self, mock_setup):
+    def test_make_request_connection_error(self, mock_setup) -> None:
         """Test connection error handling."""
         # Setup mock for connection error
         client = AlphaVantageClient(api_key="test_key")
@@ -137,7 +137,7 @@ class TestAlphaVantageClient:
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_get_daily_stock_data_success(self, mock_make_request):
+    def test_get_daily_stock_data_success(self, mock_make_request) -> None:
         """Test successful daily stock data retrieval."""
         # Setup mock response
         mock_response = {
@@ -170,7 +170,7 @@ class TestAlphaVantageClient:
         assert result.iloc[0]["Symbol"] == "AAPL"
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_get_intraday_stock_data_success(self, mock_make_request):
+    def test_get_intraday_stock_data_success(self, mock_make_request) -> None:
         """Test successful intraday stock data retrieval."""
         # Setup mock response
         mock_response = {
@@ -197,7 +197,7 @@ class TestAlphaVantageClient:
         assert not result.empty
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_get_forex_daily_success(self, mock_make_request):
+    def test_get_forex_daily_success(self, mock_make_request) -> None:
         """Test successful forex daily data retrieval."""
         # Setup mock response
         mock_response = {
@@ -224,7 +224,7 @@ class TestAlphaVantageClient:
         assert not result.empty
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_get_digital_currency_daily_success(self, mock_make_request):
+    def test_get_digital_currency_daily_success(self, mock_make_request) -> None:
         """Test successful digital currency daily data retrieval."""
         # Setup mock response
         mock_response = {
@@ -258,7 +258,7 @@ class TestAlphaVantageClient:
         assert isinstance(result, pd.DataFrame)
         assert not result.empty
 
-    def test_invalid_symbol_validation(self):
+    def test_invalid_symbol_validation(self) -> None:
         """Test validation of invalid symbols."""
         client = AlphaVantageClient(api_key="test_key")
 
@@ -269,7 +269,7 @@ class TestAlphaVantageClient:
             client.get_daily_stock_data(None, OutputSize.COMPACT)
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_empty_response_handling(self, mock_make_request):
+    def test_empty_response_handling(self, mock_make_request) -> None:
         """Test handling of empty or malformed responses."""
         # Test empty response
         mock_make_request.return_value = {}
@@ -280,7 +280,7 @@ class TestAlphaVantageClient:
             client.get_daily_stock_data("AAPL", OutputSize.COMPACT)
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_malformed_time_series_response(self, mock_make_request):
+    def test_malformed_time_series_response(self, mock_make_request) -> None:
         """Test handling of malformed time series response."""
         # Test response with missing time series data
         mock_response = {
@@ -294,7 +294,7 @@ class TestAlphaVantageClient:
         with pytest.raises(AlphaVantageDataError, match="Expected key"):
             client.get_daily_stock_data("AAPL", OutputSize.COMPACT)
 
-    def test_str_representation(self):
+    def test_str_representation(self) -> None:
         """Test string representation of the client."""
         client = AlphaVantageClient(api_key="test_key")
         str_repr = str(client)
@@ -303,7 +303,7 @@ class TestAlphaVantageClient:
         assert "test_key" not in str_repr  # API key should be masked
         assert "***" in str_repr  # Should show masked API key
 
-    def test_repr_representation(self):
+    def test_repr_representation(self) -> None:
         """Test repr representation of the client."""
         client = AlphaVantageClient(api_key="test_key")
         repr_str = repr(client)

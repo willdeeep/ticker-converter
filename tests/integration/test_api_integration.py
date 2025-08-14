@@ -29,7 +29,7 @@ class TestAPIIntegration:
     """Integration tests for API functionality."""
 
     @integration_test
-    def test_real_api_daily_data_fetch(self):
+    def test_real_api_daily_data_fetch(self) -> None:
         """Test fetching real daily data from Alpha Vantage."""
         client = AlphaVantageClient(REAL_API_KEY)
 
@@ -58,7 +58,7 @@ class TestAPIIntegration:
         assert pd.api.types.is_integer_dtype(df["Volume"])
 
     @integration_test
-    def test_real_api_company_overview(self):
+    def test_real_api_company_overview(self) -> None:
         """Test fetching real company overview from Alpha Vantage."""
         client = AlphaVantageClient(REAL_API_KEY)
 
@@ -72,7 +72,7 @@ class TestAPIIntegration:
         assert "MarketCapitalization" in overview
 
     @integration_test
-    def test_real_api_invalid_symbol(self):
+    def test_real_api_invalid_symbol(self) -> None:
         """Test API behavior with invalid symbol."""
         client = AlphaVantageClient(REAL_API_KEY)
 
@@ -81,7 +81,7 @@ class TestAPIIntegration:
             client.get_daily_stock_data("INVALID_SYMBOL_12345")
 
     @integration_test
-    def test_api_client_integration(self):
+    def test_api_client_integration(self) -> None:
         """Test API client integration with real API."""
         client = AlphaVantageClient(REAL_API_KEY)
 
@@ -99,7 +99,9 @@ class TestAPIIntegration:
 class TestMockedIntegration:
     """Integration tests using mocked responses (always run)."""
 
-    def test_end_to_end_data_flow(self, sample_daily_response, sample_company_overview):
+    def test_end_to_end_data_flow(
+        self, sample_daily_response, sample_company_overview
+    ) -> None:
         """Test complete data flow from API client."""
         with patch("requests.Session") as mock_session_class:
             # Mock the session and response
@@ -125,7 +127,7 @@ class TestMockedIntegration:
             assert company_info["Name"] == "Apple Inc"
             assert company_info["Sector"] == "TECHNOLOGY"
 
-    def test_error_recovery_flow(self):
+    def test_error_recovery_flow(self) -> None:
         """Test error handling in the API client."""
         with patch("requests.Session") as mock_session_class:
             # Mock API error
@@ -140,7 +142,7 @@ class TestMockedIntegration:
             with pytest.raises(AlphaVantageAPIError):
                 client.get_daily_stock_data("INVALID", "compact")
 
-    def test_data_consistency(self, sample_daily_response):
+    def test_data_consistency(self, sample_daily_response) -> None:
         """Test data consistency across multiple calls."""
         with patch("requests.Session") as mock_session_class:
             mock_session = mock_session_class.return_value
