@@ -71,9 +71,7 @@ class DataIngestionOrchestrator:
                     "records_inserted": stock_inserted,
                     "companies": self.nyse_fetcher.MAGNIFICENT_SEVEN,
                 }
-                results["total_records_inserted"] = (
-                    results["total_records_inserted"] + stock_inserted
-                )
+                results["total_records_inserted"] += stock_inserted
                 self.logger.info(
                     "Stock data setup complete: %d records inserted", stock_inserted
                 )
@@ -96,9 +94,7 @@ class DataIngestionOrchestrator:
                     "records_inserted": currency_inserted,
                     "currency_pair": f"{self.currency_fetcher.FROM_CURRENCY}/{self.currency_fetcher.TO_CURRENCY}",
                 }
-                results["total_records_inserted"] = (
-                    results["total_records_inserted"] + currency_inserted
-                )
+                results["total_records_inserted"] += currency_inserted
                 self.logger.info(
                     "Currency data setup complete: %d records inserted",
                     currency_inserted,
@@ -109,10 +105,9 @@ class DataIngestionOrchestrator:
 
             # 3. Final status
             results["setup_completed"] = datetime.now().isoformat()
-            success_status = len(results["errors"]) == 0
-            results["success"] = success_status
+            results["success"] = not results["errors"]
 
-            if success_status:
+            if results["success"]:
                 self.logger.info(
                     "Initial setup completed successfully: %d total records",
                     results["total_records_inserted"],
