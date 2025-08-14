@@ -190,6 +190,12 @@ class StockQueryParams(BaseModel):
             today = date.today()
             if self.end_date > today:
                 raise ValueError("end_date cannot be in the future")
+            # pylint: disable=no-member  # Pydantic field access
+            if self.start_date.year < 1980:
+                raise ValueError("start_date cannot be before 1980")
+
+        elif self.start_date:
+            # pylint: disable=no-member  # Pydantic field access
             if self.start_date.year < 1980:
                 raise ValueError("start_date cannot be before 1980")
 

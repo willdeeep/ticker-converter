@@ -42,10 +42,10 @@ def calculate_backoff_delay_with_jitter(attempt: int, base_delay: int = 12) -> f
     jitter = 0.5 + random.random()
     delay_with_jitter = max_delay * jitter
 
-    return min(delay_with_jitter, 300.0)
+    return float(min(delay_with_jitter, 300.0))
 
 
-def prepare_api_params(params: dict[str, Any], api_key: str) -> dict[str, Any]:
+def prepare_api_params(params: dict[str, Any], api_key: str | None) -> dict[str, Any]:
     """Prepare API parameters by adding API key and copying dict.
 
     Args:
@@ -54,7 +54,13 @@ def prepare_api_params(params: dict[str, Any], api_key: str) -> dict[str, Any]:
 
     Returns:
         New dict with API key added.
+
+    Raises:
+        ValueError: If api_key is None or empty.
     """
+    if not api_key:
+        raise ValueError("API key cannot be None or empty")
+
     prepared_params = params.copy()
     prepared_params["apikey"] = api_key
     return prepared_params

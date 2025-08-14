@@ -104,6 +104,9 @@ class TestAlphaVantageClient:
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.raise_for_status.side_effect = requests.HTTPError("Server Error")
+        mock_response.json.return_value = (
+            {}
+        )  # Empty response to avoid error message parsing
         mock_get.return_value = mock_response
 
         client = AlphaVantageClient(api_key="test_key")
@@ -114,7 +117,7 @@ class TestAlphaVantageClient:
     @patch("src.ticker_converter.api_clients.client.requests.get")
     def test_make_request_timeout(self, mock_get):
         """Test timeout error handling."""
-        # Setup mock for timeout
+        # Setup mock for timeout - this should raise exception before getting response
         mock_get.side_effect = Timeout("Request timed out")
 
         client = AlphaVantageClient(api_key="test_key")
@@ -125,7 +128,7 @@ class TestAlphaVantageClient:
     @patch("src.ticker_converter.api_clients.client.requests.get")
     def test_make_request_connection_error(self, mock_get):
         """Test connection error handling."""
-        # Setup mock for connection error
+        # Setup mock for connection error - this should raise exception before getting response
         mock_get.side_effect = RequestException("Connection failed")
 
         client = AlphaVantageClient(api_key="test_key")
@@ -156,11 +159,15 @@ class TestAlphaVantageClient:
 
         assert isinstance(result, pd.DataFrame)
         assert not result.empty
-        assert "open" in result.columns
-        assert "high" in result.columns
-        assert "low" in result.columns
-        assert "close" in result.columns
-        assert "volume" in result.columns
+        assert "Open" in result.columns
+        assert "High" in result.columns
+        assert "Low" in result.columns
+        assert "Close" in result.columns
+        assert "Volume" in result.columns
+        assert "Date" in result.columns
+        assert "Symbol" in result.columns
+        assert len(result) == 1
+        assert result.iloc[0]["Symbol"] == "AAPL"
 
     @patch.object(AlphaVantageClient, "make_request")
     def test_get_intraday_stock_data_success(self, mock_make_request):
@@ -199,7 +206,7 @@ class TestAlphaVantageClient:
                 "2. From Symbol": "USD",
                 "3. To Symbol": "GBP",
             },
-            "Time Series FX (Daily)": {
+            "Time Series (FX Daily)": {
                 "2025-08-14": {
                     "1. open": "0.7340",
                     "2. high": "0.7360",
@@ -269,7 +276,7 @@ class TestAlphaVantageClient:
 
         client = AlphaVantageClient(api_key="test_key")
 
-        with pytest.raises(AlphaVantageAPIError, match="No data available"):
+        with pytest.raises(AlphaVantageDataError, match="Expected key"):
             client.get_daily_stock_data("AAPL", OutputSize.COMPACT)
 
     @patch.object(AlphaVantageClient, "make_request")
@@ -284,7 +291,7 @@ class TestAlphaVantageClient:
 
         client = AlphaVantageClient(api_key="test_key")
 
-        with pytest.raises(AlphaVantageAPIError, match="No time series data found"):
+        with pytest.raises(AlphaVantageDataError, match="Expected key"):
             client.get_daily_stock_data("AAPL", OutputSize.COMPACT)
 
     def test_str_representation(self):

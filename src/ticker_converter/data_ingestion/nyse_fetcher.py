@@ -4,12 +4,11 @@ This module handles fetching daily stock data for the Magnificent Seven companie
 (AAPL, MSFT, AMZN, GOOGL, META, NVDA, TSLA) and storing it in SQL tables.
 """
 
-from datetime import date, datetime
+from datetime import date
 from typing import Any, ClassVar
 
 import pandas as pd
 
-from ..api_clients.client import AlphaVantageClient
 from ..api_clients.constants import OutputSize
 from ..api_clients.exceptions import AlphaVantageAPIError
 from .base_fetcher import BaseDataFetcher
@@ -95,23 +94,27 @@ class NYSEDataFetcher(BaseDataFetcher):
             if df is not None:
                 results[symbol] = df
             else:
-                self.logger.warning(f"Failed to fetch data for {symbol}")
+                self.logger.warning("Failed to fetch data for %s", symbol)
 
-        self.logger.info(f"Successfully fetched data for {len(results)} companies")
+        self.logger.info("Successfully fetched data for %s companies", len(results))
         return results
 
     def prepare_for_sql_insert(
-        self, df: pd.DataFrame, symbol: str
+        self, df: pd.DataFrame, *args: Any
     ) -> list[dict[str, Any]]:
         """Prepare DataFrame data for SQL insertion into raw_stock_data table.
 
         Args:
             df: DataFrame with stock data
-            symbol: Stock symbol
+            *args: Should contain symbol as first argument
 
         Returns:
             List of dictionaries ready for SQL insertion
         """
+        if not args:
+            raise ValueError("Symbol must be provided as first argument")
+
+        symbol = args[0]
         if not self._validate_dataframe(df, self.REQUIRED_COLUMNS):
             return []
 
@@ -138,7 +141,7 @@ class NYSEDataFetcher(BaseDataFetcher):
                 }
                 records.append(record)
             except Exception as e:
-                self.logger.warning(f"Skipping invalid row for {symbol}: {e}")
+                self.logger.warning("Skipping invalid row for %s: %s", symbol, e)
                 continue
 
         return records
@@ -158,9 +161,9 @@ class NYSEDataFetcher(BaseDataFetcher):
         for symbol, df in stock_data.items():
             records = self.prepare_for_sql_insert(df, symbol)
             all_records.extend(records)
-            self.logger.info(f"Prepared {len(records)} records for {symbol}")
+            self.logger.info("Prepared %s records for %s", len(records), symbol)
 
-        self.logger.info(f"Total records prepared for insertion: {len(all_records)}")
+        self.logger.info("Total records prepared for insertion: %s", len(all_records))
         return all_records
 
     def get_latest_available_date(self, symbol: str) -> date | None:

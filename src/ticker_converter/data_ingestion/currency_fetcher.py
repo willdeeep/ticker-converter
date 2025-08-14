@@ -4,7 +4,7 @@ This module handles fetching daily USD/GBP exchange rates and storing them
 in SQL tables for use with stock price conversions.
 """
 
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any, ClassVar
 
 import pandas as pd
@@ -118,11 +118,14 @@ class CurrencyDataFetcher(BaseDataFetcher):
             self.logger.error("Data processing error fetching FX data: %s", e)
             return None
 
-    def prepare_for_sql_insert(self, df: pd.DataFrame) -> list[dict[str, Any]]:
+    def prepare_for_sql_insert(
+        self, df: pd.DataFrame, *args: Any
+    ) -> list[dict[str, Any]]:
         """Prepare DataFrame data for SQL insertion into raw_currency_data table.
 
         Args:
             df: DataFrame with FX data
+            *args: Additional arguments (unused for currency data)
 
         Returns:
             List of dictionaries ready for SQL insertion
@@ -153,7 +156,7 @@ class CurrencyDataFetcher(BaseDataFetcher):
                 }
                 records.append(record)
             except Exception as e:
-                self.logger.warning(f"Skipping invalid currency row: {e}")
+                self.logger.warning("Skipping invalid currency row: %s", e)
                 continue
 
         return records

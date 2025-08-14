@@ -138,6 +138,19 @@ class AlphaVantageClient:
             await self._aio_session.close()
             self.logger.debug("Async session closed")
 
+    def __str__(self) -> str:
+        """String representation with masked API key."""
+        masked_key = "***" if self.api_key else "None"
+        return f"AlphaVantageClient(api_key={masked_key})"
+
+    def __repr__(self) -> str:
+        """Detailed representation with masked API key."""
+        masked_key = "***" if self.api_key else "None"
+        return (
+            f"AlphaVantageClient(api_key={masked_key}, "
+            f"timeout={self.timeout}, max_retries={self.max_retries})"
+        )
+
     def make_request(self, params: dict[str, Any]) -> dict[str, Any]:
         """Make a synchronous request to the Alpha Vantage API with retry logic.
 
@@ -191,10 +204,10 @@ class AlphaVantageClient:
                         self.logger.info("Rate limit backoff: %.2f seconds", wait_time)
                         time.sleep(wait_time)
                         continue
-                    else:
-                        raise AlphaVantageRateLimitError(
-                            f"Rate limit exceeded after {self.max_retries} attempts (HTTP 429)"
-                        )
+
+                    raise AlphaVantageRateLimitError(
+                        f"Rate limit exceeded after {self.max_retries} attempts (HTTP 429)"
+                    )
 
                 response.raise_for_status()
 
@@ -208,7 +221,29 @@ class AlphaVantageClient:
                 error_msg = extract_error_message(data)
                 if error_msg:
                     self.logger.error("API error received: %s", error_msg)
-                    raise AlphaVantageAPIError(f"API Error: {error_msg}")
+
+                    # Check for specific error types
+                    error_lower = error_msg.lower()
+                    if (
+                        "rate limit" in error_lower
+                        or "requests per minute" in error_lower
+                    ):
+                        if attempt < self.max_retries - 1:
+                            wait_time = calculate_backoff_delay_with_jitter(attempt)
+                            self.logger.info(
+                                "Rate limit backoff: %.2f seconds", wait_time
+                            )
+                            time.sleep(wait_time)
+                            continue
+                        raise AlphaVantageRateLimitError(f"API Rate Limit: {error_msg}")
+                    elif (
+                        "invalid api" in error_lower or "authentication" in error_lower
+                    ):
+                        raise AlphaVantageAuthenticationError(
+                            f"Authentication Error: {error_msg}"
+                        )
+                    else:
+                        raise AlphaVantageAPIError(f"API Error: {error_msg}")
 
                 rate_limit_msg = extract_rate_limit_message(data)
                 if rate_limit_msg:
@@ -221,15 +256,34 @@ class AlphaVantageClient:
                         self.logger.info("Rate limit backoff: %.2f seconds", wait_time)
                         time.sleep(wait_time)
                         continue
-                    else:
-                        raise AlphaVantageRateLimitError(
-                            f"Rate limit exceeded after {self.max_retries} attempts: {rate_limit_msg}"
-                        )
+
+                    raise AlphaVantageRateLimitError(
+                        f"Rate limit exceeded after {self.max_retries} attempts: {rate_limit_msg}"
+                    )
 
                 # Apply rate limiting and return data
                 time.sleep(self.rate_limit_delay)
                 self.logger.debug("API request successful")
                 return data
+
+            except requests.HTTPError as e:
+                last_exception = e
+                self.logger.warning(
+                    "HTTP error (attempt %d/%d): %s",
+                    attempt + 1,
+                    self.max_retries,
+                    str(e),
+                )
+
+                if attempt < self.max_retries - 1:
+                    wait_time = calculate_backoff_delay_with_jitter(attempt)
+                    self.logger.info("HTTP error retry in %.2f seconds", wait_time)
+                    time.sleep(wait_time)
+                    continue
+
+                raise AlphaVantageRequestError(
+                    f"HTTP error after {self.max_retries} attempts"
+                ) from e
 
             except requests.Timeout as e:
                 last_exception = e
@@ -244,10 +298,10 @@ class AlphaVantageClient:
                     self.logger.info("Timeout retry in %.2f seconds", wait_time)
                     time.sleep(wait_time)
                     continue
-                else:
-                    raise AlphaVantageTimeoutError(
-                        f"Request timed out after {self.max_retries} attempts"
-                    ) from e
+
+                raise AlphaVantageTimeoutError(
+                    f"Request timed out after {self.max_retries} attempts"
+                ) from e
 
             except requests.RequestException as e:
                 last_exception = e
@@ -430,11 +484,15 @@ class AlphaVantageClient:
             DataFrame with daily stock data (Date, Open, High, Low, Close, Volume).
 
         Raises:
+            ValueError: If symbol is empty or invalid.
             AlphaVantageAPIError: If the API request fails.
         """
+        if not symbol or not symbol.strip():
+            raise ValueError("Symbol cannot be empty")
+
         params = {
             "function": AlphaVantageFunction.TIME_SERIES_DAILY.value,
-            "symbol": symbol,
+            "symbol": symbol.strip(),
             "outputsize": outputsize.value,
         }
 
@@ -675,3 +733,25 @@ class AlphaVantageClient:
                 str(e),
             )
             raise
+
+    def get_currency_exchange_rate(
+        self, from_currency: str, to_currency: str
+    ) -> dict[str, Any]:
+        """Get real-time exchange rate for currency pair.
+
+        Args:
+            from_currency: Source currency code (e.g., 'USD', 'BTC').
+            to_currency: Target currency code (e.g., 'EUR', 'USD').
+
+        Returns:
+            Dictionary containing exchange rate data.
+
+        Raises:
+            AlphaVantageAPIError: If the API request fails.
+        """
+        params = {
+            "function": AlphaVantageFunction.CURRENCY_EXCHANGE_RATE.value,
+            "from_currency": from_currency,
+            "to_currency": to_currency,
+        }
+        return self.make_request(params)

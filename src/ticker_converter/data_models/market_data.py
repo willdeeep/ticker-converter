@@ -469,6 +469,7 @@ class RawMarketData(BaseModel):
                 "avg_volume": sum(volumes) / len(volumes),
                 "total_volume": sum(volumes),
             },
+            # pylint: disable=no-member  # Pydantic field access
             "retrieved_at": self.retrieved_at.isoformat(),
         }
 
@@ -618,7 +619,7 @@ class CurrencyRate(BaseModel):
         }
         if v not in valid_currencies:
             # Log warning but don't fail - allows for new/exotic currencies
-            pass  # In production: logger.warning(f"Unknown currency code: {v}")
+            pass  # In production: logger.warning("Unknown currency code: %s", v)
 
         return v
 

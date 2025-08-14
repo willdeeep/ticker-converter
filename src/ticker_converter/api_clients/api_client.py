@@ -361,7 +361,7 @@ class AlphaVantageClient:
         jitter = 0.5 + random.random()
         delay_with_jitter = max_delay * jitter
 
-        return min(delay_with_jitter, 300.0)
+        return float(min(delay_with_jitter, 300.0))
 
     async def make_request_async(self, params: dict[str, Any]) -> dict[str, Any]:
         """Make an async request to the Alpha Vantage API with retry logic.

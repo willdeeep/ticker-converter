@@ -11,12 +11,12 @@ from src.ticker_converter.api_clients.client import AlphaVantageClient
 from src.ticker_converter.api_clients.constants import OutputSize
 from src.ticker_converter.api_clients.exceptions import (
     AlphaVantageAPIError,
-    AlphaVantageRequestError,
     AlphaVantageAuthenticationError,
+    AlphaVantageConfigError,
     AlphaVantageDataError,
     AlphaVantageRateLimitError,
+    AlphaVantageRequestError,
     AlphaVantageTimeoutError,
-    AlphaVantageConfigError,
 )
 
 
@@ -41,7 +41,7 @@ class TestAlphaVantageClient:
 
     def test_client_initialization_no_api_key(self):
         """Test client initialization with no API key raises error."""
-        with patch.dict('os.environ', {}, clear=True):
+        with patch.dict("os.environ", {}, clear=True):
             with pytest.raises(AlphaVantageConfigError):
                 AlphaVantageClient()
 
@@ -53,7 +53,7 @@ class TestAlphaVantageClient:
         mock_response.json.return_value = {"test": "data"}
 
         client = AlphaVantageClient(api_key="test_key")
-        
+
         # Mock the session.get method directly
         client.session.get = Mock(return_value=mock_response)
 
@@ -65,8 +65,8 @@ class TestAlphaVantageClient:
         assert result == {"test": "data"}
         client.session.get.assert_called_once()
 
-    @patch("src.ticker_converter.api_clients.client.requests.get")
-    def test_make_request_rate_limit_error(self, mock_get):
+    @patch.object(AlphaVantageClient, "_setup_sync_session")
+    def test_make_request_rate_limit_error(self, mock_setup):
         """Test API rate limit error handling."""
         # Setup mock response for rate limit
         mock_response = Mock()
@@ -74,9 +74,10 @@ class TestAlphaVantageClient:
         mock_response.json.return_value = {
             "Error Message": "You have reached the 5 API requests per minute limit"
         }
-        mock_get.return_value = mock_response
 
         client = AlphaVantageClient(api_key="test_key")
+        client.session = Mock()
+        client.session.get.return_value = mock_response
 
         with pytest.raises(AlphaVantageRateLimitError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
@@ -97,38 +98,39 @@ class TestAlphaVantageClient:
         with pytest.raises(AlphaVantageAuthenticationError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
-    @patch("src.ticker_converter.api_clients.client.requests.get")
-    def test_make_request_http_error(self, mock_get):
+    @patch.object(AlphaVantageClient, "_setup_sync_session")
+    def test_make_request_http_error(self, mock_setup):
         """Test HTTP error handling."""
         # Setup mock response for HTTP error
         mock_response = Mock()
         mock_response.status_code = 500
         mock_response.raise_for_status.side_effect = requests.HTTPError("Server Error")
-        mock_get.return_value = mock_response
 
         client = AlphaVantageClient(api_key="test_key")
+        client.session = Mock()
+        client.session.get.return_value = mock_response
 
         with pytest.raises(AlphaVantageRequestError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
-    @patch("src.ticker_converter.api_clients.client.requests.get")
-    def test_make_request_timeout(self, mock_get):
+    @patch.object(AlphaVantageClient, "_setup_sync_session")
+    def test_make_request_timeout(self, mock_setup):
         """Test timeout error handling."""
         # Setup mock for timeout
-        mock_get.side_effect = Timeout("Request timed out")
-
         client = AlphaVantageClient(api_key="test_key")
+        client.session = Mock()
+        client.session.get.side_effect = Timeout("Request timed out")
 
         with pytest.raises(AlphaVantageTimeoutError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
-    @patch("src.ticker_converter.api_clients.client.requests.get")
-    def test_make_request_connection_error(self, mock_get):
+    @patch.object(AlphaVantageClient, "_setup_sync_session")
+    def test_make_request_connection_error(self, mock_setup):
         """Test connection error handling."""
         # Setup mock for connection error
-        mock_get.side_effect = RequestException("Connection failed")
-
         client = AlphaVantageClient(api_key="test_key")
+        client.session = Mock()
+        client.session.get.side_effect = RequestException("Connection failed")
 
         with pytest.raises(AlphaVantageRequestError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
@@ -156,11 +158,15 @@ class TestAlphaVantageClient:
 
         assert isinstance(result, pd.DataFrame)
         assert not result.empty
-        assert "open" in result.columns
-        assert "high" in result.columns
-        assert "low" in result.columns
-        assert "close" in result.columns
-        assert "volume" in result.columns
+        assert "Open" in result.columns
+        assert "High" in result.columns
+        assert "Low" in result.columns
+        assert "Close" in result.columns
+        assert "Volume" in result.columns
+        assert "Date" in result.columns
+        assert "Symbol" in result.columns
+        assert len(result) == 1
+        assert result.iloc[0]["Symbol"] == "AAPL"
 
     @patch.object(AlphaVantageClient, "make_request")
     def test_get_intraday_stock_data_success(self, mock_make_request):
@@ -184,9 +190,7 @@ class TestAlphaVantageClient:
         mock_make_request.return_value = mock_response
 
         client = AlphaVantageClient(api_key="test_key")
-        result = client.get_intraday_stock_data(
-            "AAPL", "5min", OutputSize.COMPACT
-        )
+        result = client.get_intraday_stock_data("AAPL", "5min", OutputSize.COMPACT)
 
         assert isinstance(result, pd.DataFrame)
         assert not result.empty
@@ -201,7 +205,7 @@ class TestAlphaVantageClient:
                 "2. From Symbol": "USD",
                 "3. To Symbol": "GBP",
             },
-            "Time Series FX (Daily)": {
+            "Time Series (FX Daily)": {
                 "2025-08-14": {
                     "1. open": "0.7340",
                     "2. high": "0.7360",
@@ -271,7 +275,7 @@ class TestAlphaVantageClient:
 
         client = AlphaVantageClient(api_key="test_key")
 
-        with pytest.raises(AlphaVantageAPIError, match="No data available"):
+        with pytest.raises(AlphaVantageDataError, match="Expected key"):
             client.get_daily_stock_data("AAPL", OutputSize.COMPACT)
 
     @patch.object(AlphaVantageClient, "make_request")
@@ -286,7 +290,7 @@ class TestAlphaVantageClient:
 
         client = AlphaVantageClient(api_key="test_key")
 
-        with pytest.raises(AlphaVantageAPIError, match="No time series data found"):
+        with pytest.raises(AlphaVantageDataError, match="Expected key"):
             client.get_daily_stock_data("AAPL", OutputSize.COMPACT)
 
     def test_str_representation(self):
