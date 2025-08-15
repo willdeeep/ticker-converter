@@ -446,6 +446,49 @@ python -m ticker_converter.cli_ingestion --teardown
 - Reduces API usage during development
 - Intelligent fallback mechanisms
 
+## SQL File Organization
+
+### Consolidated Structure: `dags/sql/`
+All SQL files are organized under `dags/sql/` for unified access by Airflow DAGs:
+
+#### DDL (Data Definition Language) - `dags/sql/ddl/`
+```
+001_create_dimensions.sql    # Database dimension tables
+002_create_facts.sql         # Database fact tables  
+003_create_views.sql         # Database views
+004_create_indexes.sql       # Database indexes
+```
+
+#### ETL (Extract, Transform, Load) - `dags/sql/etl/`
+```
+clean_transform_data.sql                      # Data cleaning and transformation
+cleanup_old_data.sql                          # Data cleanup procedures
+daily_transforms.sql                          # Daily data transformations
+data_quality_checks.sql                       # Data quality validation
+load_currency_dimension.sql                   # Currency dimension loading
+load_date_dimension.sql                       # Date dimension loading
+load_dimensions.sql                           # General dimension loading
+load_raw_exchange_data_to_postgres.sql        # Raw exchange data loading
+load_raw_stock_data_to_postgres.sql           # Raw stock data loading
+load_stock_dimension.sql                      # Stock dimension loading
+```
+
+#### Query Templates - `dags/sql/queries/`
+```
+currency_conversion.sql                       # Currency conversion queries
+magnificent_seven_performance_details.sql     # Detailed performance metrics
+magnificent_seven_top_performers.sql          # Top performer identification
+price_ranges.sql                              # Price range calculations
+stock_summary.sql                             # Stock summary reports
+top_performers.sql                            # General top performer queries
+```
+
+### File Naming Conventions
+- **DDL Files**: Numbered for execution order (001_, 002_, etc.)
+- **ETL Files**: Prefixed by operation type (load_, transform_, cleanup_)
+- **Queries**: Descriptive names with consistent snake_case format
+- **All Files**: Use plural forms where applicable for consistency
+
 ## Future Enhancements
 
 1. **Migration System**: Database migration management for schema changes

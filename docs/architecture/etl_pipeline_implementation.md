@@ -135,6 +135,38 @@ class CurrencyFetcher:
 ### Philosophy: Database-Native Processing
 **Decision Rationale**: All business logic implemented in SQL to leverage PostgreSQL's optimization capabilities and reduce Python complexity.
 
+### SQL File Organization
+
+All SQL files are consolidated under `dags/sql/` for unified access and Airflow integration:
+
+#### File Structure
+```
+dags/sql/
+├── ddl/                    # Data Definition Language
+│   ├── 001_create_dimensions.sql
+│   ├── 002_create_facts.sql
+│   ├── 003_create_views.sql
+│   └── 004_create_indexes.sql
+├── etl/                    # Extract, Transform, Load
+│   ├── load_raw_stock_data_to_postgres.sql
+│   ├── load_raw_exchange_data_to_postgres.sql
+│   ├── load_*_dimension.sql (currency, date, stock)
+│   ├── daily_transforms.sql
+│   ├── clean_transform_data.sql
+│   ├── data_quality_checks.sql
+│   └── cleanup_old_data.sql
+└── queries/                # Analytical Query Templates
+    ├── top_performers.sql
+    ├── magnificent_seven_*.sql
+    ├── currency_conversion.sql
+    └── stock_summary.sql
+```
+
+#### File Categories
+- **DDL**: Database structure creation and modification
+- **ETL**: Data pipeline operations and transformations
+- **Queries**: Analytical templates used by FastAPI endpoints
+
 ### Transformation Stages
 
 #### Stage 1: Raw Data Ingestion
@@ -154,7 +186,7 @@ CREATE TABLE raw_stock_data (
 ```
 
 #### Stage 2: Dimensional Loading
-**File**: `sql/etl/load_dimensions.sql`
+**File**: `dags/sql/etl/load_dimensions.sql`
 ```sql
 -- Populate dimension tables from raw data
 INSERT INTO dim_stocks (symbol, company_name, sector, exchange)
@@ -188,7 +220,7 @@ WHERE DATE(timestamp) NOT IN (SELECT date FROM dim_dates);
 ```
 
 #### Stage 3: Fact Table Population  
-**File**: `sql/etl/daily_transform.sql`
+**File**: `dags/sql/etl/daily_transforms.sql`
 ```sql
 -- Load fact tables with business logic calculations
 INSERT INTO fact_stock_prices (
@@ -221,7 +253,7 @@ WHERE DATE(rsd.timestamp) >= CURRENT_DATE - INTERVAL '1 day';
 ```
 
 #### Stage 4: Analytical View Creation
-**File**: `sql/ddl/003_create_views.sql`
+**File**: `dags/sql/ddl/003_create_views.sql`
 ```sql
 -- High-performance analytical views for API endpoints
 CREATE OR REPLACE VIEW v_stock_performance AS

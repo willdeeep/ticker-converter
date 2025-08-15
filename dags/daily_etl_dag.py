@@ -55,15 +55,15 @@ class DAGConfig:
 
     # File paths
     RAW_DATA_DIR = "raw_data/exchange"
-    SQL_DIR = "sql/etl"
+    SQL_DIR = "dags/sql"
 
     # SQL files for data processing
     SQL_FILES = {
-        "load_raw_stock_data": "load_raw_stock_data_to_postgres.sql",
-        "load_raw_exchange_data": "load_raw_exchange_data_to_postgres.sql",
-        "clean_transform_data": "clean_transform_data.sql",
-        "data_quality_checks": "data_quality_checks.sql",
-        "cleanup_old_data": "cleanup_old_data.sql",
+        "load_raw_stock_data": "sql/etl/load_raw_stock_data_to_postgres.sql",
+        "load_raw_exchange_data": "sql/etl/load_raw_exchange_data_to_postgres.sql",
+        "clean_transform_data": "sql/etl/clean_transform_data.sql",
+        "data_quality_checks": "sql/etl/data_quality_checks.sql",
+        "cleanup_old_data": "sql/etl/cleanup_old_data.sql",
     }
 
 

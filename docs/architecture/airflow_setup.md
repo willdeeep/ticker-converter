@@ -54,6 +54,33 @@ The ticker-converter leverages **Apache Airflow 3.0.4** with modern @dag decorat
 - **Debugging**: Easier to test and debug SQL operations independently
 - **Scalability**: PostgreSQL optimizations handle data processing more efficiently than Python
 
+### SQL File Organization for Airflow
+
+All SQL files are centralized under `dags/sql/` for unified access by DAG templates:
+
+#### Directory Structure
+```
+dags/sql/
+├── ddl/                    # Database schema creation
+├── etl/                    # ETL pipeline operations  
+└── queries/                # Analytical query templates
+```
+
+#### DAG Configuration
+```python
+class DAGConfig:
+    SQL_DIR = "dags/sql"
+    SQL_FILES = {
+        "load_raw_stock_data": "sql/etl/load_raw_stock_data_to_postgres.sql",
+        "load_raw_exchange_data": "sql/etl/load_raw_exchange_data_to_postgres.sql",
+        "clean_transform_data": "sql/etl/clean_transform_data.sql",
+        "data_quality_checks": "sql/etl/data_quality_checks.sql",
+        "cleanup_old_data": "sql/etl/cleanup_old_data.sql",
+    }
+```
+
+**Template Resolution**: Airflow automatically resolves SQL file paths relative to the DAGs folder, enabling clean separation of orchestration logic and data processing logic.
+
 ### Modern DAG Structure Pattern
 
 ```python
@@ -137,14 +164,14 @@ def fetch_currency_data():
 load_dimensions = PostgresOperator(
     task_id='load_dimensions',
     postgres_conn_id='postgres_default',
-    sql='sql/etl/load_dimensions.sql',
+    sql='dags/sql/etl/load_dimensions.sql',
     hook_params={'application_name': 'airflow_etl'}
 )
 
 daily_transform = PostgresOperator(
     task_id='daily_transform',
     postgres_conn_id='postgres_default', 
-    sql='sql/etl/daily_transform.sql',
+    sql='dags/sql/etl/daily_transforms.sql',
     hook_params={'application_name': 'airflow_etl'}
 )
 
