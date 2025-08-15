@@ -86,7 +86,7 @@ class NYSEDataFetcher(BaseDataFetcher):
         results = {}
 
         self.logger.info(
-            f"Fetching data for Magnificent Seven companies ({days_back} days)"
+            "Fetching data for Magnificent Seven companies (%d days)", days_back
         )
 
         for symbol in self.MAGNIFICENT_SEVEN:

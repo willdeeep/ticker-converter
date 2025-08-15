@@ -28,7 +28,8 @@ class TestMarketDataPointValidation:
     def test_high_less_than_low_raises_error(self) -> None:
         """Test that high < low raises validation error."""
         with pytest.raises(
-            ValidationError, match=r"High price \(149\.0\) cannot be less than low price \(150\.0\)"
+            ValidationError,
+            match=r"High price \(149\.0\) cannot be less than low price \(150\.0\)",
         ):
             MarketDataPoint(
                 symbol="AAPL",
@@ -43,7 +44,8 @@ class TestMarketDataPointValidation:
     def test_close_outside_high_low_range_raises_error(self) -> None:
         """Test that close price outside high/low range raises error."""
         with pytest.raises(
-            ValidationError, match=r"High price \(155\.0\) cannot be less than close price \(156\.0\)"
+            ValidationError,
+            match=r"High price \(155\.0\) cannot be less than close price \(156\.0\)",
         ):
             MarketDataPoint(
                 symbol="AAPL",
@@ -58,7 +60,8 @@ class TestMarketDataPointValidation:
     def test_close_below_low_raises_error(self) -> None:
         """Test that close price below low raises error."""
         with pytest.raises(
-            ValidationError, match=r"Low price \(149\.0\) cannot be greater than close price \(148\.0\)"
+            ValidationError,
+            match=r"Low price \(149\.0\) cannot be greater than close price \(148\.0\)",
         ):
             MarketDataPoint(
                 symbol="AAPL",

@@ -145,10 +145,10 @@ class TestConstants:
 
         # Test that invalid attributes raise AttributeError
         with pytest.raises(AttributeError):
-            _ = OutputSize.INVALID
+            _ = getattr(OutputSize, "INVALID")
 
         with pytest.raises(AttributeError):
-            _ = AlphaVantageFunction.INVALID
+            _ = getattr(AlphaVantageFunction, "INVALID")
 
     def test_enum_comparison_types(self) -> None:
         """Test comparison between enum members and different types."""
@@ -163,7 +163,7 @@ class TestConstants:
 
         # Enum members should not equal None
         assert OutputSize.COMPACT is not None
-        assert OutputSize.COMPACT != None
+        assert OutputSize.COMPACT is not None
 
     def test_response_key_values(self) -> None:
         """Test specific response key values."""

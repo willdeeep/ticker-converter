@@ -1,16 +1,14 @@
 """Unit tests for the refactored Alpha Vantage API client."""
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
 import requests
 from requests.exceptions import RequestException, Timeout
-
 from src.ticker_converter.api_clients.client import AlphaVantageClient
 from src.ticker_converter.api_clients.constants import OutputSize
 from src.ticker_converter.api_clients.exceptions import (
-    AlphaVantageAPIError,
     AlphaVantageAuthenticationError,
     AlphaVantageConfigError,
     AlphaVantageDataError,
@@ -76,6 +74,8 @@ class TestAlphaVantageClient:
         }
 
         client = AlphaVantageClient(api_key="test_key")
+        # Verify that session setup was mocked
+        mock_setup.assert_called_once()
         client.session = Mock()
         client.session.get.return_value = mock_response
 
@@ -93,6 +93,8 @@ class TestAlphaVantageClient:
         }
 
         client = AlphaVantageClient(api_key="test_invalid_key")
+        # Verify that session setup was mocked
+        mock_setup.assert_called_once()
         client.session = Mock()
         client.session.get.return_value = mock_response
 
@@ -108,6 +110,8 @@ class TestAlphaVantageClient:
         mock_response.raise_for_status.side_effect = requests.HTTPError("Server Error")
 
         client = AlphaVantageClient(api_key="test_key")
+        # Verify that session setup was mocked
+        mock_setup.assert_called_once()
         client.session = Mock()
         client.session.get.return_value = mock_response
 
@@ -119,6 +123,8 @@ class TestAlphaVantageClient:
         """Test timeout error handling."""
         # Setup mock for timeout
         client = AlphaVantageClient(api_key="test_key")
+        # Verify that session setup was mocked
+        mock_setup.assert_called_once()
         client.session = Mock()
         client.session.get.side_effect = Timeout("Request timed out")
 
@@ -130,6 +136,8 @@ class TestAlphaVantageClient:
         """Test connection error handling."""
         # Setup mock for connection error
         client = AlphaVantageClient(api_key="test_key")
+        # Verify that session setup was mocked
+        mock_setup.assert_called_once()
         client.session = Mock()
         client.session.get.side_effect = RequestException("Connection failed")
 

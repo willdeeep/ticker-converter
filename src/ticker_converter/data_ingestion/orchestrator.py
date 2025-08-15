@@ -47,7 +47,7 @@ class DataIngestionOrchestrator:
             Dictionary with setup results
         """
         self.logger.info(
-            f"Starting initial database setup with {days_back} days of data"
+            "Starting initial database setup with %d days of data", days_back
         )
 
         results = self._create_base_result(days_back)
@@ -63,11 +63,11 @@ class DataIngestionOrchestrator:
 
             results["setup_completed"] = datetime.now().isoformat()
             self.logger.info(
-                f"Initial setup completed. Total records: {results['total_records_inserted']}"
+                "Initial setup completed. Total records: %d", results['total_records_inserted']
             )
 
         except Exception as e:
-            self.logger.error(f"Unexpected error during initial setup: {e}")
+            self.logger.error("Unexpected error during initial setup: %s", e)
             results["errors"].append(f"Unexpected error: {e}")
 
         return results
@@ -109,7 +109,7 @@ class DataIngestionOrchestrator:
 
         stock_inserted = self.db_manager.insert_stock_data(stock_records)
         self.logger.info(
-            f"Stock data setup complete: {stock_inserted} records inserted"
+            "Stock data setup complete: %d records inserted", stock_inserted
         )
 
         return {
@@ -140,7 +140,7 @@ class DataIngestionOrchestrator:
 
         currency_inserted = self.db_manager.insert_currency_data(currency_records)
         self.logger.info(
-            f"Currency data setup complete: {currency_inserted} records inserted"
+            "Currency data setup complete: %d records inserted", currency_inserted
         )
 
         return {
