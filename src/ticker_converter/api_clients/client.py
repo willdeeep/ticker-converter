@@ -12,7 +12,7 @@ import logging
 import os
 import sys
 import time
-from typing import Any
+from typing import Any, Dict
 
 import aiohttp
 import pandas as pd
@@ -472,7 +472,7 @@ class AlphaVantageClient:
     # ===== HIGH-LEVEL API METHODS =====
 
     def get_daily_stock_data(
-        self, symbol: str, outputsize: OutputSize = OutputSize.COMPACT
+        self, symbol: str, outputsize: OutputSize | str = OutputSize.COMPACT
     ) -> pd.DataFrame:
         """Get daily stock data for a symbol.
 
@@ -490,10 +490,16 @@ class AlphaVantageClient:
         if not symbol or not symbol.strip():
             raise ValueError("Symbol cannot be empty")
 
+        # Handle both string and enum inputs
+        if isinstance(outputsize, str):
+            outputsize_value = outputsize
+        else:
+            outputsize_value = outputsize.value
+
         params = {
             "function": AlphaVantageFunction.TIME_SERIES_DAILY.value,
             "symbol": symbol.strip(),
-            "outputsize": outputsize.value,
+            "outputsize": outputsize_value,
         }
 
         try:
@@ -754,4 +760,27 @@ class AlphaVantageClient:
             "from_currency": from_currency,
             "to_currency": to_currency,
         }
+        return self.make_request(params)
+
+    def get_company_overview(self, symbol: str) -> Dict[str, Any]:
+        """Get company overview information for a symbol.
+
+        Args:
+            symbol: Stock symbol (e.g., 'AAPL')
+
+        Returns:
+            Dictionary containing company overview data.
+
+        Raises:
+            ValueError: If symbol is empty or invalid.
+            AlphaVantageAPIError: If the API request fails.
+        """
+        if not symbol or not symbol.strip():
+            raise ValueError("Symbol cannot be empty")
+
+        params = {
+            "function": AlphaVantageFunction.OVERVIEW.value,
+            "symbol": symbol.strip(),
+        }
+
         return self.make_request(params)
