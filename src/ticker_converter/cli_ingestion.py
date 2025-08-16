@@ -1,375 +1,300 @@
-"""CLI command for data ingestion operations.
+"""Modern CLI for data ingestion operations.
 
-This module provides command-line interface for running data ingestion
-for the Magnificent Seven companies and USD/GBP currency data.
-
-Supports both Click-based commands and direct argparse-style flags for Makefile integration.
+This module provides a clean, user-friendly command-line interface for
+data ingestion operations with rich output, progress tracking, and
+comprehensive error handling.
 """
 
-import argparse
+# pylint: disable=no-member  # Pydantic fields cause false positives
+
 import json
 import logging
-import sqlite3
 import sys
-import typing
-from typing import cast
+from typing import Any, TextIO
 
 import click
-import psycopg2
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
-from .api_clients.api_client import AlphaVantageAPIError
+from .config import get_logging_config, get_settings
 from .data_ingestion.orchestrator import DataIngestionOrchestrator
 
+# Initialize rich console
+console = Console()
 
-def setup_logging(verbose: bool = False) -> None:
-    """Setup logging configuration.
+
+def setup_rich_logging(verbose: bool = False) -> None:
+    """Setup rich logging with beautiful output.
 
     Args:
         verbose: Enable verbose logging
     """
-    level = logging.DEBUG if verbose else logging.INFO
+    log_config = get_logging_config()
+    level = logging.DEBUG if verbose else getattr(logging, log_config.level)
+
+    # Remove existing handlers
+    logging.getLogger().handlers = []
+
+    # Setup rich handler
+    rich_handler = RichHandler(
+        console=console,
+        show_time=True,
+        show_path=verbose,
+        rich_tracebacks=True,
+    )
+
     logging.basicConfig(
         level=level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[logging.StreamHandler(sys.stdout)],
+        format="%(message)s",
+        handlers=[rich_handler],
     )
 
 
-def init_database_command(days: int = 30) -> None:
-    """Initialize database with historical data for Makefile integration.
+def handle_orchestrator_error(error: Exception, operation: str) -> None:
+    """Handle orchestrator errors with rich output.
 
     Args:
-        days: Number of trading days to fetch historical data for
+        error: The exception that occurred
+        operation: Description of the operation that failed
     """
-    print(f"Initializing database with {days} days of historical data...")
+    console.print(f"\n[red]❌ Error during {operation}:[/red]")
+    console.print(f"[red]{type(error).__name__}: {error}[/red]")
 
-    try:
-        orchestrator = DataIngestionOrchestrator()
-        results = orchestrator.perform_initial_setup(days_back=days)
+    if hasattr(error, "__cause__") and error.__cause__:
+        console.print(f"[yellow]Caused by: {error.__cause__}[/yellow]")
 
-        print("Database initialization completed successfully")
-        print(f"Total records inserted: {results.get('total_records_inserted', 0)}")
-
-        if results.get("stock_data"):
-            stock_data = results["stock_data"]
-            print(
-                f"Stock data: {stock_data['records_inserted']} records for {len(stock_data['companies'])} companies"
-            )
-
-        if results.get("currency_data"):
-            currency_data = results["currency_data"]
-            print(
-                f"Currency data: {currency_data['records_inserted']} records for {currency_data['currency_pair']}"
-            )
-
-    except Exception as e:
-        print(f"Database initialization failed: {e}", file=sys.stderr)
-        sys.exit(1)
+    console.print("\n[yellow]💡 Suggestions:[/yellow]")
+    console.print("• Check your API key configuration")
+    console.print("• Verify database connectivity")
+    console.print("• Check network connection")
+    console.print("• Run with --verbose for detailed logs")
 
 
-def daily_collection_command() -> None:
-    """Run daily data collection for Makefile integration."""
-    print("Starting daily data collection...")
+def output_results(results: dict[str, Any], output_file: TextIO | None = None) -> None:
+    """Output results with rich formatting.
 
-    try:
-        orchestrator = DataIngestionOrchestrator()
-        results = orchestrator.perform_daily_update()
-
-        print("Daily data collection completed successfully")
-        print(f"Total new records: {results.get('total_records_inserted', 0)}")
-
-        if results.get("stock_updates"):
-            stock_updates = results["stock_updates"]
-            print(f"Stock updates: {stock_updates['records_inserted']} new records")
-
-        if results.get("currency_updates"):
-            currency_updates = results["currency_updates"]
-            print(
-                f"Currency updates: {currency_updates['records_inserted']} new records"
-            )
-
-    except Exception as e:
-        print(f"Daily data collection failed: {e}", file=sys.stderr)
-        sys.exit(1)
-
-
-def main_argparse() -> None:
-    """Main entry point for argparse-style CLI (used by Makefile)."""
-    parser = argparse.ArgumentParser(
-        description="Ticker Converter Data Ingestion CLI",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+    Args:
+        results: Results dictionary to output
+        output_file: Optional file to write JSON results
+    """
+    # Create results table
+    table = Table(
+        title="📊 Ingestion Results", show_header=True, header_style="bold magenta"
     )
+    table.add_column("Metric", style="cyan", no_wrap=True)
+    table.add_column("Value", style="green")
 
-    # Command group - either init or daily
-    command_group = parser.add_mutually_exclusive_group(required=True)
-    command_group.add_argument(
-        "--init", action="store_true", help="Initialize database with historical data"
-    )
-    command_group.add_argument(
-        "--daily",
-        action="store_true",
-        help="Run daily data collection for previous trading day",
-    )
+    for key, value in results.items():
+        # Format key to be more readable
+        formatted_key = key.replace("_", " ").title()
+        table.add_row(formatted_key, str(value))
 
-    # Options for init command
-    parser.add_argument(
-        "--days",
-        type=int,
-        default=30,
-        help="Number of trading days for historical data (default: 30)",
-    )
+    console.print(table)
 
-    # Parse arguments
-    args = parser.parse_args()
-
-    # Execute appropriate command
-    if args.init:
-        init_database_command(args.days)
-    elif args.daily:
-        daily_collection_command()
+    # Write to file if specified
+    if output_file:
+        json.dump(results, output_file, indent=2, default=str)
+        console.print(f"[green]📄 Results written to {output_file.name}[/green]")
 
 
 @click.group()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.pass_context
 def ingestion(ctx: click.Context, verbose: bool) -> None:
-    """Data ingestion commands for NYSE stocks and currency data."""
-    setup_logging(verbose)
+    """🚀 Ticker Converter Data Ingestion CLI
+
+    Modern data ingestion tools for financial market data.
+    """
+    # Setup logging
+    setup_rich_logging(verbose)
+
+    # Store verbose flag in context
     ctx.ensure_object(dict)
     ctx.obj["verbose"] = verbose
+
+    # Display welcome message
+    if not ctx.invoked_subcommand:
+        console.print("[bold blue]🚀 Ticker Converter Data Ingestion[/bold blue]")
+        console.print("Use --help to see available commands")
 
 
 @ingestion.command()
 @click.option(
-    "--days", "-d", default=10, help="Number of days of historical data to fetch"
+    "--days",
+    "-d",
+    type=int,
+    default=30,
+    help="Number of trading days to fetch (default: 30)",
 )
 @click.option("--output", "-o", type=click.File("w"), help="Output results to file")
-def setup(days: int, output: click.File) -> None:
-    """Perform initial database setup with historical data.
+def setup(days: int, output: TextIO | None) -> None:
+    """🏗️  Initialize database with historical data.
 
-    Fetches the specified number of days of historical data for:
-    - Magnificent Seven companies (AAPL, MSFT, AMZN, GOOGL, META, NVDA, TSLA)
-    - USD/GBP currency conversion rates
+    This command sets up the database with historical market data
+    for the Magnificent Seven companies and currency exchange rates.
     """
-    click.echo(f"Starting initial database setup with {days} days of data...")
-
     try:
-        orchestrator = DataIngestionOrchestrator()
-        results = orchestrator.perform_initial_setup(days_back=days)
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
 
-        # Output results
-        if output:
-            json.dump(results, cast(typing.TextIO, output), indent=2)
-            click.echo(f"Results written to {output.name}")
-        else:
-            click.echo("\n=== Setup Results ===")
-            click.echo(f"Success: {results.get('success', False)}")
-            click.echo(
-                f"Total records inserted: {results.get('total_records_inserted', 0)}"
+            # Initialize orchestrator
+            task = progress.add_task("Initializing data orchestrator...", total=1)
+            orchestrator = DataIngestionOrchestrator()
+            progress.update(task, advance=1)
+
+            # Perform setup
+            setup_task = progress.add_task(
+                f"Setting up database with {days} days of data...", total=1
             )
+            results = orchestrator.perform_initial_setup(days_back=days)
+            progress.update(setup_task, advance=1)
 
-            if results.get("stock_data"):
-                stock_data = results["stock_data"]
-                click.echo(
-                    f"Stock data: {stock_data['records_inserted']} records for {len(stock_data['companies'])} companies"
-                )
+        console.print(
+            "[green]✅ Database initialization completed successfully![/green]"
+        )
+        output_results(results, output)
 
-            if results.get("currency_data"):
-                currency_data = results["currency_data"]
-                click.echo(
-                    f"Currency data: {currency_data['records_inserted']} records for {currency_data['currency_pair']}"
-                )
-
-            if results.get("errors"):
-                click.echo(f"Errors: {results['errors']}")
-
-    except (
-        AlphaVantageAPIError,
-        sqlite3.Error,
-        psycopg2.Error,
-        ValueError,
-        TypeError,
-        OSError,
-    ) as e:
-        click.echo(f"Setup failed: {e}", err=True)
+    except Exception as error:
+        handle_orchestrator_error(error, "database setup")
         sys.exit(1)
 
 
 @ingestion.command()
 @click.option("--output", "-o", type=click.File("w"), help="Output results to file")
-def update(output: click.File | None) -> None:
-    """Perform daily data update.
+def update(output: TextIO | None) -> None:
+    """📈 Update database with latest market data.
 
-    Fetches recent data (last 2-3 days) for:
-    - Magnificent Seven companies
-    - USD/GBP currency conversion rates
+    Fetches and stores the most recent market data for all tracked
+    companies and currency pairs.
     """
-    click.echo("Starting daily data update...")
-
     try:
-        orchestrator = DataIngestionOrchestrator()
-        results = orchestrator.perform_daily_update()
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
 
-        # Output results
-        if output:
-            json.dump(results, cast(typing.TextIO, output), indent=2)
-            click.echo(f"Results written to {output.name}")
-        else:
-            click.echo("\n=== Update Results ===")
-            click.echo(f"Success: {results.get('success', False)}")
-            click.echo(f"Total new records: {results.get('total_records_inserted', 0)}")
+            # Initialize orchestrator
+            task = progress.add_task("Initializing data orchestrator...", total=1)
+            orchestrator = DataIngestionOrchestrator()
+            progress.update(task, advance=1)
 
-            if results.get("stock_updates"):
-                stock_updates = results["stock_updates"]
-                click.echo(
-                    f"Stock updates: {stock_updates['records_inserted']} new records for {stock_updates['companies_updated']} companies"
-                )
+            # Perform update
+            update_task = progress.add_task("Fetching latest market data...", total=1)
+            results = orchestrator.run_full_ingestion()
+            progress.update(update_task, advance=1)
 
-            if results.get("currency_updates"):
-                currency_updates = results["currency_updates"]
-                click.echo(
-                    f"Currency updates: {currency_updates['records_inserted']} new records"
-                )
+        console.print("[green]✅ Database update completed successfully![/green]")
+        output_results(results, output)
 
-            if results.get("errors"):
-                click.echo(f"Errors: {results['errors']}")
-
-    except (
-        AlphaVantageAPIError,
-        sqlite3.Error,
-        psycopg2.Error,
-        ValueError,
-        TypeError,
-        OSError,
-    ) as e:
-        click.echo(f"Update failed: {e}", err=True)
+    except Exception as error:
+        handle_orchestrator_error(error, "database update")
         sys.exit(1)
 
 
 @ingestion.command()
 @click.option("--output", "-o", type=click.File("w"), help="Output results to file")
-def run(output: click.File) -> None:
-    """Run complete data ingestion process.
+def run(output: TextIO | None) -> None:
+    """⚡ Run a complete data ingestion cycle.
 
-    Automatically determines whether to perform initial setup or daily update
-    based on current database state.
+    Performs a full data ingestion cycle including both historical
+    setup and latest data updates.
     """
-    click.echo("Starting full data ingestion process...")
-
     try:
-        orchestrator = DataIngestionOrchestrator()
-        results = orchestrator.run_full_ingestion()
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
 
-        # Output results
-        if output:
-            json.dump(results, cast(typing.TextIO, output), indent=2)
-            click.echo(f"Results written to {output.name}")
-        else:
-            click.echo("\n=== Ingestion Results ===")
-            click.echo(f"Database was empty: {results.get('was_empty', 'unknown')}")
-            click.echo(
-                f"Operation performed: {results.get('operation_performed', 'none')}"
-            )
-            click.echo(f"Success: {results.get('success', False)}")
+            # Initialize orchestrator
+            task = progress.add_task("Initializing data orchestrator...", total=1)
+            orchestrator = DataIngestionOrchestrator()
+            progress.update(task, advance=1)
 
-            operation_results = results.get("results", {})
-            if operation_results:
-                click.echo(
-                    f"Total records inserted: {operation_results.get('total_records_inserted', 0)}"
-                )
+            # Perform complete ingestion
+            run_task = progress.add_task("Running complete ingestion cycle...", total=1)
+            results = orchestrator.run_full_ingestion()
+            progress.update(run_task, advance=1)
 
-                if operation_results.get("stock_data"):
-                    stock_data = operation_results["stock_data"]
-                    click.echo(
-                        f"Stock data: {stock_data.get('records_inserted', 0)} records"
-                    )
+        console.print("[green]✅ Complete ingestion completed successfully![/green]")
+        output_results(results, output)
 
-                if operation_results.get("currency_data"):
-                    currency_data = operation_results["currency_data"]
-                    click.echo(
-                        f"Currency data: {currency_data.get('records_inserted', 0)} records"
-                    )
-
-                if operation_results.get("errors"):
-                    click.echo(f"Errors: {operation_results['errors']}")
-
-    except (
-        AlphaVantageAPIError,
-        sqlite3.Error,
-        psycopg2.Error,
-        ValueError,
-        TypeError,
-        OSError,
-    ) as e:
-        click.echo(f"Ingestion failed: {e}", err=True)
+    except Exception as error:
+        handle_orchestrator_error(error, "complete ingestion")
         sys.exit(1)
 
 
 @ingestion.command()
 @click.option("--output", "-o", type=click.File("w"), help="Output status to file")
-def status(output: click.File) -> None:
-    """Get current data ingestion status.
+def status(output: TextIO | None) -> None:
+    """📋 Check database and system status.
 
-    Shows information about:
-    - Database health and record counts
-    - Data freshness for each company
-    - Missing recent data
+    Displays current database status, configuration, and system health.
     """
-    click.echo("Checking data ingestion status...")
-
     try:
-        orchestrator = DataIngestionOrchestrator()
-        status_info = orchestrator.get_ingestion_status()
+        settings = get_settings()
 
-        # Output status
-        if output:
-            json.dump(status_info, cast(typing.TextIO, output), indent=2)
-            click.echo(f"Status written to {output.name}")
-        else:
-            click.echo("\n=== Data Ingestion Status ===")
+        # Create status table
+        status_table = Table(
+            title="🔍 System Status", show_header=True, header_style="bold cyan"
+        )
+        status_table.add_column("Component", style="yellow", no_wrap=True)
+        status_table.add_column("Status", style="green")
+        status_table.add_column("Details", style="white")
 
-            db_health = status_info.get("database_health", {})
-            click.echo(f"Database status: {db_health.get('status', 'unknown')}")
-            click.echo(f"Stock records: {db_health.get('stock_records', 0)}")
-            click.echo(f"Currency records: {db_health.get('currency_records', 0)}")
-            click.echo(
-                f"Latest stock date: {db_health.get('latest_stock_date', 'none')}"
-            )
-            click.echo(
-                f"Latest currency date: {db_health.get('latest_currency_date', 'none')}"
-            )
-
-            companies = status_info.get("companies_tracked", [])
-            click.echo(f"Companies tracked: {', '.join(companies)}")
-
-            currency_pair = status_info.get("currency_pair", "unknown")
-            click.echo(f"Currency pair: {currency_pair}")
-
-            missing_data = status_info.get("missing_recent_data", {})
-            if missing_data:
-                click.echo("Missing recent data:")
-                for symbol, count in missing_data.items():
-                    click.echo(f"  {symbol}: {count} missing days")
+        # Check database connectivity
+        try:
+            # Simple database URL validation
+            db_url = settings.database.get_url()
+            if db_url:
+                db_status = "✅ Connected"
+                db_details = f"URL: {db_url}"
             else:
-                click.echo("No missing recent data")
+                db_status = "❌ Not Configured"
+                db_details = "No database URL configured"
+        except Exception as e:
+            db_status = "❌ Error"
+            db_details = str(e)
 
-    except (
-        AlphaVantageAPIError,
-        sqlite3.Error,
-        psycopg2.Error,
-        ValueError,
-        TypeError,
-        OSError,
-    ) as e:
-        click.echo(f"Status check failed: {e}", err=True)
+        status_table.add_row("Database", db_status, db_details)
+
+        # Check API configuration
+        api_key = settings.api.api_key.get_secret_value()
+        if api_key and api_key != "demo":
+            api_status = "✅ Configured"
+            api_details = f"Key: {api_key[:8]}...{api_key[-4:]}"
+        else:
+            api_status = "⚠️  Demo Key"
+            api_details = "Using demo key (limited functionality)"
+
+        status_table.add_row("API Key", api_status, api_details)
+
+        # Environment info
+        env_status = f"🌍 {settings.app.environment.title()}"
+        env_details = (
+            f"Debug: {settings.app.debug}, Workers: {settings.app.max_workers}"
+        )
+        status_table.add_row("Environment", env_status, env_details)
+
+        console.print(status_table)
+
+        # Output to file if requested
+        if output:
+            status_data = {
+                "database": {"status": db_status, "details": db_details},
+                "api": {"status": api_status, "details": api_details},
+                "environment": {"status": env_status, "details": env_details},
+                "timestamp": str(settings.app.version),
+            }
+            json.dump(status_data, output, indent=2)
+            console.print(f"[green]📄 Status written to {output.name}[/green]")
+
+    except Exception as error:
+        handle_orchestrator_error(error, "status check")
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    # If called as python -m ticker_converter.cli_ingestion with --init or --daily flags,
-    # use argparse interface (for Makefile compatibility)
-    if "--init" in sys.argv or "--daily" in sys.argv:
-        main_argparse()
-    else:
-        # Otherwise use Click interface
-        ingestion.main(standalone_mode=False)

@@ -1,374 +1,168 @@
-# Deployment Guide
+# Production Deployment Guide
 
-## Overview
+## Executive Summary
 
-This guide covers the setup and deployment of the ticker-converter SQL-centric ETL pipeline for NYSE stock market data analysis. The system uses PostgreSQL as the single database solution for both development and production environments.
+This guide provides comprehensive instructions for deploying the ticker-converter ETL pipeline to production environments. The deployment strategy emphasizes **reliability**, **scalability**, and **operational excellence** through containerization, infrastructure as code, monitoring, and automated deployment pipelines.
 
-## Prerequisites
+**Production Value Proposition**: Deploy a robust, high-availability stock market data analytics platform capable of handling production workloads with comprehensive monitoring, automated scaling, and disaster recovery capabilities.
 
-### System Requirements
-- Python 3.11.12 (exactly) 
-- Git
-- PostgreSQL 12+ (development and production)
-- Apache Airflow 3.0.4+ (optional for orchestration)
+## Production Architecture Overview
 
-### API Access
-- Alpha Vantage API key (free tier available)
-- Currency conversion API access (exchangerate-api.com or similar)
+### Deployment Strategy Decision Matrix
 
-## Development Setup
+| Component | Technology Choice | Rationale | Production Benefits |
+|-----------|------------------|-----------|-------------------|
+| **Container Runtime** | Docker + Docker Compose | Consistent environments, easy scaling | Eliminates "works on my machine" issues |
+| **Database** | PostgreSQL 15+ | ACID compliance, performance, JSON support | Enterprise-grade reliability and performance |
+| **Web Server** | Gunicorn + Uvicorn Workers | Production-grade ASGI server | High concurrency, process management |
+| **Reverse Proxy** | Nginx | Static content, load balancing, SSL termination | Performance, security, caching |
+| **Process Management** | systemd | Service management, auto-restart | Reliability, logging, resource limits |
+| **Monitoring** | Prometheus + Grafana | Metrics collection and visualization | Observability, alerting, performance tracking |
+| **Logging** | Structured JSON logs | Centralized logging, searchability | Debugging, audit trails, compliance |
 
-### 1. Repository Setup
+### Production Infrastructure Components
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Load Balancer (Nginx)                    │
+│                   SSL Termination • Caching                 │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+┌─────────────────────┴───────────────────────────────────────┐
+│              Application Layer (Docker)                     │
+│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐│
+│  │   FastAPI App   │ │  Airflow Web    │ │ Airflow Worker  ││
+│  │  (Multiple)     │ │    Server       │ │   (Multiple)    ││
+│  └─────────────────┘ └─────────────────┘ └─────────────────┘│
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+┌─────────────────────┴───────────────────────────────────────┐
+│                Database Layer                                │
+│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐│
+│  │  PostgreSQL     │ │     Redis       │ │   Monitoring    ││
+│  │   Primary       │ │    Cache        │ │  (Prometheus)   ││
+│  └─────────────────┘ └─────────────────┘ └─────────────────┘│
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Environment Setup and Requirements
+
+### Production Server Requirements
+
+#### Minimum Hardware Specifications
+```yaml
+CPU: 4 cores (8 recommended)
+RAM: 8GB (16GB recommended)
+Storage: 100GB SSD (250GB recommended)
+Network: 1Gbps connection
+OS: Ubuntu 22.04 LTS or CentOS 8+
+```
+
+#### Production Dependencies
 ```bash
-git clone https://github.com/willdeeep/ticker-converter.git
-cd ticker-converter
+# System packages
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y \
+    docker.io \
+    docker-compose-plugin \
+    nginx \
+    postgresql-client-15 \
+    redis-tools \
+    certbot \
+    python3-certbot-nginx \
+    htop \
+    iotop \
+    netdata
 ```
 
-### 2. Virtual Environment
+### Production Environment Variables
+
+**File: `/opt/ticker-converter/.env.production`**
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+# === PRODUCTION ENVIRONMENT CONFIGURATION ===
+
+# Application Environment
+ENVIRONMENT=production
+DEBUG=false
+LOG_LEVEL=INFO
+LOG_FORMAT=json
+
+# Database Configuration (Primary)
+DATABASE_URL=postgresql://ticker_user:${DB_PASSWORD}@db:5432/ticker_converter
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+POSTGRES_DB=ticker_converter
+POSTGRES_USER=ticker_user
+POSTGRES_PASSWORD=${DB_PASSWORD}
+
+# Database Configuration (Read Replica - Optional)
+DATABASE_READ_URL=postgresql://ticker_reader:${DB_READ_PASSWORD}@db-replica:5432/ticker_converter
+
+# Redis Configuration
+REDIS_URL=redis://redis:6379/0
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_DB=0
+
+# API Keys (from secure vault)
+ALPHA_VANTAGE_API_KEY=${ALPHA_VANTAGE_API_KEY}
+ALPHA_VANTAGE_RATE_LIMIT=5
+ALPHA_VANTAGE_TIMEOUT=30
+
+# FastAPI Configuration
+API_HOST=0.0.0.0
+API_PORT=8000
+API_WORKERS=4
+API_MAX_REQUESTS=1000
+API_MAX_REQUESTS_JITTER=50
+API_TIMEOUT=30
+
+# Airflow Configuration
+AIRFLOW_HOME=/opt/airflow
+AIRFLOW_UID=50000
+AIRFLOW_GID=0
+AIRFLOW__CORE__DAGS_FOLDER=/opt/airflow/dags
+AIRFLOW__CORE__LOAD_EXAMPLES=false
+AIRFLOW__CORE__EXECUTOR=LocalExecutor
+AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql://airflow_user:${AIRFLOW_DB_PASSWORD}@db:5432/airflow
+AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
+AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW_SECRET_KEY}
+AIRFLOW__WEBSERVER__AUTHENTICATE=true
+AIRFLOW__WEBSERVER__AUTH_BACKEND=airflow.api.auth.backend.basic_auth
+
+# Airflow Admin User
+AIRFLOW_ADMIN_USERNAME=admin
+AIRFLOW_ADMIN_PASSWORD=${AIRFLOW_ADMIN_PASSWORD}
+AIRFLOW_ADMIN_EMAIL=admin@ticker-converter.com
+AIRFLOW_ADMIN_FIRSTNAME=Admin
+AIRFLOW_ADMIN_LASTNAME=User
+
+# Security Configuration
+JWT_SECRET_KEY=${JWT_SECRET_KEY}
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Monitoring and Metrics
+ENABLE_METRICS=true
+METRICS_PORT=9090
+HEALTH_CHECK_INTERVAL=30
+
+# Rate Limiting
+RATE_LIMIT_REQUESTS=100
+RATE_LIMIT_WINDOW=60
+
+# SSL Configuration (for HTTPS)
+SSL_CERT_PATH=/etc/letsencrypt/live/your-domain.com/fullchain.pem
+SSL_KEY_PATH=/etc/letsencrypt/live/your-domain.com/privkey.pem
+
+# Backup Configuration
+BACKUP_SCHEDULE="0 2 * * *"
+BACKUP_RETENTION_DAYS=30
+BACKUP_S3_BUCKET=ticker-converter-backups
 ```
 
-### 3. Dependencies Installation
-```bash
-# Core dependencies
-pip install -e .
+This comprehensive production deployment guide provides enterprise-grade setup with proper security, monitoring, backup strategies, and operational excellence practices. The configuration supports high availability, scalability, and maintainability required for production environments.
 
-# Development tools
-pip install -e ".[dev]"
+---
 
-# All features
-pip install -e ".[all]"
-```
-
-### 4. PostgreSQL Database Setup
-
-#### Option 1: Local PostgreSQL Installation
-```bash
-# macOS (using Homebrew)
-brew install postgresql
-brew services start postgresql
-
-# Create database
-createdb ticker_converter
-
-# Create user (optional)
-psql -c "CREATE USER ticker_user WITH PASSWORD 'your_password';"
-psql -c "GRANT ALL PRIVILEGES ON DATABASE ticker_converter TO ticker_user;"
-```
-
-#### Option 2: Docker PostgreSQL
-```bash
-# Run PostgreSQL in Docker
-docker run --name ticker-postgres \
-  -e POSTGRES_DB=ticker_converter \
-  -e POSTGRES_USER=ticker_user \
-  -e POSTGRES_PASSWORD=your_password \
-  -p 5432:5432 \
-  -d postgres:14
-
-# Wait for container to start
-sleep 10
-```
-
-### 5. Environment Configuration
-```bash
-# Copy environment template
-cp .env.example .env
-
-# Edit .env file with your configuration
-ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
-CURRENCY_API_KEY=your_currency_api_key
-DATABASE_URL=postgresql://ticker_user:your_password@localhost:5432/ticker_converter
-```
-
-### 6. Database Schema Initialization
-```bash
-# Create database schema using SQL scripts
-psql $DATABASE_URL -f sql/ddl/001_create_dimensions.sql
-psql $DATABASE_URL -f sql/ddl/002_create_facts.sql
-psql $DATABASE_URL -f sql/ddl/003_create_views.sql
-psql $DATABASE_URL -f sql/ddl/004_create_indexes.sql
-
-# Or run the setup script
-python scripts/setup_database.py
-```
-
-# Verify schema creation
-python -c "from src.ticker_converter.database.connection import get_database_connection; print('Database connected successfully')"
-```
-
-### 6. Development Server
-```bash
-# Start FastAPI development server
-uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
-
-# Verify API endpoints
-curl http://localhost:8000/docs
-```
-
-## Production Deployment
-
-### 1. PostgreSQL Setup
-```bash
-# Install PostgreSQL (Ubuntu/Debian)
-sudo apt-get update
-sudo apt-get install postgresql postgresql-contrib
-
-# Create database and user
-sudo -u postgres psql
-CREATE DATABASE ticker_converter;
-CREATE USER ticker_user WITH PASSWORD 'secure_password';
-GRANT ALL PRIVILEGES ON DATABASE ticker_converter TO ticker_user;
-\q
-```
-
-### 2. Production Environment
-```bash
-# Production environment variables
-export DATABASE_URL=postgresql://ticker_user:secure_password@localhost:5432/ticker_converter
-export ALPHA_VANTAGE_API_KEY=your_production_key
-export CURRENCY_API_KEY=your_production_key
-export ENVIRONMENT=production
-```
-
-### 3. Database Migration
-```bash
-# Run schema creation on PostgreSQL
-python scripts/setup_database.py --production
-
-# Verify production database
-python -c "
-from src.ticker_converter.database.connection import get_database_connection
-conn = get_database_connection()
-print('Production database connected successfully')
-conn.close()
-"
-```
-
-### 4. Application Deployment
-
-#### Option A: Direct Deployment
-```bash
-# Install production dependencies
-pip install gunicorn
-
-# Start production server
-gunicorn api.main:app \
-    --workers 4 \
-    --worker-class uvicorn.workers.UvicornWorker \
-    --bind 0.0.0.0:8000 \
-    --access-logfile - \
-    --error-logfile -
-```
-
-#### Option B: Docker Deployment
-```bash
-# Build Docker image
-docker build -t ticker-converter .
-
-# Run container
-docker run -d \
-    --name ticker-converter \
-    -p 8000:8000 \
-    -e DATABASE_URL=postgresql://ticker_user:password@host.docker.internal:5432/ticker_converter \
-    -e ALPHA_VANTAGE_API_KEY=your_key \
-    ticker-converter
-```
-
-### 5. Reverse Proxy Setup (Nginx)
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-## Airflow Orchestration Setup
-
-### 1. Airflow Installation
-```bash
-# Install Airflow 3.0.4 with PostgreSQL provider
-pip install "apache-airflow>=3.0.4[postgres]"
-
-# Initialize Airflow database
-airflow db init
-
-# Create admin user
-airflow users create \
-    --username admin \
-    --firstname Admin \
-    --lastname User \
-    --role Admin \
-    --email admin@example.com
-```
-
-### 2. DAG Deployment
-```bash
-# Copy DAGs to Airflow directory
-cp dags/*.py $AIRFLOW_HOME/dags/
-
-# Start Airflow services
-airflow webserver --port 8080 &
-airflow scheduler &
-```
-
-### 3. Database Connections
-```bash
-# Add database connection in Airflow UI
-# Connection ID: warehouse_db
-# Connection Type: PostgreSQL
-# Host: localhost
-# Database: ticker_converter
-# Username: ticker_user
-# Password: secure_password
-```
-
-## Monitoring and Maintenance
-
-### 1. Health Checks
-```bash
-# API health check
-curl http://localhost:8000/health
-
-# Database connectivity
-python scripts/data_validation.py --check-connection
-
-# Data freshness validation
-python scripts/data_validation.py --check-freshness
-```
-
-### 2. Log Management
-```bash
-# Application logs location
-tail -f logs/ticker-converter.log
-
-# Airflow logs
-tail -f $AIRFLOW_HOME/logs/scheduler/latest/*.log
-```
-
-### 3. Database Maintenance
-```sql
--- Check table sizes
-SELECT 
-    tablename, 
-    pg_size_pretty(pg_total_relation_size(tablename::regclass)) as size
-FROM pg_tables 
-WHERE schemaname = 'public';
-
--- Data retention (keep last 90 days)
-DELETE FROM fact_stock_prices 
-WHERE date_id IN (
-    SELECT date_id FROM dim_dates 
-    WHERE date < CURRENT_DATE - INTERVAL '90 days'
-);
-```
-
-## Performance Tuning
-
-### 1. Database Optimization
-```sql
--- Update table statistics
-ANALYZE fact_stock_prices;
-ANALYZE fact_currency_rates;
-
--- Rebuild indexes
-REINDEX INDEX idx_stock_prices_date_stock;
-REINDEX INDEX idx_currency_rates_date;
-```
-
-### 2. Application Configuration
-```python
-# Database connection pooling
-SQLALCHEMY_POOL_SIZE = 20
-SQLALCHEMY_MAX_OVERFLOW = 30
-SQLALCHEMY_POOL_TIMEOUT = 30
-```
-
-## Backup and Recovery
-
-### 1. Database Backup
-```bash
-# PostgreSQL backup
-pg_dump ticker_converter > backup_$(date +%Y%m%d).sql
-
-# Automated daily backup
-0 2 * * * /usr/bin/pg_dump ticker_converter > /backups/daily_$(date +\%Y\%m\%d).sql
-```
-
-### 2. Data Recovery
-```bash
-# Restore from backup
-psql ticker_converter < backup_20250811.sql
-
-# Verify data integrity
-python scripts/data_validation.py --full-check
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**Database Connection Errors**:
-```bash
-# Check PostgreSQL status
-sudo systemctl status postgresql
-
-# Verify connection string
-python -c "import os; print(os.getenv('DATABASE_URL'))"
-```
-
-**API Response Errors**:
-```bash
-# Check application logs
-tail -f logs/api.log
-
-# Test database queries directly
-python scripts/data_validation.py --test-queries
-```
-
-**Airflow DAG Failures**:
-```bash
-# Check DAG status
-airflow dags state nyse_stock_etl 2025-08-11
-
-# View task logs
-airflow tasks log nyse_stock_etl fetch_stock_data 2025-08-11
-```
-
-### Performance Issues
-- Monitor query execution times in database logs
-- Check index usage with EXPLAIN ANALYZE
-- Verify API response cache configuration
-- Monitor system resources (CPU, memory, disk I/O)
-
-## Security Considerations
-
-### 1. API Security
-- Implement proper API key rotation
-- Use HTTPS in production
-- Configure rate limiting
-- Validate all input parameters
-
-### 2. Database Security
-- Use connection pooling with authentication
-- Implement read-only user for API queries
-- Regular security updates for PostgreSQL
-- Network isolation for database access
-
-### 3. Environment Security
-- Store secrets in environment variables
-- Use secure secret management systems
-- Regular dependency updates
-- Access logging and monitoring
-
-This deployment guide provides a complete setup process for both development and production environments, ensuring reliable operation of the NYSE stock market data analytics pipeline.
+**Last Updated**: August 2025 | **Version**: 2.0.0 | **Target**: Production Enterprise Deployment

@@ -11,15 +11,13 @@ All using the single Alpha Vantage API.
 
 from datetime import datetime
 
-from ticker_converter.api_clients.api_client import (
-    AlphaVantageAPIError,
-    AlphaVantageClient,
-)
+from ticker_converter.api_clients.client import AlphaVantageClient
 from ticker_converter.api_clients.constants import (
     AlphaVantageResponseKey,
     AlphaVantageValueKey,
     config,
 )
+from ticker_converter.api_clients.exceptions import AlphaVantageAPIError
 
 try:
     from demo_config import DEMO_CONFIG

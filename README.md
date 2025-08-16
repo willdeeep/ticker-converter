@@ -18,12 +18,12 @@ This project implements a production-ready financial data analytics pipeline des
 ## What's New in v1.1.0
 
 ### Major Improvements
-- **🚀 Upgraded to Apache Airflow 3.0.4**: Latest workflow orchestration with modern @dag and @task decorators
-- **🐍 Standardized on Python 3.11.12**: Single Python version for optimal compatibility and performance
-- **🧪 Enhanced Test Coverage**: Improved from 38% to 44% with comprehensive unit tests
-- **⚡ Improved CI/CD Pipeline**: Faster, more reliable automated testing and deployment
-- **🔧 Better Type Safety**: Full mypy compliance with proper type annotations
-- **📚 Enhanced Documentation**: Clear setup instructions and troubleshooting guides
+- **Upgraded to Apache Airflow 3.0.4**: Latest workflow orchestration with modern @dag and @task decorators
+- **Standardized on Python 3.11.12**: Single Python version for optimal compatibility and performance
+- **Enhanced Test Coverage**: Improved from 38% to 44% with comprehensive unit tests
+- **Improved CI/CD Pipeline**: Faster, more reliable automated testing and deployment
+- **Better Type Safety**: Full mypy compliance with proper type annotations
+- **Enhanced Documentation**: Clear setup instructions and troubleshooting guides
 
 ### Breaking Changes
 - **Python Version**: Now requires exactly Python 3.11.12 (previously supported 3.9+)
@@ -219,14 +219,42 @@ The project maintains strict code quality with:
 
 ### Project Structure
 ```
-├── src/ticker_converter/     # Core Python package
-├── api/                      # FastAPI application
-├── sql/queries/              # SQL query files
-├── tests/                    # Test suite
-├── dags/                     # Apache Airflow DAGs
-├── scripts/                  # Utility scripts
-└── docs/                     # Documentation
+ticker-converter/
+├── src/ticker_converter/             # Core application package
+│   ├── cli/                          # Command-line interface modules
+│   ├── api_clients/                  # External API client classes
+│   ├── data_ingestion/               # Data fetching and processing
+│   ├── data_models/                  # Pydantic models and validation
+│   ├── cli.py                        # Main CLI entry point
+│   ├── config.py                     # Application configuration
+│   └── run_api.py                    # FastAPI server launcher
+├── api/                              # FastAPI application
+│   ├── main.py                       # Application instance
+│   ├── models.py                     # API request/response models
+│   ├── database.py                   # Database connections
+│   └── dependencies.py              # Dependency injection
+├── dags/                             # Apache Airflow DAGs
+│   ├── daily_etl_dag.py             # Main ETL workflow
+│   ├── sql/                          # SQL scripts for DAGs
+│   └── raw_data/                     # Data staging area
+├── tests/                            # Test suite organization
+│   ├── unit/                         # Unit tests (mirrors src/)
+│   ├── integration/                  # Integration tests
+│   ├── quality/                      # Code quality scripts
+│   └── fixtures/                     # Test data and mocks
+├── docs/                             # Project documentation
+│   ├── architecture/                 # System design docs
+│   ├── deployment/                   # Setup and deployment guides
+│   └── user_guides/                  # End-user documentation
+├── scripts/                          # Utility and maintenance scripts
+├── sql/                              # SQL scripts and schema
+│   ├── ddl/                          # Data definition (tables, views)
+│   ├── etl/                          # ETL transformation scripts
+│   └── queries/                      # API query templates
+└── data/                             # Local data storage
 ```
+
+> See individual directory README.md files for detailed organization guidelines.
 
 ### Testing Strategy
 Run comprehensive tests with coverage reporting:
@@ -362,17 +390,19 @@ MIT License - see [LICENSE](LICENSE) file for details.
 Explore detailed documentation in the `docs/` folder:
 
 ### Architecture Documentation
-- [System Overview](docs/architecture/overview.md) - High-level system design and component interactions
-- [Database Design](docs/architecture/database_design.md) - SQL schema, relationships, and optimization strategies
-- [API Design](docs/architecture/api_design.md) - FastAPI endpoint specifications and design patterns
-- [Airflow Setup](docs/architecture/airflow_setup.md) - Workflow orchestration configuration and DAG design
+- [System Overview](docs/architecture/overview.md) - Strategic system architecture and technology decisions
+- [ETL Pipeline Implementation](docs/architecture/etl_pipeline_implementation.md) - Detailed ETL pipeline mechanics and data flow
+- [Database Schema and Operations](docs/architecture/database_schema_and_operations.md) - Schema design with explicit normalization strategy
+- [Technology Choices](docs/architecture/technology_choices.md) - Technology selection analysis and decision rationale
+- [Airflow Setup](docs/architecture/airflow_setup.md) - Apache Airflow 3.0.4 configuration and modern patterns
+- [API Design](docs/architecture/api_design.md) - FastAPI endpoint specifications and architectural decisions
 
 ### Deployment Guides
-- [Local Setup](docs/deployment/local_setup.md) - Detailed local development environment setup
-- [Production Deployment](docs/deployment/production.md) - Production deployment strategies and best practices
+- [Local Setup](docs/deployment/local_setup.md) - Comprehensive local development environment setup
+- [Production Deployment](docs/deployment/production.md) - Enterprise-grade production deployment procedures
 
 ### User Guides
-- [CLI Usage](docs/user_guides/cli_usage.md) - Command-line interface documentation and examples
+- [CLI Usage](docs/user_guides/cli_usage.md) - Complete CLI command reference and development workflows
 
 ---
 

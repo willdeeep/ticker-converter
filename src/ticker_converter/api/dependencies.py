@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
 
-from api.database import DatabaseConnection, DatabaseManager
+from .database import DatabaseConnection, DatabaseManager
 
 
 def get_sql_query(filename: str) -> str:
@@ -20,8 +20,8 @@ def get_sql_query(filename: str) -> str:
     Raises:
         FileNotFoundError: If SQL file doesn't exist
     """
-    # Get the project root (parent of api directory)
-    project_root = Path(__file__).parent.parent
+    # Get the project root (parent of src directory)
+    project_root = Path(__file__).parent.parent.parent
     sql_file = project_root / "sql" / "queries" / filename
 
     if not sql_file.exists():

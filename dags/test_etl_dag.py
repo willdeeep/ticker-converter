@@ -23,11 +23,11 @@ from airflow.decorators import dag, task
         "retry_delay": timedelta(minutes=1),
     },
 )
-def test_etl_dag():
+def test_etl_dag() -> None:
     """Test DAG definition using Airflow 3.0 syntax."""
 
     @task
-    def test_function():
+    def test_function() -> str:
         """Simple test function."""
         print("Test DAG is working!")
         return "success"

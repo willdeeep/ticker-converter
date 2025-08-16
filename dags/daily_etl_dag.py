@@ -2,8 +2,8 @@
 Airflow DAG for daily stock data ETL pipeline.
 
 This DAG orchestrates the complete ETL process using SQL operators:
-1. Extract stock prices from Alpha Vantage API and load into Json storage in raw_data/exchange
-2. Extract and load exchange rates from exchangerate-api.io and load in raw Json format in raw_data/exchange
+1. Extract stock prices from Alpha Vantage API using the refactored data ingestion modules
+2. Extract and load exchange rates from exchangerate-api.io
 3. Use SQL operators to clean, transform and load data all data into PostgreSQL database
 4. Run data quality checks
 5. Monitor and log ETL process
@@ -11,12 +11,21 @@ This DAG orchestrates the complete ETL process using SQL operators:
 """
 
 import json
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from airflow.decorators import dag, task
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.empty import EmptyOperator
+
+# Add the src directory to the Python path (must be before ticker_converter imports)
+sys.path.append("/Users/willhuntleyclarke/repos/interests/ticker-converter/src")
+
+# These imports depend on the path modification above
+# pylint: disable=wrong-import-position
+from ticker_converter.data_ingestion.currency_fetcher import CurrencyDataFetcher
+from ticker_converter.data_ingestion.nyse_fetcher import NYSEDataFetcher
 
 
 class DAGConfig:
@@ -46,103 +55,68 @@ class DAGConfig:
 
     # File paths
     RAW_DATA_DIR = "raw_data/exchange"
-    SQL_DIR = "sql/etl"
+    SQL_DIR = "dags/sql"
 
     # SQL files for data processing
     SQL_FILES = {
-        "load_raw_stock_data": "load_raw_stock_data_to_postgres.sql",
-        "load_raw_exchange_data": "load_raw_exchange_data_to_postgres.sql",
-        "clean_transform_data": "clean_transform_data.sql",
-        "data_quality_checks": "data_quality_checks.sql",
-        "cleanup_old_data": "cleanup_old_data.sql",
+        "load_raw_stock_data": "sql/etl/load_raw_stock_data_to_postgres.sql",
+        "load_raw_exchange_data": "sql/etl/load_raw_exchange_data_to_postgres.sql",
+        "clean_transform_data": "sql/etl/clean_transform_data.sql",
+        "data_quality_checks": "sql/etl/data_quality_checks.sql",
+        "cleanup_old_data": "sql/etl/cleanup_old_data.sql",
     }
 
 
 def extract_stock_prices_to_json() -> None:
-    """Extract stock prices from Alpha Vantage API and save to JSON files.
+    """Extract stock prices using the refactored data ingestion modules.
 
-    Fetches stock data from Alpha Vantage API and saves raw JSON responses
-    to raw_data/exchange directory for later processing.
+    Utilizes NYSEDataFetcher to get stock data and saves to JSON files
+    for later processing by SQL operators.
     """
-    # pylint: disable=fixme
-    # TODO: Implement Alpha Vantage API integration
+    # Initialize the NYSE data fetcher with proper configuration
+    nyse_fetcher = NYSEDataFetcher()
 
     # Ensure raw data directory exists
     raw_data_path = Path(DAGConfig.RAW_DATA_DIR)
     raw_data_path.mkdir(parents=True, exist_ok=True)
 
-    # Placeholder: Create sample JSON file structure
-    sample_data = {
-        "Meta Data": {
-            "1. Information": "Daily Prices and Volumes",
-            "2. Symbol": "SAMPLE",
-            "3. Last Refreshed": datetime.now().isoformat(),
-            "4. Output Size": "Compact",
-        },
-        "Time Series (Daily)": {
-            datetime.now().strftime("%Y-%m-%d"): {
-                "1. open": "100.00",
-                "2. high": "105.00",
-                "3. low": "99.00",
-                "4. close": "103.50",
-                "5. volume": "1000000",
-            }
-        },
-    }
+    # Extract stock data using the refactored fetcher
+    stock_data = nyse_fetcher.fetch_and_prepare_all_data()
 
     # Save to JSON file with timestamp
     filename = f"stock_prices_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     filepath = raw_data_path / filename
 
     with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(sample_data, f, indent=2)
+        json.dump(stock_data, f, indent=2, default=str)
 
-    print(f"Stock prices saved to {filepath}")
+    print(f"Stock prices extracted and saved to {filepath}")
 
 
 def extract_exchange_rates_to_json() -> None:
-    """Extract exchange rates from exchangerate-api.io and save to JSON files.
+    """Extract exchange rates using the refactored data ingestion modules.
 
-    Fetches exchange rate data and saves raw JSON responses
-    to raw_data/exchange directory for later processing.
+    Utilizes CurrencyDataFetcher to get exchange rate data and saves to JSON files
+    for later processing by SQL operators.
     """
-    # pylint: disable=fixme
-    # TODO: Implement exchange rate API integration
+    # Initialize the currency data fetcher with proper configuration
+    currency_fetcher = CurrencyDataFetcher()
 
     # Ensure raw data directory exists
     raw_data_path = Path(DAGConfig.RAW_DATA_DIR)
     raw_data_path.mkdir(parents=True, exist_ok=True)
 
-    # Placeholder: Create sample JSON file structure
-    sample_data = {
-        "result": "success",
-        "provider": "https://www.exchangerate-api.com",
-        "documentation": "https://www.exchangerate-api.com/docs/free",
-        "terms_of_use": "https://www.exchangerate-api.com/terms",
-        "time_last_update_unix": int(datetime.now().timestamp()),
-        "time_last_update_utc": datetime.now().strftime("%a, %d %b %Y %H:%M:%S +0000"),
-        "time_next_update_unix": int((datetime.now() + timedelta(days=1)).timestamp()),
-        "time_next_update_utc": (datetime.now() + timedelta(days=1)).strftime(
-            "%a, %d %b %Y %H:%M:%S +0000"
-        ),
-        "base_code": "USD",
-        "conversion_rates": {
-            "USD": 1,
-            "EUR": 0.85,
-            "GBP": 0.73,
-            "JPY": 110.5,
-            "CAD": 1.25,
-        },
-    }
+    # Extract exchange rate data using the refactored fetcher
+    exchange_data = currency_fetcher.fetch_and_prepare_fx_data()
 
     # Save to JSON file with timestamp
     filename = f"exchange_rates_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     filepath = raw_data_path / filename
 
     with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(sample_data, f, indent=2)
+        json.dump(exchange_data, f, indent=2, default=str)
 
-    print(f"Exchange rates saved to {filepath}")
+    print(f"Exchange rates extracted and saved to {filepath}")
 
 
 def monitor_etl_process() -> None:
@@ -190,33 +164,34 @@ def monitor_etl_process() -> None:
     tags=DAGConfig.TAGS,
     default_args=DAGConfig.DEFAULT_ARGS,
 )
-def ticker_converter_daily_etl():
+def ticker_converter_daily_etl() -> None:
     """Ticker converter daily ETL DAG using Airflow 3.0 syntax."""
+    # pylint: disable=pointless-statement
 
     @task
-    def extract_stock_data_to_json():
+    def extract_stock_data_to_json() -> None:
         """Extract stock prices to JSON files."""
         extract_stock_prices_to_json()
 
     @task
-    def extract_exchange_rates_to_json_task():
+    def extract_exchange_rates_to_json_task() -> None:
         """Extract exchange rates to JSON files."""
         extract_exchange_rates_to_json()
 
     @task
-    def run_data_quality_checks():
+    def run_data_quality_checks() -> str:
         """Run data quality checks."""
         print("Running data quality checks...")
         # Placeholder for quality checks
         return "quality_checks_passed"
 
     @task
-    def monitor_etl_process_task():
+    def monitor_etl_process_task() -> None:
         """Monitor ETL process."""
         monitor_etl_process()
 
     @task
-    def cleanup_old_data():
+    def cleanup_old_data() -> str:
         """Clean up old data."""
         print("Cleaning up old data...")
         # Placeholder for cleanup logic
@@ -253,14 +228,8 @@ def ticker_converter_daily_etl():
     start_task >> [extract_stock_task, extract_exchange_task]
 
     # Step 3: After JSON files are created, load them into PostgreSQL in parallel
-    extract_stock_task >> [
-        load_raw_stock_data_to_postgres,
-        load_raw_exchange_data_to_postgres,
-    ]
-    extract_exchange_task >> [
-        load_raw_stock_data_to_postgres,
-        load_raw_exchange_data_to_postgres,
-    ]
+    extract_stock_task >> load_raw_stock_data_to_postgres
+    extract_exchange_task >> load_raw_exchange_data_to_postgres
 
     # After both raw data loads complete, run the clean and transform step
     [

@@ -195,8 +195,8 @@ lint: ## Run all code quality checks
 	@echo -e "$(BLUE)Running code quality checks...$(NC)"
 	@$(PYTHON) -m black --check .
 	@$(PYTHON) -m isort --check-only .
-	@$(PYTHON) -m pylint $(PACKAGE_NAME) dags/
-	@$(PYTHON) -m mypy $(PACKAGE_NAME)
+	@$(PYTHON) -m pylint src/$(PACKAGE_NAME) dags/
+	@$(PYTHON) -m mypy src/$(PACKAGE_NAME)
 	@echo -e "$(GREEN)Code quality checks completed$(NC)"
 
 lint-fix: ## Auto-fix code quality issues
