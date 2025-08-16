@@ -5,9 +5,23 @@ Contains all Apache Airflow DAG Python scripts for orchestrating data pipeline w
 
 ## Directory Structure
 
-### `/dags/` (Root)
-- **Use Case**: Main DAG definition files (.py) that define workflow schedules, dependencies, and task orchestration
-- **Git Status**: Tracked
+### `/dags/` Directory
+
+**Git Status**: Tracked  
+**Use Case**: Airflow DAG definitions and workflow orchestration
+
+This directory contains Airflow DAGs for orchestrating data pipeline workflows.
+
+## Directory Structure
+```
+dags/
+├── README.md                      # This file
+├── daily_etl_dag.py              # Daily ETL workflow DAG
+├── test_etl_dag.py               # ETL testing DAG
+├── __pycache__/                  # Python bytecode cache
+├── raw_data/                     # Raw data staging area
+└── sql/                          # SQL scripts for DAG operations
+```
 - **Contents**: 
   - Primary DAG files (e.g., `daily_etl_dag.py`, `test_etl_dag.py`)
   - DAG configuration and scheduling logic

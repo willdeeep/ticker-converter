@@ -219,14 +219,42 @@ The project maintains strict code quality with:
 
 ### Project Structure
 ```
-├── src/ticker_converter/     # Core Python package
-├── api/                      # FastAPI application
-├── sql/queries/              # SQL query files
-├── tests/                    # Test suite
-├── dags/                     # Apache Airflow DAGs
-├── scripts/                  # Utility scripts
-└── docs/                     # Documentation
+ticker-converter/
+├── src/ticker_converter/             # Core application package
+│   ├── cli/                          # Command-line interface modules
+│   ├── api_clients/                  # External API client classes
+│   ├── data_ingestion/               # Data fetching and processing
+│   ├── data_models/                  # Pydantic models and validation
+│   ├── cli.py                        # Main CLI entry point
+│   ├── config.py                     # Application configuration
+│   └── run_api.py                    # FastAPI server launcher
+├── api/                              # FastAPI application
+│   ├── main.py                       # Application instance
+│   ├── models.py                     # API request/response models
+│   ├── database.py                   # Database connections
+│   └── dependencies.py              # Dependency injection
+├── dags/                             # Apache Airflow DAGs
+│   ├── daily_etl_dag.py             # Main ETL workflow
+│   ├── sql/                          # SQL scripts for DAGs
+│   └── raw_data/                     # Data staging area
+├── tests/                            # Test suite organization
+│   ├── unit/                         # Unit tests (mirrors src/)
+│   ├── integration/                  # Integration tests
+│   ├── quality/                      # Code quality scripts
+│   └── fixtures/                     # Test data and mocks
+├── docs/                             # Project documentation
+│   ├── architecture/                 # System design docs
+│   ├── deployment/                   # Setup and deployment guides
+│   └── user_guides/                  # End-user documentation
+├── scripts/                          # Utility and maintenance scripts
+├── sql/                              # SQL scripts and schema
+│   ├── ddl/                          # Data definition (tables, views)
+│   ├── etl/                          # ETL transformation scripts
+│   └── queries/                      # API query templates
+└── data/                             # Local data storage
 ```
+
+> See individual directory README.md files for detailed organization guidelines.
 
 ### Testing Strategy
 Run comprehensive tests with coverage reporting:

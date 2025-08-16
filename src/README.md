@@ -5,10 +5,29 @@ Contains all Python source code for setting up, tearing down, and running all as
 
 ## Directory Structure
 
-### `/src/` (Root)
-- **Use Case**: Top-level application source code entry points
-- **Git Status**: Tracked
-- **Contents**: Main application modules and packages
+### `/src/` Directory
+
+**Git Status**: Tracked  
+**Use Case**: Core application code and business logic modules
+
+This directory contains the main application source code organized in a modular structure.
+
+## Directory Structure
+```
+src/
+├── README.md                      # This file
+└── ticker_converter/              # Main application package
+    ├── __init__.py               # Package initialization
+    ├── cli/                      # Command-line interface modules
+    ├── cli.py                    # Main CLI entry point
+    ├── cli_ingestion.py         # Data ingestion CLI commands
+    ├── config.py                # Application configuration
+    ├── run_api.py               # FastAPI server launcher
+    ├── api_clients/             # External API client classes
+    ├── data_ingestion/          # Data fetching and processing
+    ├── data_models/             # Pydantic models and validation
+    └── py.typed                 # Type hint marker file
+```
 
 ### `/src/ticker_converter/` (Main Package)
 - **Use Case**: Core application functionality organized by domain

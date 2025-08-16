@@ -1,4 +1,18 @@
-# Documentation Directory
+# `/docs/` Directory
+
+**Git Status**: Tracked  
+**Use Case**: Project documentation and guides
+
+This directory contains comprehensive project documentation organized by audience and purpose.
+
+## Directory Structure
+```
+docs/
+├── README.md                      # This file
+├── architecture/                 # System design and architecture docs
+├── deployment/                   # Deployment guides and operations
+└── user_guides/                  # End-user documentation and tutorials
+```
 
 ## Purpose
 Contains organized and regularly updated series of markdown documents that clearly detail different aspects of the project, arranged into sub-directories by subject. This documentation is referenced in the root `README.md` "Further Reading" section and serves as the authoritative project documentation.

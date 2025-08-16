@@ -1,14 +1,23 @@
-# API Directory
+# `/api/` Directory
+
+**Git Status**: Tracked  
+**Use Case**: FastAPI application and HTTP interface definitions
+
+This directory contains FastAPI application setup, route definitions, and HTTP-specific components.
+
+## Directory Structure
+```
+api/
+├── README.md                      # This file
+├── __init__.py                   # Package initialization
+├── main.py                       # FastAPI application instance
+├── models.py                     # Pydantic models for API requests/responses
+├── database.py                   # Database connection and session management
+└── dependencies.py               # FastAPI dependency injection components
+```
 
 ## Purpose
 Contains all Python classes for both external API connections (clients) and internal API endpoint definitions (FastAPI server). This directory manages all API-related functionality organized by use case and integration type.
-
-## Directory Structure
-
-### `/api/` (Root)
-- **Use Case**: API-related Python modules and packages
-- **Git Status**: Tracked
-- **Contents**: FastAPI application files and external API integration
 
 ### Current Structure Analysis
 Based on existing files:
@@ -63,11 +72,3 @@ Based on existing files:
 - **Caching**: Cache responses where appropriate to reduce API calls
 - **Monitoring**: Log API calls and response times for monitoring
 - **Documentation**: Clear docstrings and OpenAPI specifications
-
-## Current Status Notes
-
-The existing structure has FastAPI files directly in `/api/` root. Consider organizing into:
-- `/api/server/` for FastAPI application
-- `/api/clients/` for external API clients (possibly migrating from `/src/ticker_converter/api_clients/`)
-
-This would provide clearer separation between internal API serving and external API consumption.

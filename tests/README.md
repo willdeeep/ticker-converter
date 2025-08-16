@@ -1,20 +1,35 @@
-# Tests Directory
+# `/tests/` Directory
 
-This directory contains all test files for the ticker-converter project.
+**Git Status**: Tracked  
+**Use Case**: Test suite organization and quality assurance
 
-## Structure
-
-# Tests Directory
-
-## Purpose
-Contains all tests with organized sub-directories for test types (unit, integration), pytest configuration, test fixtures, and mock data. Ensures comprehensive testing coverage while keeping tests well-organized and maintainable.
+This directory contains all testing infrastructure organized by test type and scope.
 
 ## Directory Structure
+```
+tests/
+├── README.md                      # This file
+├── TESTING_SAFETY.md             # Testing safety guidelines
+├── conftest.py                   # Pytest configuration and fixtures
+├── __init__.py                   # Package initialization
+├── fixtures/                     # Test data and mock objects
+├── unit/                         # Unit tests (mirrors src/ structure)
+│   ├── api/                      # Tests for FastAPI endpoints
+│   ├── api_clients/              # Tests for external API clients
+│   ├── data_ingestion/           # Tests for data processing
+│   ├── data_models/              # Tests for Pydantic models
+│   └── sql/                      # Tests for SQL operations
+├── integration/                  # Integration and system tests
+├── quality/                      # Code quality validation scripts
+│   ├── run_mypy.py              # Type checking script
+│   └── quality_check.py         # Comprehensive quality validation
+├── test_api_endpoints.py        # Legacy API tests (to be reorganized)
+├── test_cli.py                  # CLI functionality tests
+├── test_database_manager_utils.py # Database utility tests
+└── test_market_data_validation.py # Market data validation tests
+```
 
-### `/tests/` (Root)
-- **Use Case**: Test package initialization and top-level test files
-- **Git Status**: Tracked
-- **Contents**: `conftest.py`, test configuration files, cross-cutting test modules
+## Organization Principles
 
 ### `/tests/unit/`
 - **Use Case**: Unit tests organized by source code modules
@@ -47,12 +62,7 @@ Contains all tests with organized sub-directories for test types (unit, integrat
   - Mock data files and variables
   - Reusable test fixtures
 
-### Configuration Files
-- **`conftest.py`**: Pytest configuration and shared fixtures
-- **`pytest.ini`**: Pytest settings and markers (in project root)
-- **Test configuration**: Environment setup for testing
-
-## Organization Principles
+## Testing Standards
 
 1. **Mirror Source Structure**: Unit tests should mirror the `/src/` directory structure
 2. **No Hardcoded Data**: All test data should come from fixtures or mock files
@@ -90,51 +100,4 @@ pytest -v
 
 # Run specific module tests
 pytest tests/unit/api_clients/  # Test specific module
-```
-
-## Current Structure
-```
-tests/
-├── __init__.py                     # Test package initialization
-├── conftest.py                     # Pytest configuration and fixtures
-├── README.md                       # This file
-├── TESTING_SAFETY.md              # Testing safety guidelines
-├── unit/                           # Unit tests by module
-│   ├── api/                       # FastAPI endpoint tests
-│   ├── api_clients/               # External API client tests
-│   ├── data_ingestion/            # Data processing tests
-│   ├── data_models/               # Model validation tests
-│   ├── etl_modules/               # ETL operation tests
-│   └── sql/                       # SQL query tests
-├── integration/                    # Integration tests
-│   ├── test_api_integration.py    # API workflow tests
-│   └── test_database_integration.py # Database operation tests
-└── fixtures/                       # Test data and mocks
-    ├── __init__.py
-    └── sample_responses.py         # Mock API responses
-```
-
-## Testing Standards
-
-- **Type Coverage**: All public functions should have tests
-- **Error Scenarios**: Test both success and failure cases
-- **Edge Cases**: Test boundary conditions and edge cases
-- **Performance**: Include performance tests for critical paths
-- **Documentation**: Clear test names and docstrings explaining test purpose
-
-## Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=src/ticker_converter
-
-# Run specific test types
-pytest tests/unit/              # Unit tests only
-pytest tests/integration/       # Integration tests only
-
-# Run with verbose output
-pytest -v
 ```

@@ -383,40 +383,109 @@ LIMIT 5;
 - Modular architecture enables independent scaling of API and ETL components
 - Clear extension points for additional data sources and analytical features
 
-## File Organization
+## Project Directory Structure
 
 ```
-sql/
-├── ddl/                    # Data Definition Language
-│   ├── 001_create_dimensions.sql
-│   ├── 002_create_facts.sql
-│   ├── 003_create_views.sql
-│   └── 004_create_indexes.sql
-├── etl/                    # ETL SQL Scripts
-│   ├── daily_transform.sql
-│   ├── data_quality_checks.sql
-│   └── load_dimensions.sql
-└── queries/                # API Query Templates
-    ├── top_performers.sql
-    ├── price_ranges.sql
-    └── currency_conversion.sql
-
-src/
-├── data_ingestion/         # Python API Fetchers
-│   ├── nyse_fetcher.py
-│   └── currency_fetcher.py
-└── data_models/            # Simplified Pydantic Models
-    └── market_data.py
-
-api/
-├── main.py                 # FastAPI Application
-├── models.py               # API Response Models
-└── queries.sql             # SQL Query Definitions
-
-dags/
-└── nyse_stock_etl.py       # Airflow DAG with SQL Operators
+ticker-converter/
+├── README.md                          # Project overview and quick start
+├── Makefile                           # Build automation and development tasks
+├── pyproject.toml                     # Python project configuration
+├── pytest.ini                        # Test configuration
+├── .env.example                       # Environment variable template
+├── .gitignore                         # Git ignore patterns
+├── .pre-commit-config.yaml           # Code quality automation
+│
+├── src/                               # Core application code
+│   └── ticker_converter/              # Main application package
+│       ├── cli/                       # Command-line interface modules
+│       ├── cli.py                     # Main CLI entry point
+│       ├── cli_ingestion.py          # Data ingestion CLI commands
+│       ├── config.py                 # Application configuration
+│       ├── run_api.py                # FastAPI server launcher
+│       ├── api_clients/              # External API client classes
+│       ├── data_ingestion/           # Data fetching and processing
+│       ├── data_models/              # Pydantic models and validation
+│       └── py.typed                  # Type hint marker file
+│
+├── api/                               # FastAPI application
+│   ├── main.py                       # FastAPI application instance
+│   ├── models.py                     # API request/response models
+│   ├── database.py                   # Database connection management
+│   └── dependencies.py              # Dependency injection components
+│
+├── dags/                              # Airflow DAG definitions
+│   ├── daily_etl_dag.py             # Daily ETL workflow DAG
+│   ├── test_etl_dag.py              # ETL testing DAG
+│   ├── raw_data/                     # Raw data staging area
+│   └── sql/                          # SQL scripts for DAG operations
+│
+├── tests/                             # Test suite organization
+│   ├── conftest.py                   # Pytest configuration
+│   ├── fixtures/                     # Test data and mock objects
+│   ├── unit/                         # Unit tests (mirrors src/)
+│   │   ├── api/                      # FastAPI endpoint tests
+│   │   ├── api_clients/              # External API client tests
+│   │   ├── data_ingestion/           # Data processing tests
+│   │   ├── data_models/              # Model validation tests
+│   │   └── sql/                      # SQL query tests
+│   ├── integration/                  # Integration and system tests
+│   └── quality/                      # Code quality validation scripts
+│       ├── run_mypy.py              # Type checking script
+│       └── quality_check.py         # Comprehensive quality validation
+│
+├── docs/                              # Project documentation
+│   ├── architecture/                 # System design documentation
+│   │   ├── overview.md               # This file - architecture overview
+│   │   ├── database_schema_and_operations.md
+│   │   ├── api_design.md
+│   │   ├── airflow_setup.md
+│   │   ├── etl_pipeline_implementation.md
+│   │   └── technology_choices.md
+│   ├── deployment/                   # Deployment guides
+│   │   ├── local_setup.md
+│   │   └── production.md
+│   └── user_guides/                  # End-user documentation
+│       └── cli_usage.md
+│
+├── scripts/                           # Utility and maintenance scripts
+│   ├── cleanup_data.py               # Data cleaning utilities
+│   ├── demo_capabilities.py          # System demonstrations
+│   ├── examine_stored_data.py        # Data exploration tools
+│   ├── setup.py                      # Environment setup
+│   ├── setup_airflow.sh             # Airflow initialization
+│   ├── start_airflow.py              # Airflow startup
+│   ├── test_api.py                   # API testing utilities
+│   └── test_workflow.py              # Workflow validation
+│
+├── sql/                               # SQL scripts and schema
+│   ├── ddl/                          # Data Definition Language
+│   │   ├── 001_create_dimensions.sql
+│   │   ├── 002_create_facts.sql
+│   │   ├── 003_create_views.sql
+│   │   └── 004_create_indexes.sql
+│   ├── etl/                          # ETL transformation scripts
+│   │   ├── daily_transform.sql
+│   │   ├── data_quality_checks.sql
+│   │   └── load_dimensions.sql
+│   └── queries/                      # API query templates
+│       ├── top_performers.sql
+│       ├── price_ranges.sql
+│       └── currency_conversion.sql
+│
+├── airflow/                           # Airflow runtime files
+│   ├── airflow.cfg                   # Airflow configuration
+│   ├── airflow.db                    # SQLite metadata database
+│   └── logs/                         # Airflow execution logs
+│
+├── data/                              # Local data storage
+│   └── ticker_converter.db           # SQLite database file
+│
+└── my_docs/                           # Development documentation
+    ├── FINAL_PROJECT_STRUCTURE.md    # Project structure decisions
+    ├── GIT_WORKFLOW.md               # Git workflow guidelines
+    ├── migration_guide.md            # Migration documentation
+    └── guides/                        # Additional development guides
 ```
-**See (Final Project Structure)[docs/FINAL_PROJECT_STRUCTURE.md] for full folder structure**
 
 ## Future Evolution Roadmap
 

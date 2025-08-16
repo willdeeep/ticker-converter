@@ -1,4 +1,26 @@
-# Scripts Directory
+# `/scripts/` Directory
+
+**Git Status**: Tracked  
+**Use Case**: Utility scripts and standalone automation tools
+
+This directory contains utility scripts for development, testing, deployment, and maintenance tasks.
+
+## Directory Structure
+```
+scripts/
+├── README.md                      # This file
+├── cleanup_data.py               # Data cleaning and maintenance
+├── demo_capabilities.py          # System capability demonstrations
+├── demo_config.py                # Demo configuration setup
+├── examine_stored_data.py        # Data exploration and analysis
+├── fix_airflow_config.py         # Airflow configuration repairs
+├── init_airflow.py               # Airflow initialization
+├── setup.py                      # Environment setup automation
+├── setup_airflow.sh             # Shell script for Airflow setup
+├── start_airflow.py              # Airflow startup automation
+├── test_api.py                   # API testing and validation
+└── test_workflow.py              # Workflow testing scripts
+```
 
 ## Purpose
 A designated place to create temporary test scripts used to diagnose errors or verify proper functionality. This directory exists to prevent cluttering of the root directory or other important subdirectories with temporary, single-use files.
