@@ -122,6 +122,10 @@ ignore_missing_imports = false
 strict_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
+# Add explicit paths for src layout
+mypy_path = ["src"]
+packages = ["ticker_converter"]
+explicit_package_bases = true
 
 # Per-module configurations for specific libraries that need it
 [[tool.mypy.overrides]]

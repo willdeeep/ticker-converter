@@ -10,7 +10,7 @@ comprehensive error handling.
 import json
 import logging
 import sys
-from typing import TextIO
+from typing import Any, TextIO
 
 import click
 from rich.console import Console
@@ -72,7 +72,7 @@ def handle_orchestrator_error(error: Exception, operation: str) -> None:
     console.print("• Run with --verbose for detailed logs")
 
 
-def output_results(results: dict, output_file: TextIO | None = None) -> None:
+def output_results(results: dict[str, Any], output_file: TextIO | None = None) -> None:
     """Output results with rich formatting.
 
     Args:
