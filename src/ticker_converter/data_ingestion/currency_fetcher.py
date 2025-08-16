@@ -33,7 +33,8 @@ class CurrencyDataFetcher(BaseDataFetcher):
         try:
             self.logger.info(
                 "Fetching current %s/%s exchange rate",
-                self.FROM_CURRENCY, self.TO_CURRENCY
+                self.FROM_CURRENCY,
+                self.TO_CURRENCY,
             )
 
             response = self.api_client.get_currency_exchange_rate(
@@ -67,7 +68,9 @@ class CurrencyDataFetcher(BaseDataFetcher):
 
             self.logger.info(
                 "Current %s/%s rate: %.6f",
-                self.FROM_CURRENCY, self.TO_CURRENCY, result['exchange_rate']
+                self.FROM_CURRENCY,
+                self.TO_CURRENCY,
+                result["exchange_rate"],
             )
             return result
 

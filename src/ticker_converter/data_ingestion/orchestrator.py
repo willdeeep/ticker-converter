@@ -63,7 +63,8 @@ class DataIngestionOrchestrator:
 
             results["setup_completed"] = datetime.now().isoformat()
             self.logger.info(
-                "Initial setup completed. Total records: %d", results['total_records_inserted']
+                "Initial setup completed. Total records: %d",
+                results["total_records_inserted"],
             )
 
         except Exception as e:

@@ -131,7 +131,8 @@ explicit_package_bases = true
 [[tool.mypy.overrides]]
 module = [
     "psycopg2.*",
-    "airflow.*", 
+    "airflow.*",
+    "asyncpg.*",
 ]
 ignore_missing_imports = true
 

@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 import requests
 from requests.exceptions import RequestException, Timeout
+
 from src.ticker_converter.api_clients.client import AlphaVantageClient
 from src.ticker_converter.api_clients.constants import OutputSize
 from src.ticker_converter.api_clients.exceptions import (
