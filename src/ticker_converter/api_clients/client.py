@@ -236,9 +236,7 @@ class AlphaVantageClient:
                             time.sleep(wait_time)
                             continue
                         raise AlphaVantageRateLimitError(f"API Rate Limit: {error_msg}")
-                    elif (
-                        "invalid api" in error_lower or "authentication" in error_lower
-                    ):
+                    if "invalid api" in error_lower or "authentication" in error_lower:
                         raise AlphaVantageAuthenticationError(
                             f"Authentication Error: {error_msg}"
                         )

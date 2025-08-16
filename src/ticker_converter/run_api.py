@@ -28,7 +28,9 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(fastapi_app: FastAPI) -> AsyncGenerator[None, None]:  # pylint: disable=unused-argument
+async def lifespan(
+    fastapi_app: FastAPI,
+) -> AsyncGenerator[None, None]:  # pylint: disable=unused-argument
     """Manage application lifecycle with database initialization."""
     logger.info("Starting Magnificent Seven Stock Performance API...")
 
