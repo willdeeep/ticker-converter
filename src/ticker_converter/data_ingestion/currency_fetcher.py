@@ -41,6 +41,11 @@ class CurrencyDataFetcher(BaseDataFetcher):
                 self.FROM_CURRENCY, self.TO_CURRENCY
             )
 
+            # Handle None response
+            if response is None:
+                self.logger.error("API returned None response")
+                return None
+
             # Extract the real-time exchange rate data
             rate_data = response.get("Realtime Currency Exchange Rate", {})
 
