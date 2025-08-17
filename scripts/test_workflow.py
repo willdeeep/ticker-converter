@@ -145,10 +145,10 @@ def main():
     # Test 7: Check SQL files
     print("📋 Step 7: Testing SQL Files")
     sql_files = [
-        "sql/ddl/001_create_dimensions.sql",
-        "sql/ddl/002_create_facts.sql",
-        "sql/ddl/003_create_views.sql",
-        "sql/ddl/004_create_indexes.sql",
+        "dags/sql/ddl/001_create_dimensions.sql",
+        "dags/sql/ddl/002_create_facts.sql",
+        "dags/sql/ddl/003_create_views.sql",
+        "dags/sql/ddl/004_create_indexes.sql",
     ]
 
     for sql_file in sql_files:

@@ -4,21 +4,17 @@
 import asyncio
 import logging
 import os
-import sys
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
-# Add the project root to the path so we can import from api module
-project_root = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, project_root)
-
 # pylint: disable=wrong-import-position
-from api.database import DatabaseManager
-from api.dependencies import get_database_url
-from api.main import app
+from .api.database import DatabaseManager
+from .api.dependencies import get_database_url
+from .api.main import app
 
 # Load environment variables
 load_dotenv()
@@ -32,7 +28,9 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(fastapi_app: FastAPI):  # pylint: disable=unused-argument
+async def lifespan(
+    fastapi_app: FastAPI,
+) -> AsyncGenerator[None, None]:  # pylint: disable=unused-argument
     """Manage application lifecycle with database initialization."""
     logger.info("Starting Magnificent Seven Stock Performance API...")
 
@@ -59,7 +57,7 @@ async def lifespan(fastapi_app: FastAPI):  # pylint: disable=unused-argument
 app.router.lifespan_context = lifespan
 
 
-async def main():
+async def main() -> None:
     """Run the FastAPI application."""
     logger.info("Magnificent Seven Stock Performance API starting up...")
 

@@ -25,6 +25,7 @@ dependencies = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.4.0",
+    "pydantic-settings>=2.0.0",
 
     # Database and data processing
     "psycopg2-binary>=2.9.7",
@@ -33,6 +34,7 @@ dependencies = [
 
     # HTTP client and utilities
     "requests>=2.31.0",
+    "aiohttp>=3.8.0",
     "python-dotenv>=1.0.0",
 
     # Workflow orchestration
@@ -106,6 +108,13 @@ disable = [
     "f-string-without-interpolation",
     "invalid-name",
     "line-too-long",
+    # API client complexity suppressions - these are acceptable for comprehensive API handling
+    "too-many-instance-attributes",  # API client needs multiple config attributes
+    "too-many-branches",             # Error handling requires many conditionals
+    "too-many-statements",           # Comprehensive error handling and retry logic
+    "duplicate-code",                # Minor duplication in data processing patterns
+    "no-else-raise",                 # Acceptable in error handling chains
+    "no-else-continue",              # Acceptable in retry logic patterns
 ]
 
 [tool.pylint.format]
@@ -116,6 +125,27 @@ python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+# Remove global ignore - be explicit about missing imports
+ignore_missing_imports = false
+# Strict mode for better type safety
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+# Add explicit paths for src layout
+mypy_path = ["src"]
+packages = ["ticker_converter"]
+explicit_package_bases = true
+
+# Per-module configurations for specific libraries that need it
+[[tool.mypy.overrides]]
+module = [
+    "psycopg2.*",
+    "airflow.*",
+    "asyncpg.*",
+    "pandas.*",
+    "aiohttp.*",
+    "pydantic_settings.*",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

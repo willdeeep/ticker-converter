@@ -15,14 +15,23 @@ class AlphaVantageFunction(str, Enum):
     FX_DAILY = "FX_DAILY"
     DIGITAL_CURRENCY_DAILY = "DIGITAL_CURRENCY_DAILY"
 
+    def __str__(self) -> str:
+        """Return the string value."""
+        return self.value
+
 
 class AlphaVantageResponseKey(str, Enum):
     """Alpha Vantage API response keys."""
 
     TIME_SERIES_DAILY = "Time Series (Daily)"
+    TIME_SERIES_FX_DAILY = "Time Series (FX Daily)"
     REALTIME_CURRENCY_EXCHANGE_RATE = "Realtime Currency Exchange Rate"
     ERROR_MESSAGE = "Error Message"
     NOTE = "Note"
+
+    def __str__(self) -> str:
+        """Return the string value."""
+        return self.value
 
 
 class AlphaVantageValueKey(str, Enum):
@@ -36,12 +45,20 @@ class AlphaVantageValueKey(str, Enum):
     EXCHANGE_RATE = "5. Exchange Rate"
     LAST_REFRESHED = "6. Last Refreshed"
 
+    def __str__(self) -> str:
+        """Return the string value."""
+        return self.value
+
 
 class OutputSize(str, Enum):
     """Output size options for Alpha Vantage API."""
 
     COMPACT = "compact"
     FULL = "full"
+
+    def __str__(self) -> str:
+        """Return the string value."""
+        return self.value
 
 
 @dataclass(frozen=True)

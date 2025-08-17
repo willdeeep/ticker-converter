@@ -7,9 +7,10 @@ pipeline, including checking if the database needs initial setup.
 import logging
 import os
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Generator
 
 import psycopg2
 import psycopg2.extensions
@@ -64,6 +65,26 @@ class DatabaseManager:
         # PostgreSQL connection
         return psycopg2.connect(self.connection_string)
 
+    @contextmanager
+    def connection(
+        self,
+    ) -> Generator[sqlite3.Connection | psycopg2.extensions.connection, None, None]:
+        """Context manager for database connections.
+
+        Ensures proper connection cleanup and error handling.
+        """
+        conn = None
+        try:
+            conn = self.get_connection()
+            yield conn
+        except Exception:
+            if conn:
+                conn.rollback()
+            raise
+        finally:
+            if conn:
+                conn.close()
+
     def execute_query(
         self, query: str, params: tuple[Any, ...] | None = None
     ) -> list[dict[str, Any]]:
@@ -76,7 +97,7 @@ class DatabaseManager:
         Returns:
             List of result dictionaries
         """
-        with self.get_connection() as conn:
+        with self.connection() as conn:
             if self.is_sqlite:
                 assert isinstance(conn, sqlite3.Connection)
                 conn.row_factory = sqlite3.Row
@@ -103,7 +124,7 @@ class DatabaseManager:
         if not records:
             return 0
 
-        with self.get_connection() as conn:
+        with self.connection() as conn:
             cursor = conn.cursor()
 
             if self.is_sqlite:
