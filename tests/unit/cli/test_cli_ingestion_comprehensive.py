@@ -26,7 +26,7 @@ class TestCLIIngestionCommands:
         """Test that ingestion group displays help correctly."""
         runner = CliRunner()
         result = runner.invoke(ingestion, ["--help"])
-        
+
         assert result.exit_code == 0
         assert "Ticker Converter Data Ingestion CLI" in result.output
         assert "Modern data ingestion tools" in result.output
@@ -39,9 +39,11 @@ class TestCLIIngestionCommands:
     def test_ingestion_group_verbose_flag() -> None:
         """Test verbose flag functionality."""
         runner = CliRunner()
-        with patch("src.ticker_converter.cli_ingestion.setup_rich_logging") as mock_logging:
+        with patch(
+            "src.ticker_converter.cli_ingestion.setup_rich_logging"
+        ) as mock_logging:
             result = runner.invoke(ingestion, ["--verbose", "status"])
-            
+
             # When a subcommand is provided, exit code depends on subcommand success
             # We expect it to fail with configuration error since we're not mocking get_settings
             assert result.exit_code in [0, 1]  # Allow either success or failure
@@ -52,7 +54,7 @@ class TestCLIIngestionCommands:
         """Test ingestion group behavior without subcommand."""
         runner = CliRunner()
         result = runner.invoke(ingestion, [])
-        
+
         # Click command groups without subcommands exit with status 2 and show usage
         assert result.exit_code == 2
         assert "Ticker Converter Data Ingestion CLI" in result.output
@@ -67,7 +69,7 @@ class TestSetupCommand:
         """Test setup command help output."""
         runner = CliRunner()
         result = runner.invoke(ingestion, ["setup", "--help"])
-        
+
         assert result.exit_code == 0
         assert "Initialize database with historical data" in result.output
         assert "--days" in result.output
@@ -82,13 +84,13 @@ class TestSetupCommand:
         mock_orchestrator.perform_initial_setup.return_value = {
             "stocks_inserted": 7,
             "currency_rates_inserted": 10,
-            "total_records": 17
+            "total_records": 17,
         }
         mock_orchestrator_class.return_value = mock_orchestrator
 
         runner = CliRunner()
         result = runner.invoke(ingestion, ["setup"])
-        
+
         assert result.exit_code == 0
         assert "Database initialization completed successfully" in result.output
         mock_orchestrator.perform_initial_setup.assert_called_once_with(days_back=30)
@@ -103,7 +105,7 @@ class TestSetupCommand:
 
         runner = CliRunner()
         result = runner.invoke(ingestion, ["setup", "--days", "60"])
-        
+
         assert result.exit_code == 0
         mock_orchestrator.perform_initial_setup.assert_called_once_with(days_back=60)
 
@@ -114,14 +116,14 @@ class TestSetupCommand:
         mock_orchestrator = MagicMock()
         mock_orchestrator.perform_initial_setup.return_value = {
             "stocks": 7,
-            "currencies": 3
+            "currencies": 3,
         }
         mock_orchestrator_class.return_value = mock_orchestrator
 
         runner = CliRunner()
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             result = runner.invoke(ingestion, ["setup", "--output", f.name])
-            
+
             assert result.exit_code == 0
             # Rich console splits the output across lines with formatting
             assert "Results written to" in result.output
@@ -132,25 +134,29 @@ class TestSetupCommand:
     def test_setup_command_orchestrator_error(mock_orchestrator_class: Mock) -> None:
         """Test setup command handling orchestrator errors."""
         mock_orchestrator = MagicMock()
-        mock_orchestrator.perform_initial_setup.side_effect = Exception("Database connection failed")
+        mock_orchestrator.perform_initial_setup.side_effect = Exception(
+            "Database connection failed"
+        )
         mock_orchestrator_class.return_value = mock_orchestrator
 
         runner = CliRunner()
         result = runner.invoke(ingestion, ["setup"])
-        
+
         assert result.exit_code == 1
         assert "Error during database setup" in result.output
         assert "Database connection failed" in result.output
 
     @staticmethod
     @patch("src.ticker_converter.cli_ingestion.DataIngestionOrchestrator")
-    def test_setup_command_orchestrator_initialization_error(mock_orchestrator_class: Mock) -> None:
+    def test_setup_command_orchestrator_initialization_error(
+        mock_orchestrator_class: Mock,
+    ) -> None:
         """Test setup command handling orchestrator initialization errors."""
         mock_orchestrator_class.side_effect = ValueError("Invalid configuration")
 
         runner = CliRunner()
         result = runner.invoke(ingestion, ["setup"])
-        
+
         assert result.exit_code == 1
         assert "Error during database setup" in result.output
         assert "Invalid configuration" in result.output
@@ -164,7 +170,7 @@ class TestUpdateCommand:
         """Test update command help output."""
         runner = CliRunner()
         result = runner.invoke(ingestion, ["update", "--help"])
-        
+
         assert result.exit_code == 0
         assert "Update database with latest market data" in result.output
         assert "--output" in result.output
@@ -177,13 +183,13 @@ class TestUpdateCommand:
         mock_orchestrator.run_full_ingestion.return_value = {
             "updated_stocks": 7,
             "updated_currencies": 3,
-            "timestamp": "2025-08-17T10:00:00"
+            "timestamp": "2025-08-17T10:00:00",
         }
         mock_orchestrator_class.return_value = mock_orchestrator
 
         runner = CliRunner()
         result = runner.invoke(ingestion, ["update"])
-        
+
         assert result.exit_code == 0
         assert "Database update completed successfully" in result.output
         mock_orchestrator.run_full_ingestion.assert_called_once()
@@ -197,9 +203,9 @@ class TestUpdateCommand:
         mock_orchestrator_class.return_value = mock_orchestrator
 
         runner = CliRunner()
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             result = runner.invoke(ingestion, ["update", "--output", f.name])
-            
+
             assert result.exit_code == 0
             # Rich console splits the output across lines with formatting
             assert "Results written to" in result.output
@@ -210,12 +216,14 @@ class TestUpdateCommand:
     def test_update_command_error_handling(mock_orchestrator_class: Mock) -> None:
         """Test update command error handling."""
         mock_orchestrator = MagicMock()
-        mock_orchestrator.run_full_ingestion.side_effect = ConnectionError("API unreachable")
+        mock_orchestrator.run_full_ingestion.side_effect = ConnectionError(
+            "API unreachable"
+        )
         mock_orchestrator_class.return_value = mock_orchestrator
 
         runner = CliRunner()
         result = runner.invoke(ingestion, ["update"])
-        
+
         assert result.exit_code == 1
         assert "Error during database update" in result.output
         assert "API unreachable" in result.output
@@ -229,7 +237,7 @@ class TestRunCommand:
         """Test run command help output."""
         runner = CliRunner()
         result = runner.invoke(ingestion, ["run", "--help"])
-        
+
         assert result.exit_code == 0
         assert "Run a complete data ingestion cycle" in result.output
         assert "--output" in result.output
@@ -242,13 +250,13 @@ class TestRunCommand:
         mock_orchestrator.run_full_ingestion.return_value = {
             "cycle_completed": True,
             "records_processed": 150,
-            "duration_seconds": 45
+            "duration_seconds": 45,
         }
         mock_orchestrator_class.return_value = mock_orchestrator
 
         runner = CliRunner()
         result = runner.invoke(ingestion, ["run"])
-        
+
         assert result.exit_code == 0
         assert "Complete ingestion completed successfully" in result.output
         mock_orchestrator.run_full_ingestion.assert_called_once()
@@ -258,12 +266,14 @@ class TestRunCommand:
     def test_run_command_error_handling(mock_orchestrator_class: Mock) -> None:
         """Test run command error handling."""
         mock_orchestrator = MagicMock()
-        mock_orchestrator.run_full_ingestion.side_effect = RuntimeError("Orchestration failed")
+        mock_orchestrator.run_full_ingestion.side_effect = RuntimeError(
+            "Orchestration failed"
+        )
         mock_orchestrator_class.return_value = mock_orchestrator
 
         runner = CliRunner()
         result = runner.invoke(ingestion, ["run"])
-        
+
         assert result.exit_code == 1
         assert "Error during complete ingestion" in result.output
         assert "Orchestration failed" in result.output
@@ -277,7 +287,7 @@ class TestStatusCommand:
         """Test status command help output."""
         runner = CliRunner()
         result = runner.invoke(ingestion, ["status", "--help"])
-        
+
         assert result.exit_code == 0
         assert "Check database and system status" in result.output
         assert "--output" in result.output
@@ -289,7 +299,9 @@ class TestStatusCommand:
         # Mock settings object
         mock_settings = MagicMock()
         mock_settings.database.get_url.return_value = "sqlite:///test.db"
-        mock_settings.api.api_key.get_secret_value.return_value = "test_api_key_1234567890"
+        mock_settings.api.api_key.get_secret_value.return_value = (
+            "test_api_key_1234567890"
+        )
         mock_settings.app.environment = "development"
         mock_settings.app.debug = True
         mock_settings.app.max_workers = 4
@@ -298,7 +310,7 @@ class TestStatusCommand:
 
         runner = CliRunner()
         result = runner.invoke(ingestion, ["status"])
-        
+
         assert result.exit_code == 0
         assert "System Status" in result.output
         assert "Database" in result.output
@@ -320,7 +332,7 @@ class TestStatusCommand:
 
         runner = CliRunner()
         result = runner.invoke(ingestion, ["status"])
-        
+
         assert result.exit_code == 0
         assert "Demo Key" in result.output
         assert "limited functionality" in result.output
@@ -340,7 +352,7 @@ class TestStatusCommand:
 
         runner = CliRunner()
         result = runner.invoke(ingestion, ["status"])
-        
+
         assert result.exit_code == 0
         assert "Error" in result.output
         assert "Database config error" in result.output
@@ -359,9 +371,9 @@ class TestStatusCommand:
         mock_get_settings.return_value = mock_settings
 
         runner = CliRunner()
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
             result = runner.invoke(ingestion, ["status", "--output", f.name])
-            
+
             assert result.exit_code == 0
             # Rich console splits the output across lines with formatting
             assert "Status written to" in result.output
@@ -375,7 +387,7 @@ class TestStatusCommand:
 
         runner = CliRunner()
         result = runner.invoke(ingestion, ["status"])
-        
+
         assert result.exit_code == 1
         assert "Error during status check" in result.output
         assert "Configuration loading failed" in result.output
@@ -387,12 +399,16 @@ class TestHelperFunctions:
     @staticmethod
     def test_setup_rich_logging_normal() -> None:
         """Test rich logging setup in normal mode."""
-        with patch("src.ticker_converter.cli_ingestion.logging") as mock_logging, \
-             patch("src.ticker_converter.cli_ingestion.get_logging_config") as mock_config:
-            
+        with (
+            patch("src.ticker_converter.cli_ingestion.logging") as mock_logging,
+            patch(
+                "src.ticker_converter.cli_ingestion.get_logging_config"
+            ) as mock_config,
+        ):
+
             mock_config.return_value.level = "INFO"
             setup_rich_logging(verbose=False)
-            
+
             mock_logging.basicConfig.assert_called_once()
             _, kwargs = mock_logging.basicConfig.call_args
             assert kwargs["level"] == mock_logging.INFO
@@ -400,12 +416,16 @@ class TestHelperFunctions:
     @staticmethod
     def test_setup_rich_logging_verbose() -> None:
         """Test rich logging setup in verbose mode."""
-        with patch("src.ticker_converter.cli_ingestion.logging") as mock_logging, \
-             patch("src.ticker_converter.cli_ingestion.get_logging_config") as mock_config:
-            
+        with (
+            patch("src.ticker_converter.cli_ingestion.logging") as mock_logging,
+            patch(
+                "src.ticker_converter.cli_ingestion.get_logging_config"
+            ) as mock_config,
+        ):
+
             mock_config.return_value.level = "INFO"
             setup_rich_logging(verbose=True)
-            
+
             mock_logging.basicConfig.assert_called_once()
             _, kwargs = mock_logging.basicConfig.call_args
             assert kwargs["level"] == mock_logging.DEBUG
@@ -416,11 +436,13 @@ class TestHelperFunctions:
         with patch("src.ticker_converter.cli_ingestion.console") as mock_console:
             error = ValueError("Test error message")
             handle_orchestrator_error(error, "test operation")
-            
+
             # Verify error was displayed
             assert mock_console.print.call_count >= 2
             calls = [call.args[0] for call in mock_console.print.call_args_list]
-            error_calls = [call for call in calls if "Error during test operation" in call]
+            error_calls = [
+                call for call in calls if "Error during test operation" in call
+            ]
             assert len(error_calls) > 0
 
     @staticmethod
@@ -430,9 +452,9 @@ class TestHelperFunctions:
             cause = ConnectionError("Network timeout")
             error = RuntimeError("Operation failed")
             error.__cause__ = cause
-            
+
             handle_orchestrator_error(error, "network operation")
-            
+
             # Verify both error and cause were displayed
             calls = [call.args[0] for call in mock_console.print.call_args_list]
             cause_calls = [call for call in calls if "Caused by" in call]
@@ -445,11 +467,11 @@ class TestHelperFunctions:
             results = {
                 "stocks_processed": 7,
                 "currency_rates_updated": 10,
-                "total_time_seconds": 45
+                "total_time_seconds": 45,
             }
-            
+
             output_results(results)
-            
+
             # Verify table was created and printed
             assert mock_console.print.called
 
@@ -457,20 +479,24 @@ class TestHelperFunctions:
     def test_output_results_with_file() -> None:
         """Test output results to both console and file."""
         results = {"test_metric": 42, "status": "success"}
-        
+
         with patch("src.ticker_converter.cli_ingestion.console") as mock_console:
-            with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+            with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
                 output_results(results, f)
                 f.flush()
-                
+
                 # Verify file was written
-                with open(f.name, 'r', encoding='utf-8') as read_file:
+                with open(f.name, "r", encoding="utf-8") as read_file:
                     written_data = json.load(read_file)
                     assert written_data == results
-                
+
                 # Verify console output included file confirmation
-                calls = [str(call.args[0]) for call in mock_console.print.call_args_list]
-                file_calls = [call for call in calls if f"Results written to {f.name}" in call]
+                calls = [
+                    str(call.args[0]) for call in mock_console.print.call_args_list
+                ]
+                file_calls = [
+                    call for call in calls if f"Results written to {f.name}" in call
+                ]
                 assert len(file_calls) > 0
 
 
@@ -480,14 +506,16 @@ class TestCLIIntegration:
     @staticmethod
     def test_cli_chain_setup_then_update() -> None:
         """Test running setup followed by update commands."""
-        with patch("src.ticker_converter.cli_ingestion.DataIngestionOrchestrator") as mock_orch:
+        with patch(
+            "src.ticker_converter.cli_ingestion.DataIngestionOrchestrator"
+        ) as mock_orch:
             mock_instance = MagicMock()
             mock_instance.perform_initial_setup.return_value = {"setup": "complete"}
             mock_instance.run_full_ingestion.return_value = {"update": "complete"}
             mock_orch.return_value = mock_instance
 
             runner = CliRunner()
-            
+
             # Run setup
             setup_result = runner.invoke(ingestion, ["setup", "--days", "7"])
             assert setup_result.exit_code == 0
@@ -503,46 +531,55 @@ class TestCLIIntegration:
     @staticmethod
     def test_cli_error_propagation() -> None:
         """Test that errors are properly propagated through CLI."""
-        with patch("src.ticker_converter.cli_ingestion.DataIngestionOrchestrator") as mock_orch:
+        with patch(
+            "src.ticker_converter.cli_ingestion.DataIngestionOrchestrator"
+        ) as mock_orch:
             mock_orch.side_effect = ImportError("Missing dependency")
 
             runner = CliRunner()
             result = runner.invoke(ingestion, ["run"])
-            
+
             assert result.exit_code == 1
             assert "Missing dependency" in result.output
 
     @staticmethod
     def test_cli_verbose_logging_integration() -> None:
         """Test verbose logging integration across commands."""
-        with patch("src.ticker_converter.cli_ingestion.setup_rich_logging") as mock_logging, \
-             patch("src.ticker_converter.cli_ingestion.DataIngestionOrchestrator") as mock_orch:
-            
+        with (
+            patch(
+                "src.ticker_converter.cli_ingestion.setup_rich_logging"
+            ) as mock_logging,
+            patch(
+                "src.ticker_converter.cli_ingestion.DataIngestionOrchestrator"
+            ) as mock_orch,
+        ):
+
             mock_instance = MagicMock()
             mock_instance.run_full_ingestion.return_value = {"status": "ok"}
             mock_orch.return_value = mock_instance
 
             runner = CliRunner()
             result = runner.invoke(ingestion, ["--verbose", "run"])
-            
+
             assert result.exit_code == 0
             mock_logging.assert_called_once_with(True)
 
     @staticmethod
     def test_cli_output_file_error_handling() -> None:
         """Test CLI behavior when output file cannot be written."""
-        with patch("src.ticker_converter.cli_ingestion.DataIngestionOrchestrator") as mock_orch:
+        with patch(
+            "src.ticker_converter.cli_ingestion.DataIngestionOrchestrator"
+        ) as mock_orch:
             mock_instance = MagicMock()
             mock_instance.perform_initial_setup.return_value = {"test": "data"}
             mock_orch.return_value = mock_instance
 
             runner = CliRunner()
             # Try to write to invalid path
-            result = runner.invoke(ingestion, [
-                "setup", 
-                "--output", "/invalid/path/output.json"
-            ])
-            
+            result = runner.invoke(
+                ingestion, ["setup", "--output", "/invalid/path/output.json"]
+            )
+
             # Should fail due to invalid file path
             assert result.exit_code != 0
 
@@ -554,13 +591,15 @@ class TestCLIParameterValidation:
     def test_setup_days_parameter_validation() -> None:
         """Test days parameter validation in setup command."""
         runner = CliRunner()
-        
+
         # Test zero days
-        with patch("src.ticker_converter.cli_ingestion.DataIngestionOrchestrator") as mock_orch:
+        with patch(
+            "src.ticker_converter.cli_ingestion.DataIngestionOrchestrator"
+        ) as mock_orch:
             mock_instance = MagicMock()
             mock_instance.perform_initial_setup.return_value = {"days": 0}
             mock_orch.return_value = mock_instance
-            
+
             result = runner.invoke(ingestion, ["setup", "--days", "0"])
             assert result.exit_code == 0
             mock_instance.perform_initial_setup.assert_called_once_with(days_back=0)
@@ -570,7 +609,7 @@ class TestCLIParameterValidation:
         """Test handling of invalid subcommands."""
         runner = CliRunner()
         result = runner.invoke(ingestion, ["invalid_command"])
-        
+
         assert result.exit_code != 0
         assert "No such command" in result.output
 
@@ -579,10 +618,10 @@ class TestCLIParameterValidation:
         """Test CLI behavior when required dependencies are missing."""
         # Mock get_settings to raise ImportError before DataIngestionOrchestrator is even accessed
         mock_get_settings.side_effect = ImportError("Required module not found")
-        
+
         runner = CliRunner()
         result = runner.invoke(ingestion, ["status"])
-        
+
         assert result.exit_code == 1
         assert "Required module not found" in result.output
 
@@ -593,21 +632,27 @@ class TestCLIOutputFormatting:
     @staticmethod
     def test_progress_display_formatting() -> None:
         """Test that progress displays are properly formatted."""
-        with patch("src.ticker_converter.cli_ingestion.DataIngestionOrchestrator") as mock_orch, \
-             patch("src.ticker_converter.cli_ingestion.Progress") as mock_progress:
-            
+        with (
+            patch(
+                "src.ticker_converter.cli_ingestion.DataIngestionOrchestrator"
+            ) as mock_orch,
+            patch("src.ticker_converter.cli_ingestion.Progress") as mock_progress,
+        ):
+
             mock_instance = MagicMock()
             mock_instance.perform_initial_setup.return_value = {"test": "result"}
             mock_orch.return_value = mock_instance
-            
+
             # Mock progress context manager
             mock_progress_instance = MagicMock()
-            mock_progress.return_value.__enter__ = MagicMock(return_value=mock_progress_instance)
+            mock_progress.return_value.__enter__ = MagicMock(
+                return_value=mock_progress_instance
+            )
             mock_progress.return_value.__exit__ = MagicMock(return_value=None)
-            
+
             runner = CliRunner()
             result = runner.invoke(ingestion, ["setup"])
-            
+
             assert result.exit_code == 0
             # Verify progress was used
             mock_progress.assert_called()
@@ -618,10 +663,10 @@ class TestCLIOutputFormatting:
         with patch("src.ticker_converter.cli_ingestion.console") as mock_console:
             error = ValueError("Test formatting error")
             handle_orchestrator_error(error, "formatting test")
-            
+
             # Check that rich formatting was used
             assert mock_console.print.call_count >= 4  # Error, suggestions, etc.
-            
+
             # Verify error formatting includes rich markup
             calls = [call.args[0] for call in mock_console.print.call_args_list]
             error_calls = [call for call in calls if "[red]" in str(call)]
@@ -630,16 +675,15 @@ class TestCLIOutputFormatting:
     @staticmethod
     def test_results_table_formatting() -> None:
         """Test that results are formatted as proper tables."""
-        with patch("src.ticker_converter.cli_ingestion.console") as mock_console, \
-             patch("src.ticker_converter.cli_ingestion.Table") as mock_table:
-            
-            results = {
-                "stocks_processed": 7,
-                "processing_time": "2.5 seconds"
-            }
-            
+        with (
+            patch("src.ticker_converter.cli_ingestion.console") as mock_console,
+            patch("src.ticker_converter.cli_ingestion.Table") as mock_table,
+        ):
+
+            results = {"stocks_processed": 7, "processing_time": "2.5 seconds"}
+
             output_results(results)
-            
+
             # Verify table was created and used
             mock_table.assert_called()
             mock_console.print.assert_called()
