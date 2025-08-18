@@ -161,7 +161,7 @@ class TestAlphaVantageExceptions:
         # Different types should not be equal
         rate_error = AlphaVantageRateLimitError(message)
         auth_error = AlphaVantageAuthenticationError(message)
-        assert type(rate_error) != type(auth_error)
+        assert not isinstance(rate_error, type(auth_error))
 
     def test_exception_with_none_values(self) -> None:
         """Test exceptions with None values for optional parameters."""

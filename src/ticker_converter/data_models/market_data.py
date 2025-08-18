@@ -8,7 +8,7 @@ This module provides comprehensive data models for financial market data with:
 - Support for serialization/deserialization with external APIs
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, Literal
 
@@ -63,7 +63,7 @@ class MarketDataPoint(BaseModel):
     timestamp: datetime = Field(
         ...,
         description="Trading day timestamp (UTC)",
-        examples=[datetime(2025, 8, 14, tzinfo=timezone.utc)],
+        examples=[datetime(2025, 8, 14, tzinfo=UTC)],
     )
     symbol: str = Field(
         ...,
@@ -119,12 +119,12 @@ class MarketDataPoint(BaseModel):
         """Normalize timestamp to UTC and validate reasonable date range."""
         # Ensure UTC timezone
         if v.tzinfo is None:
-            v = v.replace(tzinfo=timezone.utc)
-        elif v.tzinfo != timezone.utc:
-            v = v.astimezone(timezone.utc)
+            v = v.replace(tzinfo=UTC)
+        elif v.tzinfo != UTC:
+            v = v.astimezone(UTC)
 
         # Validate reasonable date range (not too far in past/future)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if v.year < 1980:
             raise ValueError("Timestamp cannot be before 1980")
         if v > now:
@@ -299,7 +299,7 @@ class RawMarketData(BaseModel):
         ..., description="Type of market data"
     )
     retrieved_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="UTC timestamp when data was retrieved",
     )
     api_call_metadata: dict[str, Any] | None = Field(
@@ -513,7 +513,7 @@ class CurrencyRate(BaseModel):
     timestamp: datetime = Field(
         ...,
         description="Rate timestamp (UTC)",
-        examples=[datetime(2025, 8, 14, tzinfo=timezone.utc)],
+        examples=[datetime(2025, 8, 14, tzinfo=UTC)],
     )
     from_currency: str = Field(
         ...,
@@ -557,7 +557,7 @@ class CurrencyRate(BaseModel):
         ..., description="Data source identifier"
     )
     retrieved_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="UTC timestamp when rate was retrieved",
     )
 
@@ -567,12 +567,12 @@ class CurrencyRate(BaseModel):
         """Normalize timestamp to UTC and validate date range."""
         # Ensure UTC timezone
         if v.tzinfo is None:
-            v = v.replace(tzinfo=timezone.utc)
-        elif v.tzinfo != timezone.utc:
-            v = v.astimezone(timezone.utc)
+            v = v.replace(tzinfo=UTC)
+        elif v.tzinfo != UTC:
+            v = v.astimezone(UTC)
 
         # Validate reasonable date range
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if v.year < 1990:  # Modern currency data starts around 1990
             raise ValueError("Currency rate timestamp cannot be before 1990")
         if v > now:
@@ -723,7 +723,7 @@ class CurrencyRate(BaseModel):
         Returns:
             True if rate is older than max_age_hours
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         age = now - self.timestamp
         return age.total_seconds() > (max_age_hours * 3600)
 

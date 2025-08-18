@@ -1,7 +1,7 @@
 """Unit tests for NYSE data fetcher."""
 
 from datetime import date
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest

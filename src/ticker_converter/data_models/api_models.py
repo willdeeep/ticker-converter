@@ -4,7 +4,7 @@ This module provides models specifically designed for API requests and responses
 with comprehensive validation, error handling, and type safety for Python 3.11.
 """
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Generic, Literal, TypeVar
@@ -112,7 +112,7 @@ class APIResponse(BaseModel, Generic[T]):
         default_factory=dict, description="Additional response metadata"
     )
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="Response timestamp (UTC)",
     )
     request_id: str | None = Field(default=None, description="Request tracking ID")
@@ -342,7 +342,7 @@ class HealthCheckResponse(BaseModel):
         ..., description="Overall health status"
     )
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="Health check timestamp",
     )
     version: str = Field(..., description="API version")

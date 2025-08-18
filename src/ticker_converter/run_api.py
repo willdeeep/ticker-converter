@@ -4,8 +4,8 @@
 import asyncio
 import logging
 import os
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 import uvicorn
 from dotenv import load_dotenv
@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(
-    fastapi_app: FastAPI,
-) -> AsyncGenerator[None, None]:  # pylint: disable=unused-argument
+    fastapi_app: FastAPI,  # pylint: disable=unused-argument
+) -> AsyncGenerator[None, None]:
     """Manage application lifecycle with database initialization."""
     logger.info("Starting Magnificent Seven Stock Performance API...")
 

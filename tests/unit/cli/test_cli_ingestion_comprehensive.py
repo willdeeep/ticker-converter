@@ -486,7 +486,7 @@ class TestHelperFunctions:
                 f.flush()
 
                 # Verify file was written
-                with open(f.name, "r", encoding="utf-8") as read_file:
+                with open(f.name, encoding="utf-8") as read_file:
                     written_data = json.load(read_file)
                     assert written_data == results
 

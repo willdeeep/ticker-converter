@@ -12,7 +12,7 @@ import logging
 import os
 import sys
 import time
-from typing import Any, Dict
+from typing import Any
 
 import aiohttp
 import pandas as pd
@@ -429,7 +429,7 @@ class AlphaVantageClient:
                 self.logger.debug("Async API request successful")
                 return data
 
-            except asyncio.TimeoutError as e:
+            except TimeoutError as e:
                 last_exception = e
                 self.logger.warning(
                     "Async request timeout (attempt %d/%d)",
@@ -644,7 +644,7 @@ class AlphaVantageClient:
 
         try:
             data = self.make_request(params)
-            time_series_key = f"Time Series (Digital Currency Daily)"
+            time_series_key = "Time Series (Digital Currency Daily)"
 
             if time_series_key not in data:
                 raise AlphaVantageDataError(
@@ -760,7 +760,7 @@ class AlphaVantageClient:
         }
         return self.make_request(params)
 
-    def get_company_overview(self, symbol: str) -> Dict[str, Any]:
+    def get_company_overview(self, symbol: str) -> dict[str, Any]:
         """Get company overview information for a symbol.
 
         Args:

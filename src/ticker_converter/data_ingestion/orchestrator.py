@@ -252,7 +252,7 @@ class DataIngestionOrchestrator:
             # Check database status - moved inside try block to handle connection failures
             is_empty = self.db_manager.is_database_empty()
             db_health = self.db_manager.health_check()
-            
+
             # Update results with database status
             results["database_status"] = db_health
             results["was_empty"] = is_empty

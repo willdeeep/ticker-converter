@@ -145,10 +145,10 @@ class TestConstants:
 
         # Test that invalid attributes raise AttributeError
         with pytest.raises(AttributeError):
-            _ = getattr(OutputSize, "INVALID")
+            getattr(OutputSize, "INVALID")  # noqa: B009
 
         with pytest.raises(AttributeError):
-            _ = getattr(AlphaVantageFunction, "INVALID")
+            getattr(AlphaVantageFunction, "INVALID")  # noqa: B009
 
     def test_enum_comparison_types(self) -> None:
         """Test comparison between enum members and different types."""
