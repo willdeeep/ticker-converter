@@ -4,10 +4,10 @@ These tests verify that `make install` correctly applies all variables for datab
 Airflow, and API configuration using global variables set in .env and not hardcoded values.
 """
 
+import inspect
 import os
-import subprocess
+import sys
 from pathlib import Path
-from typing import Any, Dict
 
 import pytest
 
@@ -272,7 +272,6 @@ class TestMakeInstallIntegration:
     def test_python_environment_setup(self) -> None:
         """Test that Python environment is properly configured."""
         # Check that we're running in the expected Python environment
-        import sys
 
         # Should be using Python 3.11.12
         version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
@@ -319,7 +318,9 @@ class TestConfigurationConsistency:
         # Check that environment variables match what's used in database modules
         # Skip this test if the function doesn't exist yet
         try:
-            from src.ticker_converter.api.dependencies import get_database_url
+            from src.ticker_converter.api.dependencies import (  # pylint: disable=import-outside-toplevel
+                get_database_url,
+            )
 
             # Test the function if it exists
             db_url = get_database_url()
@@ -348,9 +349,8 @@ class TestConfigurationConsistency:
         # For now, we'll check key modules for environment variable usage
 
         # Check that database module uses environment variables
-        import inspect
 
-        import src.ticker_converter.api.database as db_module
+        import src.ticker_converter.api.database as db_module  # pylint: disable=import-outside-toplevel
 
         db_source = inspect.getsource(db_module)
 

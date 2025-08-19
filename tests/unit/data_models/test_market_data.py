@@ -1,6 +1,7 @@
 """Tests for data models."""
 
 from datetime import datetime
+from decimal import Decimal
 
 import pytest
 from pydantic import ValidationError
@@ -20,18 +21,18 @@ class TestMarketDataPoint:
         point = MarketDataPoint(
             timestamp=datetime(2025, 8, 8),
             symbol="AAPL",
-            open=100.0,
-            high=105.0,
-            low=98.0,
-            close=103.0,
+            open=Decimal("100.0"),
+            high=Decimal("105.0"),
+            low=Decimal("98.0"),
+            close=Decimal("103.0"),
             volume=1000000,
         )
 
         assert point.symbol == "AAPL"
-        assert point.open == 100.0
-        assert point.high == 105.0
-        assert point.low == 98.0
-        assert point.close == 103.0
+        assert point.open == Decimal("100.0")
+        assert point.high == Decimal("105.0")
+        assert point.low == Decimal("98.0")
+        assert point.close == Decimal("103.0")
         assert point.volume == 1000000
 
     def test_invalid_high_low_relationship(self) -> None:
@@ -40,10 +41,10 @@ class TestMarketDataPoint:
             MarketDataPoint(
                 timestamp=datetime(2025, 8, 8),
                 symbol="AAPL",
-                open=100.0,
-                high=95.0,  # High < Low should fail
-                low=98.0,
-                close=97.0,  # Close within invalid range
+                open=Decimal("100.0"),
+                high=Decimal("95.0"),  # High < Low should fail
+                low=Decimal("98.0"),
+                close=Decimal("97.0"),  # Close within invalid range
                 volume=1000000,
             )
 
@@ -57,10 +58,10 @@ class TestMarketDataPoint:
             MarketDataPoint(
                 timestamp=datetime(2025, 8, 8),
                 symbol="AAPL",
-                open=100.0,
-                high=105.0,
-                low=98.0,
-                close=110.0,  # Close > High should fail
+                open=Decimal("100.0"),
+                high=Decimal("105.0"),
+                low=Decimal("98.0"),
+                close=Decimal("110.0"),  # Close > High should fail
                 volume=1000000,
             )
 
@@ -74,10 +75,10 @@ class TestMarketDataPoint:
             MarketDataPoint(
                 timestamp=datetime(2025, 8, 8),
                 symbol="AAPL",
-                open=-100.0,  # Negative price should fail
-                high=105.0,
-                low=98.0,
-                close=103.0,
+                open=Decimal("-100.0"),  # Negative price should fail
+                high=Decimal("105.0"),
+                low=Decimal("98.0"),
+                close=Decimal("103.0"),
                 volume=1000000,
             )
 
@@ -87,10 +88,10 @@ class TestMarketDataPoint:
             MarketDataPoint(
                 timestamp=datetime(2025, 8, 8),
                 symbol="AAPL",
-                open=100.0,
-                high=105.0,
-                low=98.0,
-                close=103.0,
+                open=Decimal("100.0"),
+                high=Decimal("105.0"),
+                low=Decimal("98.0"),
+                close=Decimal("103.0"),
                 volume=-1000,  # Negative volume should fail
             )
 
@@ -104,19 +105,19 @@ class TestRawMarketData:
             MarketDataPoint(
                 timestamp=datetime(2025, 8, 8),
                 symbol="AAPL",
-                open=100.0,
-                high=105.0,
-                low=98.0,
-                close=103.0,
+                open=Decimal("100.0"),
+                high=Decimal("105.0"),
+                low=Decimal("98.0"),
+                close=Decimal("103.0"),
                 volume=1000000,
             ),
             MarketDataPoint(
                 timestamp=datetime(2025, 8, 9),
                 symbol="AAPL",
-                open=103.0,
-                high=108.0,
-                low=102.0,
-                close=106.0,
+                open=Decimal("103.0"),
+                high=Decimal("108.0"),
+                low=Decimal("102.0"),
+                close=Decimal("106.0"),
                 volume=1200000,
             ),
         ]
@@ -138,10 +139,10 @@ class TestRawMarketData:
             MarketDataPoint(
                 timestamp=datetime(2025, 8, 8),
                 symbol="AAPL",
-                open=100.0,
-                high=105.0,
-                low=98.0,
-                close=103.0,
+                open=Decimal("100.0"),
+                high=Decimal("105.0"),
+                low=Decimal("98.0"),
+                close=Decimal("103.0"),
                 volume=1000000,
             ),
         ]
@@ -165,19 +166,19 @@ class TestRawMarketData:
             MarketDataPoint(
                 timestamp=datetime(2025, 8, 8),
                 symbol="AAPL",
-                open=100.0,
-                high=105.0,
-                low=98.0,
-                close=103.0,
+                open=Decimal("100.0"),
+                high=Decimal("105.0"),
+                low=Decimal("98.0"),
+                close=Decimal("103.0"),
                 volume=1000000,
             ),
             MarketDataPoint(
                 timestamp=datetime(2025, 8, 9),
                 symbol="AAPL",
-                open=103.0,
-                high=108.0,
-                low=102.0,
-                close=106.0,
+                open=Decimal("103.0"),
+                high=Decimal("108.0"),
+                low=Decimal("102.0"),
+                close=Decimal("106.0"),
                 volume=1200000,
             ),
         ]
@@ -206,8 +207,8 @@ class TestRawMarketData:
             "Data_Type",
         ]
         assert list(df.columns) == expected_columns
-        assert df.iloc[0]["Open"] == 100.0
-        assert df.iloc[1]["Close"] == 106.0
+        assert df.iloc[0]["Open"] == Decimal("100.0")
+        assert df.iloc[1]["Close"] == Decimal("106.0")
 
 
 class TestCurrencyRate:
@@ -219,7 +220,7 @@ class TestCurrencyRate:
             timestamp=datetime(2025, 8, 8),
             from_currency="USD",
             to_currency="GBP",
-            rate=0.8,
+            rate=Decimal("0.8"),
             source="alpha_vantage",  # Use valid source from Literal
         )
 
@@ -236,7 +237,7 @@ class TestCurrencyRate:
             timestamp=datetime(2025, 8, 8),
             from_currency="USD",  # Use uppercase - validator expects this
             to_currency="GBP",  # Use uppercase - validator expects this
-            rate=0.8,
+            rate=Decimal("0.8"),
             source="alpha_vantage",  # Use valid source
         )
 
@@ -250,6 +251,6 @@ class TestCurrencyRate:
                 timestamp=datetime(2025, 8, 8),
                 from_currency="USD",
                 to_currency="GBP",
-                rate=-0.8,  # Negative rate should fail
-                source="test_api",
+                rate=Decimal("-0.8"),  # Negative rate should fail
+                source="alpha_vantage",
             )

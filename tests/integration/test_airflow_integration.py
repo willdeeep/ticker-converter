@@ -6,6 +6,7 @@ Also tests DAG validation and connectivity to external services.
 """
 
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -219,7 +220,6 @@ class TestAirflowRuntime:
             assert len(version_output) > 0, "Should return version information"
 
             # Check that it's a valid version format (X.Y.Z)
-            import re
 
             version_pattern = r"^\d+\.\d+\.\d+.*$"
             assert re.match(

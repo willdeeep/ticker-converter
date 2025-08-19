@@ -54,7 +54,8 @@ class TestAlphaVantageClient:
         client = AlphaVantageClient(api_key="test_key")
 
         # Mock the session.get method directly
-        client.session.get = Mock(return_value=mock_response)
+        mock_get = Mock(return_value=mock_response)
+        setattr(client.session, 'get', mock_get)
 
         # Test successful request
         result = client.make_request(
@@ -62,10 +63,10 @@ class TestAlphaVantageClient:
         )
 
         assert result == {"test": "data"}
-        client.session.get.assert_called_once()
+        mock_get.assert_called_once()
 
     @patch.object(AlphaVantageClient, "_setup_sync_session")
-    def test_make_request_rate_limit_error(self, mock_setup) -> None:
+    def test_make_request_rate_limit_error(self, mock_setup: Mock) -> None:
         """Test API rate limit error handling."""
         # Setup mock response for rate limit
         mock_response = Mock()
@@ -84,7 +85,7 @@ class TestAlphaVantageClient:
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch.object(AlphaVantageClient, "_setup_sync_session")
-    def test_make_request_invalid_api_key(self, mock_setup) -> None:
+    def test_make_request_invalid_api_key(self, mock_setup: Mock) -> None:
         """Test invalid API key error handling."""
         # Setup mock response for pure authentication error (no rate limit keywords)
         mock_response = Mock()
@@ -103,7 +104,7 @@ class TestAlphaVantageClient:
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch.object(AlphaVantageClient, "_setup_sync_session")
-    def test_make_request_http_error(self, mock_setup) -> None:
+    def test_make_request_http_error(self, mock_setup: Mock) -> None:
         """Test HTTP error handling."""
         # Setup mock response for HTTP error
         mock_response = Mock()
@@ -120,7 +121,7 @@ class TestAlphaVantageClient:
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch.object(AlphaVantageClient, "_setup_sync_session")
-    def test_make_request_timeout(self, mock_setup) -> None:
+    def test_make_request_timeout(self, mock_setup: Mock) -> None:
         """Test timeout error handling."""
         # Setup mock for timeout
         client = AlphaVantageClient(api_key="test_key")
@@ -133,7 +134,7 @@ class TestAlphaVantageClient:
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch.object(AlphaVantageClient, "_setup_sync_session")
-    def test_make_request_connection_error(self, mock_setup) -> None:
+    def test_make_request_connection_error(self, mock_setup: Mock) -> None:
         """Test connection error handling."""
         # Setup mock for connection error
         client = AlphaVantageClient(api_key="test_key")
@@ -146,7 +147,7 @@ class TestAlphaVantageClient:
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_get_daily_stock_data_success(self, mock_make_request) -> None:
+    def test_get_daily_stock_data_success(self, mock_make_request: Mock) -> None:
         """Test successful daily stock data retrieval."""
         # Setup mock response
         mock_response = {
@@ -179,7 +180,7 @@ class TestAlphaVantageClient:
         assert result.iloc[0]["Symbol"] == "AAPL"
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_get_intraday_stock_data_success(self, mock_make_request) -> None:
+    def test_get_intraday_stock_data_no_data(self, mock_make_request: Mock) -> None:
         """Test successful intraday stock data retrieval."""
         # Setup mock response
         mock_response = {
@@ -206,7 +207,7 @@ class TestAlphaVantageClient:
         assert not result.empty
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_get_forex_daily_success(self, mock_make_request) -> None:
+    def test_get_forex_daily_success(self, mock_make_request: Mock) -> None:
         """Test successful forex daily data retrieval."""
         # Setup mock response
         mock_response = {
@@ -233,7 +234,7 @@ class TestAlphaVantageClient:
         assert not result.empty
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_get_digital_currency_daily_success(self, mock_make_request) -> None:
+    def test_get_digital_currency_daily_success(self, mock_make_request: Mock) -> None:
         """Test successful digital currency daily data retrieval."""
         # Setup mock response
         mock_response = {
@@ -275,10 +276,10 @@ class TestAlphaVantageClient:
             client.get_daily_stock_data("", OutputSize.COMPACT)
 
         with pytest.raises(ValueError, match="Symbol cannot be empty"):
-            client.get_daily_stock_data(None, OutputSize.COMPACT)
+            client.get_daily_stock_data(None, OutputSize.COMPACT)  # type: ignore[arg-type]
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_empty_response_handling(self, mock_make_request) -> None:
+    def test_empty_response_handling(self, mock_make_request: Mock) -> None:
         """Test handling of empty or malformed responses."""
         # Test empty response
         mock_make_request.return_value = {}
@@ -289,7 +290,7 @@ class TestAlphaVantageClient:
             client.get_daily_stock_data("AAPL", OutputSize.COMPACT)
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_malformed_time_series_response(self, mock_make_request) -> None:
+    def test_malformed_time_series_response(self, mock_make_request: Mock) -> None:
         """Test handling of malformed time series response."""
         # Test response with missing time series data
         mock_response = {

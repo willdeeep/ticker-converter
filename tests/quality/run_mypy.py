@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 
-def main():
+def main() -> int:
     """Run mypy on source code with proper configuration."""
     project_root = Path(__file__).parent.parent.parent
 

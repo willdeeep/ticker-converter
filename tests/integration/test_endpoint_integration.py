@@ -6,10 +6,8 @@ Tests the FastAPI application startup, endpoint accessibility, and data format v
 
 import os
 import time
-from typing import Any, Dict
 
 import pytest
-import requests
 from fastapi.testclient import TestClient
 
 # Try to import the FastAPI app
@@ -136,7 +134,7 @@ class TestAPIEndpointData:
                         ), f"Should contain ticker data fields, got: {list(data.keys())}"
 
                     break
-                elif response.status_code == 422:
+                if response.status_code == 422:
                     # Validation error - endpoint exists but needs different parameters
                     endpoint_found = True
                     break
@@ -226,7 +224,7 @@ class TestAPIProductionReadiness:
         """Test API response times are reasonable."""
         with TestClient(app) as client:
             start_time = time.time()
-            response = client.get("/")
+            client.get("/")
             end_time = time.time()
 
             response_time = end_time - start_time
@@ -296,13 +294,13 @@ class TestAPIWithExternalServices:
                     data = response.json()
                     assert data is not None, "Should return data from external API"
                     break
-                elif response.status_code in [429, 503]:
+                if response.status_code in [429, 503]:
                     # Rate limited or service unavailable - API is configured correctly
                     pytest.skip(
                         f"External API rate limited or unavailable: {response.status_code}"
                     )
                     break
-                elif response.status_code == 422:
+                if response.status_code == 422:
                     # Validation error - endpoint exists but needs different parameters
                     pytest.skip(
                         "Ticker endpoint exists but requires different parameters"
@@ -338,7 +336,7 @@ class TestAPIManualStartup:
         """Test API startup configuration."""
         # Check if uvicorn or similar ASGI server is configured
         try:
-            import uvicorn
+            import uvicorn  # pylint: disable=import-outside-toplevel,unused-import
 
             UVICORN_AVAILABLE = True
         except ImportError:
