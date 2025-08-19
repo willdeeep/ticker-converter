@@ -68,7 +68,7 @@ def test_etl_dag() -> None:
                     f"Cannot reach alphavantage.co: {response.status_code}"
                 )
         except requests.RequestException as e:
-            raise ConnectionError(f"Cannot connect to Alpha Vantage: {e}")
+            raise ConnectionError(f"Cannot connect to Alpha Vantage: {e}") from e
 
         print("✅ Alpha Vantage API accessibility verified")
         print(f"✅ API key configured (length: {len(api_key)})")
@@ -117,15 +117,14 @@ def test_etl_dag() -> None:
             return "postgresql_access_ok"
 
         except psycopg2.Error as e:
-            raise ConnectionError(f"Cannot connect to PostgreSQL: {e}")
+            raise ConnectionError(f"Cannot connect to PostgreSQL: {e}") from e
 
     # Define task dependencies
-    config_test = test_airflow_configuration()
-    api_test = test_alpha_vantage_api_access()
-    db_test = test_postgresql_database_access()
+    test_airflow_configuration()
+    test_alpha_vantage_api_access()
+    test_postgresql_database_access()
 
-    # All tests can run in parallel
-    [config_test, api_test, db_test]
+    # All tests can run in parallel - no return needed here
 
 
 # Instantiate the DAG
