@@ -193,7 +193,9 @@ class TestMockedAPIIntegration:
     """Integration tests using mocked responses (always run)."""
 
     def test_end_to_end_data_flow(
-        self, sample_daily_response: dict[str, Any], sample_company_overview: dict[str, Any]
+        self,
+        sample_daily_response: dict[str, Any],
+        sample_company_overview: dict[str, Any],
     ) -> None:
         """Test complete data flow from API client."""
         with patch("requests.Session") as mock_session_class:

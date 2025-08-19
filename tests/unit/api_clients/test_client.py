@@ -55,7 +55,7 @@ class TestAlphaVantageClient:
 
         # Mock the session.get method directly
         mock_get = Mock(return_value=mock_response)
-        setattr(client.session, 'get', mock_get)
+        setattr(client.session, "get", mock_get)
 
         # Test successful request
         result = client.make_request(

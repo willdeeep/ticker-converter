@@ -33,7 +33,9 @@ class TestCurrencyDataFetcherInitialization:
         assert CurrencyDataFetcher.REQUIRED_COLUMNS == ["Date"]
 
     @patch("src.ticker_converter.data_ingestion.base_fetcher.AlphaVantageClient")
-    def test_initialization_with_custom_api_client(self, mock_client_class: Mock) -> None:
+    def test_initialization_with_custom_api_client(
+        self, mock_client_class: Mock
+    ) -> None:
         """Test initialization with custom API client."""
         mock_client = Mock()
         mock_client_class.return_value = mock_client

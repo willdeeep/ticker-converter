@@ -73,7 +73,9 @@ class TestNYSEDataFetcher:
     @patch(
         "src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.fetch_daily_data"
     )
-    def test_fetch_magnificent_seven_data_with_failures(self, mock_fetch_daily: Mock) -> None:
+    def test_fetch_magnificent_seven_data_with_failures(
+        self, mock_fetch_daily: Mock
+    ) -> None:
         """Test magnificent seven data fetching with some failures."""
 
         # Setup mock to return None for one symbol and succeed for others
@@ -220,7 +222,9 @@ class TestNYSEDataFetcher:
     @patch(
         "src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.prepare_for_sql_insert"
     )
-    def test_fetch_and_prepare_all_data(self, mock_prepare: Mock, mock_fetch_m7: Mock) -> None:
+    def test_fetch_and_prepare_all_data(
+        self, mock_prepare: Mock, mock_fetch_m7: Mock
+    ) -> None:
         """Test fetching and preparing all magnificent seven data."""
         # Setup mock data
         mock_df = pd.DataFrame(
