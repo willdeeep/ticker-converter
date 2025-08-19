@@ -32,7 +32,7 @@ def main():
 
     if result.returncode == 0:
         print("✅ MyPy type checking passed successfully!")
-        print(f"📊 Checked source files in src/ directory")
+        print("📊 Checked source files in src/ directory")
     else:
         print("❌ MyPy type checking found issues:")
         print(result.stdout)

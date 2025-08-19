@@ -7,10 +7,11 @@ pipeline, including checking if the database needs initial setup.
 import logging
 import os
 import sqlite3
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 
 import psycopg2
 import psycopg2.extensions

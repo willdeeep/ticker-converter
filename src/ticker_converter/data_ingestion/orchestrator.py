@@ -239,20 +239,24 @@ class DataIngestionOrchestrator:
         """
         self.logger.info("Starting full data ingestion process")
 
-        # Check database status
-        is_empty = self.db_manager.is_database_empty()
-        db_health = self.db_manager.health_check()
-
         results: dict[str, Any] = {
             "ingestion_started": datetime.now().isoformat(),
-            "database_status": db_health,
-            "was_empty": is_empty,
+            "database_status": None,
+            "was_empty": None,
             "operation_performed": None,
             "results": {},
             "success": False,
         }
 
         try:
+            # Check database status - moved inside try block to handle connection failures
+            is_empty = self.db_manager.is_database_empty()
+            db_health = self.db_manager.health_check()
+
+            # Update results with database status
+            results["database_status"] = db_health
+            results["was_empty"] = is_empty
+
             if is_empty:
                 self.logger.info("Database is empty - performing initial setup")
                 results["operation_performed"] = "initial_setup"
@@ -274,6 +278,11 @@ class DataIngestionOrchestrator:
             results["error"] = str(e)
             results["success"] = False
             self.logger.error("Full ingestion failed: %s", str(e))
+        except Exception as e:
+            # Handle any unexpected exceptions (including database connection failures)
+            results["error"] = f"Unexpected error during ingestion: {str(e)}"
+            results["success"] = False
+            self.logger.error("Unexpected error during full ingestion: %s", str(e))
 
         return results
 

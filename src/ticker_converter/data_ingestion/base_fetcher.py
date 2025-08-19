@@ -158,7 +158,7 @@ class BaseDataFetcher(ABC):
         """
         try:
             # Handle datetime objects
-            if hasattr(value, "date") and callable(getattr(value, "date")):
+            if hasattr(value, "date") and callable(value.date):
                 return value.date()  # type: ignore[no-any-return]
             # Handle date objects
             if isinstance(value, date):
