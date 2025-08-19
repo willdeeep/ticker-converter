@@ -28,7 +28,7 @@ help: ## Show this help message
 	@grep -E '^(setup|install|install-test|install-dev|init-db|airflow|airflow-fix-config):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo -e "$(YELLOW)Testing:$(NC)"
-	@grep -E '^(test|test-ci|act-pr|lint|lint-fix):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^(test|test-int|test-ci|act-pr|lint|lint-fix):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo -e "$(YELLOW)Shutdown and clean:$(NC)"
 	@grep -E '^(airflow-close|db-close|clean):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -52,22 +52,56 @@ setup: ## Sets up environment variables
 				echo -e "$(GREEN).env file already exists$(NC)"; \
 	fi
 
+_setup_python_environment: ## Internal: Setup Python environment with pyenv and virtual environment
+	@echo -e "$(BLUE)Setting up Python environment...$(NC)"
+	@if ! command -v pyenv >/dev/null 2>&1; then \
+		echo -e "$(RED)Error: pyenv is not installed or not in PATH$(NC)"; \
+		echo -e "$(YELLOW)Please install pyenv first:$(NC)"; \
+		echo -e "$(CYAN)  macOS: brew install pyenv$(NC)"; \
+		echo -e "$(CYAN)  Linux: curl https://pyenv.run | bash$(NC)"; \
+		echo -e "$(CYAN)Then add pyenv to your shell profile and restart your shell$(NC)"; \
+		exit 1; \
+	fi
+	@echo -e "$(YELLOW)Checking Python 3.11.12 availability...$(NC)"
+	@if ! pyenv versions --bare | grep -q "^3.11.12$$"; then \
+		echo -e "$(YELLOW)Python 3.11.12 not found. Installing...$(NC)"; \
+		pyenv install 3.11.12; \
+	else \
+		echo -e "$(GREEN)Python 3.11.12 is already installed$(NC)"; \
+	fi
+	@echo -e "$(YELLOW)Setting local Python version to 3.11.12...$(NC)"
+	@pyenv local 3.11.12
+	@echo -e "$(YELLOW)Setting up virtual environment...$(NC)"
+	@if [ ! -d ".venv" ]; then \
+		echo -e "$(YELLOW)Creating virtual environment...$(NC)"; \
+		python -m venv .venv; \
+	else \
+		echo -e "$(GREEN)Virtual environment already exists$(NC)"; \
+	fi
+	@echo -e "$(GREEN)Python environment setup completed$(NC)"
+
 install: ## Install all running dependencies
 	@echo -e "$(BLUE)Installing production dependencies...$(NC)"
-	@$(PYTHON) -m pip install --upgrade pip
-	@$(PYTHON) -m pip install -e .
+	@$(MAKE) _setup_python_environment
+	@echo -e "$(YELLOW)Installing production dependencies...$(NC)"
+	@.venv/bin/python -m pip install --upgrade pip
+	@.venv/bin/python -m pip install -e .
 	@echo -e "$(GREEN)Production dependencies installed$(NC)"
 
 install-test: ## Install production + testing dependencies
 	@echo -e "$(BLUE)Installing production and testing dependencies...$(NC)"
-	@$(PYTHON) -m pip install --upgrade pip
-	@$(PYTHON) -m pip install -e ".[test]"
+	@$(MAKE) _setup_python_environment
+	@echo -e "$(YELLOW)Installing production and testing dependencies...$(NC)"
+	@.venv/bin/python -m pip install --upgrade pip
+	@.venv/bin/python -m pip install -e ".[test]"
 	@echo -e "$(GREEN)Production and testing dependencies installed$(NC)"
 
 install-dev: ## Install full development environment
 	@echo -e "$(BLUE)Installing full development environment...$(NC)"
-	@$(PYTHON) -m pip install --upgrade pip
-	@$(PYTHON) -m pip install -e ".[dev,test]"
+	@$(MAKE) _setup_python_environment
+	@echo -e "$(YELLOW)Installing full development environment...$(NC)"
+	@.venv/bin/python -m pip install --upgrade pip
+	@.venv/bin/python -m pip install -e ".[dev,test]"
 	@echo -e "$(GREEN)Full development environment installed$(NC)"
 
 init-db: ## Initialise PostgreSQL database using defaults
@@ -88,11 +122,17 @@ init-db: ## Initialise PostgreSQL database using defaults
 	createuser -s $$POSTGRES_USER 2>/dev/null || echo -e "$(YELLOW)User $$POSTGRES_USER already exists$(NC)" && \
 	createdb -O $$POSTGRES_USER $$POSTGRES_DB 2>/dev/null || echo -e "$(YELLOW)Database $$POSTGRES_DB already exists$(NC)" && \
 	echo -e "$(YELLOW)Setting up database schema...$(NC)" && \
-	if [ -f sql/create_tables.sql ]; then \
-		psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -f sql/create_tables.sql 2>/dev/null || \
-		echo -e "$(YELLOW)Note: Ensure PostgreSQL is running and connection details in .env are correct$(NC)"; \
+	if [ -d dags/sql/ddl ]; then \
+		for ddl_file in dags/sql/ddl/*.sql; do \
+			if [ -f "$$ddl_file" ]; then \
+				echo -e "$(CYAN)Executing: $$ddl_file$(NC)" && \
+				psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -f "$$ddl_file" 2>/dev/null || \
+				echo -e "$(YELLOW)Warning: Failed to execute $$ddl_file$(NC)"; \
+			fi; \
+		done && \
+		echo -e "$(GREEN)Schema setup completed$(NC)"; \
 	else \
-		echo -e "$(YELLOW)Note: No schema file found at sql/create_tables.sql$(NC)"; \
+		echo -e "$(YELLOW)Note: No DDL directory found at dags/sql/ddl$(NC)"; \
 	fi && \
 	echo -e "$(GREEN)Database initialization completed$(NC)" && \
 	echo -e "$(CYAN)Database connection details:$(NC)" && \
@@ -112,7 +152,7 @@ airflow: ## Start Apache Airflow instance with default user
 	export AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" && \
 	export AIRFLOW__CORE__LOAD_EXAMPLES=False && \
 	export AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" && \
-	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" && \
+	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" && \
 	export AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" && \
 	echo -e "$(YELLOW)Airflow Home: $${PWD}/airflow$(NC)" && \
 	echo -e "$(YELLOW)DAGs Folder: $${PWD}/dags$(NC)" && \
@@ -121,7 +161,7 @@ airflow: ## Start Apache Airflow instance with default user
 	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
 	AIRFLOW__CORE__LOAD_EXAMPLES=False \
 	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
-	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" \
+	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" \
 	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
 	airflow db migrate && \
 	echo -e "$(YELLOW)Creating default admin user (if not exists)...$(NC)" && \
@@ -129,7 +169,7 @@ airflow: ## Start Apache Airflow instance with default user
 	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
 	AIRFLOW__CORE__LOAD_EXAMPLES=False \
 	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
-	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" \
+	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" \
 	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
 	airflow users create \
 		--username $$AIRFLOW_ADMIN_USERNAME \
@@ -146,7 +186,7 @@ airflow: ## Start Apache Airflow instance with default user
 	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
 	AIRFLOW__CORE__LOAD_EXAMPLES=False \
 	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
-	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" \
+	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" \
 	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
 	airflow scheduler --daemon && \
 	sleep 2 && \
@@ -155,7 +195,7 @@ airflow: ## Start Apache Airflow instance with default user
 	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
 	AIRFLOW__CORE__LOAD_EXAMPLES=False \
 	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
-	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" \
+	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" \
 	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
 	airflow api-server --port 8080
 
@@ -170,12 +210,23 @@ airflow-config: ## Fix Airflow 3.0.4 configuration deprecation warnings
 
 test: ## Run test suite with coverage
 	@echo -e "$(BLUE)Running test suite with coverage...$(NC)"
-	@$(PYTHON) -m pytest tests/ --cov=$(PACKAGE_NAME) --cov-report=html --cov-report=term-missing
+	@$(PYTHON) -m pytest tests/ --cov=$(PACKAGE_NAME) --cov-report=html --cov-report=term-missing --ignore=tests/integration
 	@echo -e "$(GREEN)Tests completed$(NC)"
+
+test-int: ## Run integration tests only (requires external services)
+	@echo -e "$(BLUE)Running integration tests...$(NC)"
+	@echo -e "$(YELLOW)Note: Integration tests require external services (PostgreSQL, Airflow, API keys)$(NC)"
+	@echo -e "$(YELLOW)Ensure services are running and configured properly$(NC)"
+	@if [ ! -f .env ]; then echo "Error: .env file not found. Run 'make setup' first."; exit 1; fi
+	@set -a && . ./.env && set +a && \
+	export AIRFLOW_HOME="$$PWD/airflow" && \
+	export AIRFLOW__CORE__DAGS_FOLDER="$$PWD/dags" && \
+	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:///$$(pwd)/airflow/airflow.db" && \
+	$(PYTHON) -m pytest tests/integration/ -v --tb=short
 
 test-ci: ## Run all CI tests
 	@echo -e "$(BLUE)Running CI tests...$(NC)"
-	@$(PYTHON) -m pytest tests/ --cov=$(PACKAGE_NAME) --cov-report=xml --cov-fail-under=80
+	@$(PYTHON) -m pytest tests/ --cov=$(PACKAGE_NAME) --cov-report=xml --cov-fail-under=80 --ignore=tests/integration
 	@echo -e "$(GREEN)CI tests completed$(NC)"
 
 act-pr: ## Runs local GitHub Actions workflow using Act
@@ -270,8 +321,18 @@ teardown-airflow: ## Shutdown Airflow and remove all Airflow files
 	@if pgrep -f "airflow" > /dev/null; then \
 		pkill -f "airflow"; \
 		echo -e "$(YELLOW)Airflow processes stopped$(NC)"; \
+		sleep 2; \
 	fi
-	@rm -rf airflow/
+	@# Remove airflow directory with better error handling
+	@if [ -d "airflow" ]; then \
+		sleep 1; \
+		rm -rf airflow/ 2>/dev/null || (chmod -R 755 airflow/ 2>/dev/null && rm -rf airflow/) || true; \
+		if [ ! -d "airflow" ]; then \
+			echo -e "$(GREEN)Airflow files removed$(NC)"; \
+		else \
+			echo -e "$(YELLOW)Some airflow files may remain - manual cleanup may be needed$(NC)"; \
+		fi; \
+	fi
 	@echo -e "$(GREEN)Airflow teardown completed$(NC)"
 
 teardown-db: ## Shutdown and remove PostgreSQL database
@@ -285,5 +346,5 @@ teardown-db: ## Shutdown and remove PostgreSQL database
 			sudo systemctl stop postgresql 2>/dev/null || sudo service postgresql stop 2>/dev/null; \
 		fi; \
 	fi
-	@echo -e "$(YELLOW)Note: Database files are preserved. Use your system's PostgreSQL tools to remove data if needed.$(NC)"
+	@echo -e "$(YELLOW)Note: PostgreSQL system database files are preserved. Use your system's PostgreSQL tools to remove data if needed.$(NC)"
 	@echo -e "$(GREEN)Database teardown completed$(NC)"

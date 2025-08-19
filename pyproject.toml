@@ -39,6 +39,7 @@ dependencies = [
 
     # Workflow orchestration
     "apache-airflow>=3.0.4",
+    "apache-airflow-providers-fab>=1.0.0",
 ]
 
 [project.optional-dependencies]
