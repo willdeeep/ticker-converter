@@ -17,7 +17,7 @@ try:
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
-    app = None
+    app = None  # type: ignore[assignment]
 
 
 class TestAPIEndpointAccessibility:

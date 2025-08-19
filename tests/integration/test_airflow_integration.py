@@ -68,6 +68,7 @@ class TestAirflowConfiguration:
 
         # Validate database connection string format
         db_conn = os.getenv("AIRFLOW__DATABASE__SQL_ALCHEMY_CONN")
+        assert db_conn is not None, "Database connection string not set"
         assert db_conn.startswith(
             ("postgresql://", "sqlite:///")
         ), "Database connection should be PostgreSQL or SQLite"
@@ -97,6 +98,7 @@ class TestAirflowDAGValidation:
     def test_test_etl_dag_syntax(self) -> None:
         """Test that test_etl_dag.py has valid Python syntax."""
         dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
+        assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER not set"
         test_dag_path = Path(dags_folder) / "test_etl_dag.py"
 
         assert test_dag_path.exists(), "test_etl_dag.py should exist"
@@ -112,6 +114,7 @@ class TestAirflowDAGValidation:
     def test_dag_contains_required_components(self) -> None:
         """Test that test_etl_dag contains required components for integration testing."""
         dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
+        assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER not set"
         test_dag_path = Path(dags_folder) / "test_etl_dag.py"
 
         with open(test_dag_path, "r", encoding="utf-8") as f:
@@ -167,6 +170,7 @@ class TestAirflowServiceConnectivity:
     def test_environment_variables_not_hardcoded(self) -> None:
         """Test that environment variables are used, not hardcoded values."""
         dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
+        assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER not set"
         test_dag_path = Path(dags_folder) / "test_etl_dag.py"
 
         with open(test_dag_path, "r", encoding="utf-8") as f:

@@ -39,6 +39,7 @@ class TestPostgreSQLAccessibility:
             assert var_value != "", f"{var_name} cannot be empty"
 
         # Check that port is numeric
+        assert POSTGRES_PORT is not None, "POSTGRES_PORT must be set"
         assert POSTGRES_PORT.isdigit(), "POSTGRES_PORT must be numeric"
 
     def test_postgres_server_running(self) -> None:

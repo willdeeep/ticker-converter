@@ -7,6 +7,7 @@ Tests require valid ALPHA_VANTAGE_API_KEY in environment to run.
 """
 
 import os
+from typing import Any
 from unittest.mock import patch
 
 import pandas as pd
@@ -192,7 +193,7 @@ class TestMockedAPIIntegration:
     """Integration tests using mocked responses (always run)."""
 
     def test_end_to_end_data_flow(
-        self, sample_daily_response, sample_company_overview
+        self, sample_daily_response: dict[str, Any], sample_company_overview: dict[str, Any]
     ) -> None:
         """Test complete data flow from API client."""
         with patch("requests.Session") as mock_session_class:
@@ -234,7 +235,7 @@ class TestMockedAPIIntegration:
             with pytest.raises(AlphaVantageAPIError):
                 client.get_daily_stock_data("INVALID", "compact")
 
-    def test_data_consistency(self, sample_daily_response) -> None:
+    def test_data_consistency(self, sample_daily_response: dict[str, Any]) -> None:
         """Test data consistency across multiple calls."""
         with patch("requests.Session") as mock_session_class:
             mock_session = mock_session_class.return_value

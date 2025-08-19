@@ -97,7 +97,9 @@ class TestDatabaseConfiguration:
             assert value != "", f"Database {key} cannot be empty"
 
         # Port should be numeric
-        assert db_config["port"].isdigit(), "Database port must be numeric"
+        port = db_config["port"]
+        assert port is not None, "Database port not configured"
+        assert port.isdigit(), "Database port must be numeric"
 
         # Host should not be hardcoded localhost (unless explicitly set in .env)
         if db_config["host"] == "localhost":

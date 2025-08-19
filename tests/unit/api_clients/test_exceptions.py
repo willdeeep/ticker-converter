@@ -166,7 +166,7 @@ class TestAlphaVantageExceptions:
     def test_exception_with_none_values(self) -> None:
         """Test exceptions with None values for optional parameters."""
         # Test with None message
-        error1 = AlphaVantageAPIError(None)
+        error1 = AlphaVantageAPIError(None)  # type: ignore[arg-type]
         assert str(error1) == "None"
 
         # Test with None error_code
