@@ -15,7 +15,7 @@ docs/
 ```
 
 ## Purpose
-Contains organized and regularly updated series of markdown documents that clearly detail different aspects of the project, arranged into sub-directories by subject. This documentation is referenced in the root `README.md` "Further Reading" section and serves as the authoritative project documentation.
+Contains organized and regularly updated series of markdown documents that clearly detail different aspects of the projec t, arranged into sub-directories by subject. This documentation is referenced in the root `README.md` "Further Reading" section and serves as the authoritative project documentation.
 
 ## Directory Structure
 
@@ -52,8 +52,16 @@ Contains organized and regularly updated series of markdown documents that clear
   - API endpoint documentation
   - Troubleshooting guides
 
+### `/docs/development/`
+- **Use Case**: Development workflows and GitHub Copilot integration
+- **Git Status**: Tracked
+- **Contents**:
+  - GitHub Copilot workflow templates and implementation guides
+  - Development process documentation
+  - Quality assurance procedures
+  - Automation script documentation
+
 ### Additional Subject Directories (as needed)
-- `/docs/development/`: Development workflows and contribution guides
 - `/docs/api/`: Detailed API documentation
 - `/docs/examples/`: Code examples and tutorials
 
@@ -107,6 +115,9 @@ docs/
 │   ├── etl_pipeline_implementation.md    # ETL documentation
 │   ├── technology_choices.md  # Technology decisions
 │   └── airflow_setup.md       # Airflow configuration
+├── development/               # Development workflows and processes
+│   ├── github_copilot_workflow_template.md      # Complete workflow template
+│   └── github_copilot_workflow_implementation.md # Implementation guide
 ├── deployment/                 # Operations documentation
 │   └── [deployment guides]
 └── user_guides/               # User documentation

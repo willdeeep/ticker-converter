@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 
-def main():
+def main() -> int:
     """Run mypy on source code with proper configuration."""
     project_root = Path(__file__).parent.parent.parent
 
@@ -26,13 +26,11 @@ def main():
         "--pretty",
     ]
 
-    result = subprocess.run(
-        cmd, cwd=project_root, capture_output=True, text=True, check=False
-    )
+    result = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, check=False)
 
     if result.returncode == 0:
         print("✅ MyPy type checking passed successfully!")
-        print(f"📊 Checked source files in src/ directory")
+        print("📊 Checked source files in src/ directory")
     else:
         print("❌ MyPy type checking found issues:")
         print(result.stdout)

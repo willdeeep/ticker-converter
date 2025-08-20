@@ -46,9 +46,7 @@ class DataIngestionOrchestrator:
         Returns:
             Dictionary with setup results
         """
-        self.logger.info(
-            "Starting initial database setup with %d days of data", days_back
-        )
+        self.logger.info("Starting initial database setup with %d days of data", days_back)
 
         results = self._create_base_result(days_back)
 
@@ -109,9 +107,7 @@ class DataIngestionOrchestrator:
             return {"errors": [error_msg], "total_records_inserted": 0}
 
         stock_inserted = self.db_manager.insert_stock_data(stock_records)
-        self.logger.info(
-            "Stock data setup complete: %d records inserted", stock_inserted
-        )
+        self.logger.info("Stock data setup complete: %d records inserted", stock_inserted)
 
         return {
             "stock_data": {
@@ -140,9 +136,7 @@ class DataIngestionOrchestrator:
             return {"errors": [error_msg]}
 
         currency_inserted = self.db_manager.insert_currency_data(currency_records)
-        self.logger.info(
-            "Currency data setup complete: %d records inserted", currency_inserted
-        )
+        self.logger.info("Currency data setup complete: %d records inserted", currency_inserted)
 
         return {
             "currency_data": {
@@ -181,33 +175,21 @@ class DataIngestionOrchestrator:
                     "records_inserted": stock_inserted,
                     "companies_updated": len({r["symbol"] for r in stock_records}),
                 }
-                results["total_records_inserted"] = (
-                    results["total_records_inserted"] + stock_inserted
-                )
-                self.logger.info(
-                    "Stock data update complete: %d new records", stock_inserted
-                )
+                results["total_records_inserted"] = results["total_records_inserted"] + stock_inserted
+                self.logger.info("Stock data update complete: %d new records", stock_inserted)
 
             # 2. Update currency data (last 2-3 days)
             self.logger.info("Updating USD/GBP currency data")
-            currency_records = self.currency_fetcher.fetch_and_prepare_fx_data(
-                days_back=3
-            )
+            currency_records = self.currency_fetcher.fetch_and_prepare_fx_data(days_back=3)
 
             if currency_records:
-                currency_inserted = self.db_manager.insert_currency_data(
-                    currency_records
-                )
+                currency_inserted = self.db_manager.insert_currency_data(currency_records)
                 results["currency_updates"] = {
                     "records_fetched": len(currency_records),
                     "records_inserted": currency_inserted,
                 }
-                results["total_records_inserted"] = (
-                    results["total_records_inserted"] + currency_inserted
-                )
-                self.logger.info(
-                    "Currency data update complete: %d new records", currency_inserted
-                )
+                results["total_records_inserted"] = results["total_records_inserted"] + currency_inserted
+                self.logger.info("Currency data update complete: %d new records", currency_inserted)
 
             # 3. Final status
             results["update_completed"] = datetime.now().isoformat()
@@ -239,20 +221,24 @@ class DataIngestionOrchestrator:
         """
         self.logger.info("Starting full data ingestion process")
 
-        # Check database status
-        is_empty = self.db_manager.is_database_empty()
-        db_health = self.db_manager.health_check()
-
         results: dict[str, Any] = {
             "ingestion_started": datetime.now().isoformat(),
-            "database_status": db_health,
-            "was_empty": is_empty,
+            "database_status": None,
+            "was_empty": None,
             "operation_performed": None,
             "results": {},
             "success": False,
         }
 
         try:
+            # Check database status - moved inside try block to handle connection failures
+            is_empty = self.db_manager.is_database_empty()
+            db_health = self.db_manager.health_check()
+
+            # Update results with database status
+            results["database_status"] = db_health
+            results["was_empty"] = is_empty
+
             if is_empty:
                 self.logger.info("Database is empty - performing initial setup")
                 results["operation_performed"] = "initial_setup"
@@ -274,6 +260,11 @@ class DataIngestionOrchestrator:
             results["error"] = str(e)
             results["success"] = False
             self.logger.error("Full ingestion failed: %s", str(e))
+        except Exception as e:
+            # Handle any unexpected exceptions (including database connection failures)
+            results["error"] = f"Unexpected error during ingestion: {str(e)}"
+            results["success"] = False
+            self.logger.error("Unexpected error during full ingestion: %s", str(e))
 
         return results
 
@@ -293,9 +284,7 @@ class DataIngestionOrchestrator:
             # Check for any missing recent data
             missing_data = {}
             for symbol in self.nyse_fetcher.MAGNIFICENT_SEVEN:
-                missing_dates = self.db_manager.get_missing_dates_for_symbol(
-                    symbol, days_back=5
-                )
+                missing_dates = self.db_manager.get_missing_dates_for_symbol(symbol, days_back=5)
                 if missing_dates:
                     missing_data[symbol] = len(missing_dates)
 
@@ -303,8 +292,7 @@ class DataIngestionOrchestrator:
                 "status_checked": datetime.now().isoformat(),
                 "database_health": db_health,
                 "stock_data_freshness": {
-                    symbol: date.isoformat() if date else None
-                    for symbol, date in stock_freshness.items()
+                    symbol: date.isoformat() if date else None for symbol, date in stock_freshness.items()
                 },
                 "currency_data_freshness": (
                     {
@@ -313,11 +301,7 @@ class DataIngestionOrchestrator:
                             if currency_freshness and len(currency_freshness) > 0
                             else None
                         ),
-                        "rate": (
-                            currency_freshness[1]
-                            if currency_freshness and len(currency_freshness) > 1
-                            else None
-                        ),
+                        "rate": (currency_freshness[1] if currency_freshness and len(currency_freshness) > 1 else None),
                     }
                     if currency_freshness
                     else None

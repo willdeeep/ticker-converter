@@ -1,6 +1,7 @@
 """Tests for market data models validation."""
 
 from datetime import datetime
+from decimal import Decimal
 
 import pytest
 from pydantic import ValidationError
@@ -16,14 +17,14 @@ class TestMarketDataPointValidation:
         data = MarketDataPoint(
             symbol="AAPL",
             timestamp=datetime(2025, 1, 1),
-            open=150.0,
-            high=155.0,
-            low=149.0,
-            close=154.0,
+            open=Decimal("150.0"),
+            high=Decimal("155.0"),
+            low=Decimal("149.0"),
+            close=Decimal("154.0"),
             volume=1000000,
         )
         assert data.symbol == "AAPL"
-        assert data.high == 155.0
+        assert data.high == Decimal("155.0")
 
     def test_high_less_than_low_raises_error(self) -> None:
         """Test that high < low raises validation error."""
@@ -34,10 +35,10 @@ class TestMarketDataPointValidation:
             MarketDataPoint(
                 symbol="AAPL",
                 timestamp=datetime(2025, 1, 1),
-                open=150.0,
-                high=149.0,  # High less than low
-                low=150.0,
-                close=149.5,
+                open=Decimal("150.0"),
+                high=Decimal("149.0"),  # High less than low
+                low=Decimal("150.0"),
+                close=Decimal("149.5"),
                 volume=1000000,
             )
 
@@ -50,10 +51,10 @@ class TestMarketDataPointValidation:
             MarketDataPoint(
                 symbol="AAPL",
                 timestamp=datetime(2025, 1, 1),
-                open=150.0,
-                high=155.0,
-                low=149.0,
-                close=156.0,  # Close above high
+                open=Decimal("150.0"),
+                high=Decimal("155.0"),
+                low=Decimal("149.0"),
+                close=Decimal("156.0"),  # Close above high
                 volume=1000000,
             )
 
@@ -66,24 +67,22 @@ class TestMarketDataPointValidation:
             MarketDataPoint(
                 symbol="AAPL",
                 timestamp=datetime(2025, 1, 1),
-                open=150.0,
-                high=155.0,
-                low=149.0,
-                close=148.0,  # Close below low
+                open=Decimal("150.0"),
+                high=Decimal("155.0"),
+                low=Decimal("149.0"),
+                close=Decimal("148.0"),  # Close below low
                 volume=1000000,
             )
 
     def test_negative_volume_raises_error(self) -> None:
         """Test that negative volume raises validation error."""
-        with pytest.raises(
-            ValidationError, match="Input should be greater than or equal to 0"
-        ):
+        with pytest.raises(ValidationError, match="Input should be greater than or equal to 0"):
             MarketDataPoint(
                 symbol="AAPL",
                 timestamp=datetime(2025, 1, 1),
-                open=150.0,
-                high=155.0,
-                low=149.0,
-                close=154.0,
+                open=Decimal("150.0"),
+                high=Decimal("155.0"),
+                low=Decimal("149.0"),
+                close=Decimal("154.0"),
                 volume=-1000,  # Negative volume
             )

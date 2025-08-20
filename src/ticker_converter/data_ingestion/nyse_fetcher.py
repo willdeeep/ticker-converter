@@ -60,9 +60,7 @@ class NYSEDataFetcher(BaseDataFetcher):
             # Filter to requested number of days
             df_filtered = df.tail(days_back) if days_back > 0 else df
 
-            self.logger.info(
-                "Retrieved %d days of data for %s", len(df_filtered), symbol
-            )
+            self.logger.info("Retrieved %d days of data for %s", len(df_filtered), symbol)
             return df_filtered
 
         except AlphaVantageAPIError as e:
@@ -72,9 +70,7 @@ class NYSEDataFetcher(BaseDataFetcher):
             self._handle_data_error(e, f"fetching data for {symbol}")
             return None
 
-    def fetch_magnificent_seven_data(
-        self, days_back: int = 10
-    ) -> dict[str, pd.DataFrame]:
+    def fetch_magnificent_seven_data(self, days_back: int = 10) -> dict[str, pd.DataFrame]:
         """Fetch data for all Magnificent Seven companies.
 
         Args:
@@ -85,9 +81,7 @@ class NYSEDataFetcher(BaseDataFetcher):
         """
         results = {}
 
-        self.logger.info(
-            "Fetching data for Magnificent Seven companies (%d days)", days_back
-        )
+        self.logger.info("Fetching data for Magnificent Seven companies (%d days)", days_back)
 
         for symbol in self.MAGNIFICENT_SEVEN:
             df = self.fetch_daily_data(symbol, days_back)
@@ -99,9 +93,7 @@ class NYSEDataFetcher(BaseDataFetcher):
         self.logger.info("Successfully fetched data for %s companies", len(results))
         return results
 
-    def prepare_for_sql_insert(
-        self, df: pd.DataFrame, *args: Any
-    ) -> list[dict[str, Any]]:
+    def prepare_for_sql_insert(self, df: pd.DataFrame, *args: Any) -> list[dict[str, Any]]:
         """Prepare DataFrame data for SQL insertion into raw_stock_data table.
 
         Args:
@@ -126,16 +118,10 @@ class NYSEDataFetcher(BaseDataFetcher):
                 record = {
                     "symbol": symbol,
                     "data_date": self._safe_date_conversion(row["Date"]),
-                    "open_price": self._safe_float_conversion(
-                        row["Open"], "open_price"
-                    ),
-                    "high_price": self._safe_float_conversion(
-                        row["High"], "high_price"
-                    ),
+                    "open_price": self._safe_float_conversion(row["Open"], "open_price"),
+                    "high_price": self._safe_float_conversion(row["High"], "high_price"),
                     "low_price": self._safe_float_conversion(row["Low"], "low_price"),
-                    "close_price": self._safe_float_conversion(
-                        row["Close"], "close_price"
-                    ),
+                    "close_price": self._safe_float_conversion(row["Close"], "close_price"),
                     "volume": self._safe_int_conversion(row["Volume"], "volume"),
                     **base_record,
                 }

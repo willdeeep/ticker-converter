@@ -26,6 +26,14 @@ def convert_time_series_to_dataframe(
     Returns:
         Sorted DataFrame with time series data
     """
+    # Handle None input
+    if time_series is None:
+        return pd.DataFrame()
+
+    # Handle empty dictionary
+    if not time_series:
+        return pd.DataFrame()
+
     df_data = []
     additional_columns = additional_columns or {}
 
@@ -46,16 +54,19 @@ def convert_time_series_to_dataframe(
         # Volume handling (different keys for different endpoints)
         if AlphaVantageValueKey.VOLUME.value in values:
             volume_value = values[AlphaVantageValueKey.VOLUME.value]
-            row["Volume"] = (
-                int(volume_value) if volume_value.isdigit() else float(volume_value)
-            )
+            row["Volume"] = int(volume_value) if volume_value.isdigit() else float(volume_value)
 
         # Add any additional columns
         row.update(additional_columns)
         df_data.append(row)
 
     df = pd.DataFrame(df_data)
-    return df.sort_values(datetime_key).reset_index(drop=True)
+
+    # Only sort if the DataFrame has the datetime column
+    if not df.empty and datetime_key in df.columns:
+        return df.sort_values(datetime_key).reset_index(drop=True)
+
+    return df
 
 
 def process_forex_time_series(

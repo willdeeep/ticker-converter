@@ -4,7 +4,7 @@ This module provides models specifically designed for API requests and responses
 with comprehensive validation, error handling, and type safety for Python 3.11.
 """
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Generic, Literal, TypeVar
@@ -45,15 +45,9 @@ class PaginationParams(BaseModel):
     )
 
     page: int = Field(default=1, ge=1, le=1000, description="Page number (1-based)")
-    page_size: int = Field(
-        default=50, ge=1, le=1000, description="Number of items per page"
-    )
-    sort_by: str | None = Field(
-        default=None, max_length=50, description="Field to sort by"
-    )
-    sort_order: SortOrder = Field(
-        default=SortOrder.DESC, description="Sort order (asc/desc)"
-    )
+    page_size: int = Field(default=50, ge=1, le=1000, description="Number of items per page")
+    sort_by: str | None = Field(default=None, max_length=50, description="Field to sort by")
+    sort_order: SortOrder = Field(default=SortOrder.DESC, description="Sort order (asc/desc)")
 
     def get_offset(self) -> int:
         """Calculate database offset from page and page_size."""
@@ -77,9 +71,7 @@ class PaginationInfo(BaseModel):
         """Validate pagination values are consistent."""
         expected_total_pages = (self.total_items + self.page_size - 1) // self.page_size
         if self.total_pages != expected_total_pages:
-            raise ValueError(
-                "Total pages doesn't match calculation from total_items and page_size"
-            )
+            raise ValueError("Total pages doesn't match calculation from total_items and page_size")
 
         expected_has_next = self.current_page < self.total_pages
         if self.has_next != expected_has_next:
@@ -105,14 +97,10 @@ class APIResponse(BaseModel, Generic[T]):
     message: str | None = Field(default=None, description="Status message")
     errors: list[str] = Field(default_factory=list, description="Error messages")
     warnings: list[str] = Field(default_factory=list, description="Warning messages")
-    pagination: PaginationInfo | None = Field(
-        default=None, description="Pagination info"
-    )
-    metadata: dict[str, Any] = Field(
-        default_factory=dict, description="Additional response metadata"
-    )
+    pagination: PaginationInfo | None = Field(default=None, description="Pagination info")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional response metadata")
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="Response timestamp (UTC)",
     )
     request_id: str | None = Field(default=None, description="Request tracking ID")
@@ -145,16 +133,10 @@ class StockQueryParams(BaseModel):
         validate_assignment=True,
     )
 
-    symbols: list[str] = Field(
-        ..., min_length=1, max_length=50, description="Stock symbols to query"
-    )
-    start_date: date | None = Field(
-        default=None, description="Start date for data range"
-    )
+    symbols: list[str] = Field(..., min_length=1, max_length=50, description="Stock symbols to query")
+    start_date: date | None = Field(default=None, description="Start date for data range")
     end_date: date | None = Field(default=None, description="End date for data range")
-    include_currency_conversion: bool = Field(
-        default=True, description="Include USD to GBP conversion"
-    )
+    include_currency_conversion: bool = Field(default=True, description="Include USD to GBP conversion")
 
     @field_validator("symbols")
     @classmethod
@@ -231,24 +213,14 @@ class EnhancedStockPerformance(BaseModel):
     trade_date: date = Field(..., description="Trading date")
 
     # Enhanced metrics
-    market_cap_usd: Decimal | None = Field(
-        None, gt=0, description="Market capitalization USD"
-    )
+    market_cap_usd: Decimal | None = Field(None, gt=0, description="Market capitalization USD")
     pe_ratio: Decimal | None = Field(None, gt=0, description="Price-to-earnings ratio")
-    performance_rank: int | None = Field(
-        None, ge=1, le=10, description="Performance ranking (1=best)"
-    )
+    performance_rank: int | None = Field(None, ge=1, le=10, description="Performance ranking (1=best)")
 
     # Technical indicators
-    rsi: Decimal | None = Field(
-        None, ge=0, le=100, description="Relative Strength Index"
-    )
-    moving_avg_20d: Decimal | None = Field(
-        None, gt=0, description="20-day moving average"
-    )
-    volatility_30d: Decimal | None = Field(
-        None, ge=0, description="30-day volatility percentage"
-    )
+    rsi: Decimal | None = Field(None, ge=0, le=100, description="Relative Strength Index")
+    moving_avg_20d: Decimal | None = Field(None, gt=0, description="20-day moving average")
+    volatility_30d: Decimal | None = Field(None, ge=0, description="30-day volatility percentage")
 
     @field_validator("symbol")
     @classmethod
@@ -304,8 +276,7 @@ class CurrencyConversionDetails(BaseModel):
         tolerance = expected_gbp * Decimal("0.0001")
         if abs(self.price_gbp - expected_gbp) > tolerance:
             raise ValueError(
-                f"GBP price ({self.price_gbp}) doesn't match conversion "
-                f"({expected_gbp}) within tolerance"
+                f"GBP price ({self.price_gbp}) doesn't match conversion " f"({expected_gbp}) within tolerance"
             )
 
         return self
@@ -319,9 +290,7 @@ class APIErrorDetail(BaseModel):
     error_code: str = Field(..., description="Machine-readable error code")
     error_message: str = Field(..., description="Human-readable error message")
     field: str | None = Field(default=None, description="Field that caused the error")
-    details: dict[str, Any] = Field(
-        default_factory=dict, description="Additional error details"
-    )
+    details: dict[str, Any] = Field(default_factory=dict, description="Additional error details")
 
     @field_validator("error_code")
     @classmethod
@@ -338,30 +307,20 @@ class HealthCheckResponse(BaseModel):
 
     model_config = ConfigDict(validate_assignment=True)
 
-    status: Literal["healthy", "degraded", "unhealthy"] = Field(
-        ..., description="Overall health status"
-    )
+    status: Literal["healthy", "degraded", "unhealthy"] = Field(..., description="Overall health status")
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="Health check timestamp",
     )
     version: str = Field(..., description="API version")
 
     # Service health details
-    database: Literal["connected", "disconnected", "error"] = Field(
-        ..., description="Database connection status"
-    )
-    external_apis: dict[str, bool] = Field(
-        default_factory=dict, description="External API availability"
-    )
+    database: Literal["connected", "disconnected", "error"] = Field(..., description="Database connection status")
+    external_apis: dict[str, bool] = Field(default_factory=dict, description="External API availability")
 
     # Performance metrics
-    response_time_ms: int = Field(
-        ..., ge=0, description="Response time in milliseconds"
-    )
+    response_time_ms: int = Field(..., ge=0, description="Response time in milliseconds")
     uptime_seconds: int = Field(..., ge=0, description="Service uptime in seconds")
 
     # Optional details
-    details: dict[str, Any] = Field(
-        default_factory=dict, description="Additional health check details"
-    )
+    details: dict[str, Any] = Field(default_factory=dict, description="Additional health check details")

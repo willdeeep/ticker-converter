@@ -31,9 +31,7 @@ class TestDatabaseManagerInit:
 
     @patch("ticker_converter.data_ingestion.database_manager.config")
     @patch("ticker_converter.data_ingestion.database_manager.Path")
-    def test_get_default_connection_fallback_to_sqlite(
-        self, mock_path: Any, mock_config: Any
-    ) -> None:
+    def test_get_default_connection_fallback_to_sqlite(self, mock_path: Any, mock_config: Any) -> None:
         """Test fallback to SQLite when no config DATABASE_URL."""
         # Mock config without DATABASE_URL
         mock_config.DATABASE_URL = None

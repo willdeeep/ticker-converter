@@ -1,6 +1,7 @@
 """Unit tests for Magnificent Seven Stock Performance API."""
 
 from datetime import date
+from typing import AsyncIterator
 from unittest.mock import AsyncMock
 
 import pytest
@@ -95,21 +96,22 @@ class TestModelBuilders:
 class TestAPIEndpoints:
     """Test the FastAPI endpoints."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize test class attributes."""
-        self.mock_db = None
-        self.client = None
+        self.mock_db: AsyncMock | None = None
+        self.client: TestClient | None = None
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures before each test method."""
         # Create mock database
         self.mock_db = AsyncMock()
 
         # Create mock dependencies
-        async def mock_get_db():
+        async def mock_get_db() -> AsyncIterator[AsyncMock]:
+            assert self.mock_db is not None
             yield self.mock_db
 
-        def mock_get_sql_query(filename: str):  # pylint: disable=unused-argument
+        def mock_get_sql_query(filename: str) -> str:  # pylint: disable=unused-argument
             return "SELECT * FROM test;"
 
         # Override FastAPI dependencies
@@ -119,13 +121,14 @@ class TestAPIEndpoints:
         # Create test client
         self.client = TestClient(app)
 
-    def teardown_method(self):
+    def teardown_method(self) -> None:
         """Clean up after each test method."""
         # Clear dependency overrides
         app.dependency_overrides.clear()
 
-    async def test_health_check(self):
+    async def test_health_check(self) -> None:
         """Test the health check endpoint."""
+        assert self.client is not None
         response = self.client.get("/health")
 
         assert response.status_code == 200
@@ -133,8 +136,10 @@ class TestAPIEndpoints:
         assert data["status"] == "healthy"
         assert data["service"] == "magnificent-seven-stock-api"
 
-    async def test_top_performers_success(self):
+    async def test_top_performers_success(self) -> None:
         """Test top performers endpoint with successful response."""
+        assert self.mock_db is not None
+        assert self.client is not None
         # Mock database response
         self.mock_db.execute_query.return_value = [
             {
@@ -168,8 +173,10 @@ class TestAPIEndpoints:
         assert data[0]["daily_return"] == 2.5
         assert data[1]["symbol"] == "MSFT"
 
-    async def test_top_performers_no_data(self):
+    async def test_top_performers_no_data(self) -> None:
         """Test top performers endpoint with no data available."""
+        assert self.mock_db is not None
+        assert self.client is not None
         self.mock_db.execute_query.return_value = []
 
         response = self.client.get("/api/stocks/top-performers")
@@ -178,8 +185,10 @@ class TestAPIEndpoints:
         data = response.json()
         assert "No performance data available" in data["detail"]
 
-    async def test_performance_details_success(self):
+    async def test_performance_details_success(self) -> None:
         """Test performance details endpoint with successful response."""
+        assert self.mock_db is not None
+        assert self.client is not None
         self.mock_db.execute_query.return_value = [
             {
                 "symbol": "NVDA",

@@ -1,7 +1,8 @@
 """Unit tests for NYSE data fetcher."""
 
 from datetime import date
-from unittest.mock import MagicMock, Mock, patch
+from typing import Any
+from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
@@ -36,10 +37,8 @@ class TestNYSEDataFetcher:
 
         assert fetcher.api_client is mock_client
 
-    @patch(
-        "src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.fetch_daily_data"
-    )
-    def test_fetch_magnificent_seven_data_success(self, mock_fetch_daily) -> None:
+    @patch("src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.fetch_daily_data")
+    def test_fetch_magnificent_seven_data_success(self, mock_fetch_daily: Mock) -> None:
         """Test successful magnificent seven data fetching."""
         # Setup mock data for each symbol
         mock_data = pd.DataFrame(
@@ -69,14 +68,12 @@ class TestNYSEDataFetcher:
             assert symbol in result
             assert isinstance(result[symbol], pd.DataFrame)
 
-    @patch(
-        "src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.fetch_daily_data"
-    )
-    def test_fetch_magnificent_seven_data_with_failures(self, mock_fetch_daily) -> None:
+    @patch("src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.fetch_daily_data")
+    def test_fetch_magnificent_seven_data_with_failures(self, mock_fetch_daily: Mock) -> None:
         """Test magnificent seven data fetching with some failures."""
 
         # Setup mock to return None for one symbol and succeed for others
-        def side_effect(symbol, *args, **kwargs):
+        def side_effect(symbol: str, *args: Any, **kwargs: Any) -> pd.DataFrame | None:
             if symbol == "AAPL":
                 return None  # Simulate API failure
             return pd.DataFrame(
@@ -101,8 +98,8 @@ class TestNYSEDataFetcher:
         assert "AAPL" not in result
         assert "MSFT" in result
 
-    @patch("src.ticker_converter.api_clients.client.AlphaVantageClient")
-    def test_fetch_daily_data_success(self, mock_client_class) -> None:
+    @patch("src.ticker_converter.data_ingestion.base_fetcher.AlphaVantageClient")
+    def test_fetch_daily_data_success(self, mock_client_class: Mock) -> None:
         """Test successful daily data fetching for a symbol."""
         # Setup mock client
         mock_client = Mock()
@@ -126,9 +123,7 @@ class TestNYSEDataFetcher:
         result = fetcher.fetch_daily_data("AAPL", days_back=10)
 
         # Verify API client was called correctly
-        mock_client.get_daily_stock_data.assert_called_once_with(
-            "AAPL", OutputSize.COMPACT
-        )
+        mock_client.get_daily_stock_data.assert_called_once_with("AAPL", OutputSize.COMPACT)
 
         # Verify result
         assert isinstance(result, pd.DataFrame)
@@ -137,7 +132,7 @@ class TestNYSEDataFetcher:
         assert "Open" in result.columns
 
     @patch("src.ticker_converter.api_clients.client.AlphaVantageClient")
-    def test_fetch_daily_data_api_error(self, mock_client_class) -> None:
+    def test_fetch_daily_data_api_error(self, mock_client_class: Mock) -> None:
         """Test daily data fetching with API error."""
         # Setup mock client to raise error
         mock_client = Mock()
@@ -151,14 +146,12 @@ class TestNYSEDataFetcher:
         assert result is None
 
     @patch("src.ticker_converter.api_clients.client.AlphaVantageClient")
-    def test_fetch_daily_data_invalid_dataframe(self, mock_client_class) -> None:
+    def test_fetch_daily_data_invalid_dataframe(self, mock_client_class: Mock) -> None:
         """Test daily data fetching with invalid DataFrame response."""
         # Setup mock client to return DataFrame missing required columns
         mock_client = Mock()
         mock_client_class.return_value = mock_client
-        mock_client.get_daily_stock_data.return_value = pd.DataFrame(
-            {"invalid": [1, 2, 3]}
-        )
+        mock_client.get_daily_stock_data.return_value = pd.DataFrame({"invalid": [1, 2, 3]})
 
         fetcher = NYSEDataFetcher(api_client=mock_client)
         result = fetcher.fetch_daily_data("AAPL", days_back=10)
@@ -213,13 +206,9 @@ class TestNYSEDataFetcher:
         result = fetcher.prepare_for_sql_insert(df, "AAPL")
         assert not result
 
-    @patch(
-        "src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.fetch_magnificent_seven_data"
-    )
-    @patch(
-        "src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.prepare_for_sql_insert"
-    )
-    def test_fetch_and_prepare_all_data(self, mock_prepare, mock_fetch_m7) -> None:
+    @patch("src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.fetch_magnificent_seven_data")
+    @patch("src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.prepare_for_sql_insert")
+    def test_fetch_and_prepare_all_data(self, mock_prepare: Mock, mock_fetch_m7: Mock) -> None:
         """Test fetching and preparing all magnificent seven data."""
         # Setup mock data
         mock_df = pd.DataFrame(
@@ -247,10 +236,8 @@ class TestNYSEDataFetcher:
         assert isinstance(result, list)
         assert len(result) == 2  # 2 symbols * 1 record each
 
-    @patch(
-        "src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.fetch_daily_data"
-    )
-    def test_get_latest_available_date_success(self, mock_fetch_daily) -> None:
+    @patch("src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.fetch_daily_data")
+    def test_get_latest_available_date_success(self, mock_fetch_daily: Mock) -> None:
         """Test getting latest available date for a symbol."""
         mock_df = pd.DataFrame(
             {
@@ -271,10 +258,8 @@ class TestNYSEDataFetcher:
         mock_fetch_daily.assert_called_once_with("AAPL", days_back=1)
         assert isinstance(result, date)
 
-    @patch(
-        "src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.fetch_daily_data"
-    )
-    def test_get_latest_available_date_no_data(self, mock_fetch_daily) -> None:
+    @patch("src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.fetch_daily_data")
+    def test_get_latest_available_date_no_data(self, mock_fetch_daily: Mock) -> None:
         """Test getting latest available date when no data is available."""
         mock_fetch_daily.return_value = None
 
@@ -283,14 +268,10 @@ class TestNYSEDataFetcher:
 
         assert result is None
 
-    @patch(
-        "src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.get_latest_available_date"
-    )
-    def test_check_data_freshness(self, mock_get_latest) -> None:
+    @patch("src.ticker_converter.data_ingestion.nyse_fetcher.NYSEDataFetcher.get_latest_available_date")
+    def test_check_data_freshness(self, mock_get_latest: Mock) -> None:
         """Test checking data freshness for all magnificent seven stocks."""
-        mock_get_latest.side_effect = lambda symbol: (
-            date(2025, 8, 14) if symbol in ["AAPL", "MSFT"] else None
-        )
+        mock_get_latest.side_effect = lambda symbol: (date(2025, 8, 14) if symbol in ["AAPL", "MSFT"] else None)
 
         fetcher = NYSEDataFetcher()
         result = fetcher.check_data_freshness()

@@ -21,7 +21,7 @@ class TestNYSEDataFetcher:
         assert fetcher.MAGNIFICENT_SEVEN == expected_symbols
 
     @patch("src.ticker_converter.data_ingestion.base_fetcher.AlphaVantageClient")
-    def test_fetch_daily_data_success(self, mock_client_class) -> None:
+    def test_fetch_daily_data_success(self, mock_client_class: Mock) -> None:
         """Test successful daily data fetch."""
         # Mock API client
         mock_client = Mock()
@@ -95,7 +95,7 @@ class TestCurrencyDataFetcher:
         assert fetcher.TO_CURRENCY == "GBP"
 
     @patch("src.ticker_converter.data_ingestion.base_fetcher.AlphaVantageClient")
-    def test_fetch_current_exchange_rate_success(self, mock_client_class) -> None:
+    def test_fetch_current_exchange_rate_success(self, mock_client_class: Mock) -> None:
         """Test successful current exchange rate fetch."""
         # Mock API client
         mock_client = Mock()
@@ -155,7 +155,7 @@ class TestDataIngestionOrchestrator:
         assert orchestrator.currency_fetcher is not None
 
     @patch("src.ticker_converter.data_ingestion.orchestrator.DatabaseManager")
-    def test_run_full_ingestion_empty_database(self, mock_db_manager_class) -> None:
+    def test_run_full_ingestion_empty_database(self, mock_db_manager_class: Mock) -> None:
         """Test full ingestion with empty database performs initial setup."""
         # Mock database manager
         mock_db_manager = Mock()
@@ -188,7 +188,7 @@ class TestDataIngestionOrchestrator:
             mock_setup.assert_called_once_with(days_back=10)
 
     @patch("src.ticker_converter.data_ingestion.orchestrator.DatabaseManager")
-    def test_run_full_ingestion_existing_data(self, mock_db_manager_class) -> None:
+    def test_run_full_ingestion_existing_data(self, mock_db_manager_class: Mock) -> None:
         """Test full ingestion with existing data performs daily update."""
         # Mock database manager
         mock_db_manager = Mock()
@@ -222,7 +222,7 @@ class TestDataIngestionOrchestrator:
 
 
 @pytest.fixture
-def sample_stock_data():
+def sample_stock_data() -> pd.DataFrame:
     """Sample stock data for testing."""
     return pd.DataFrame(
         {
@@ -238,7 +238,7 @@ def sample_stock_data():
 
 
 @pytest.fixture
-def sample_currency_data():
+def sample_currency_data() -> pd.DataFrame:
     """Sample currency data for testing."""
     return pd.DataFrame(
         {
@@ -257,8 +257,8 @@ class TestIntegration:
     """Integration tests for data ingestion components."""
 
     def test_end_to_end_data_flow(
-        self, sample_stock_data, sample_currency_data
-    ):  # pylint: disable=redefined-outer-name
+        self, sample_stock_data: pd.DataFrame, sample_currency_data: pd.DataFrame
+    ) -> None:  # pylint: disable=redefined-outer-name
         """Test complete data flow from fetch to SQL preparation."""
         # Test NYSE fetcher
         nyse_fetcher = NYSEDataFetcher()

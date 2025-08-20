@@ -80,9 +80,7 @@ def output_results(results: dict[str, Any], output_file: TextIO | None = None) -
         output_file: Optional file to write JSON results
     """
     # Create results table
-    table = Table(
-        title="📊 Ingestion Results", show_header=True, header_style="bold magenta"
-    )
+    table = Table(title="📊 Ingestion Results", show_header=True, header_style="bold magenta")
     table.add_column("Metric", style="cyan", no_wrap=True)
     table.add_column("Value", style="green")
 
@@ -148,15 +146,11 @@ def setup(days: int, output: TextIO | None) -> None:
             progress.update(task, advance=1)
 
             # Perform setup
-            setup_task = progress.add_task(
-                f"Setting up database with {days} days of data...", total=1
-            )
+            setup_task = progress.add_task(f"Setting up database with {days} days of data...", total=1)
             results = orchestrator.perform_initial_setup(days_back=days)
             progress.update(setup_task, advance=1)
 
-        console.print(
-            "[green]✅ Database initialization completed successfully![/green]"
-        )
+        console.print("[green]✅ Database initialization completed successfully![/green]")
         output_results(results, output)
 
     except Exception as error:
@@ -241,9 +235,7 @@ def status(output: TextIO | None) -> None:
         settings = get_settings()
 
         # Create status table
-        status_table = Table(
-            title="🔍 System Status", show_header=True, header_style="bold cyan"
-        )
+        status_table = Table(title="🔍 System Status", show_header=True, header_style="bold cyan")
         status_table.add_column("Component", style="yellow", no_wrap=True)
         status_table.add_column("Status", style="green")
         status_table.add_column("Details", style="white")
@@ -277,9 +269,7 @@ def status(output: TextIO | None) -> None:
 
         # Environment info
         env_status = f"🌍 {settings.app.environment.title()}"
-        env_details = (
-            f"Debug: {settings.app.debug}, Workers: {settings.app.max_workers}"
-        )
+        env_details = f"Debug: {settings.app.debug}, Workers: {settings.app.max_workers}"
         status_table.add_row("Environment", env_status, env_details)
 
         console.print(status_table)

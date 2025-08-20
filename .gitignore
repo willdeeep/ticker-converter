@@ -6,6 +6,7 @@
 .env.backup
 dags/raw_data/*/*
 my_docs/
+my_scripts/
 
 # Python
 __pycache__/

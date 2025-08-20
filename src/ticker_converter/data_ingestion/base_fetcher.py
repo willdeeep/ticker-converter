@@ -40,9 +40,7 @@ class BaseDataFetcher(ABC):
         self.logger.info("Initialized %s", self.__class__.__name__)
 
     @abstractmethod
-    def prepare_for_sql_insert(
-        self, df: pd.DataFrame, *args: Any
-    ) -> list[dict[str, Any]]:
+    def prepare_for_sql_insert(self, df: pd.DataFrame, *args: Any) -> list[dict[str, Any]]:
         """Prepare DataFrame data for SQL insertion.
 
         Args:
@@ -82,9 +80,7 @@ class BaseDataFetcher(ABC):
             "created_at": datetime.now(),
         }
 
-    def _validate_dataframe(
-        self, df: pd.DataFrame, required_columns: list[str]
-    ) -> bool:
+    def _validate_dataframe(self, df: pd.DataFrame, required_columns: list[str]) -> bool:
         """Validate DataFrame has required columns.
 
         Args:
@@ -158,7 +154,7 @@ class BaseDataFetcher(ABC):
         """
         try:
             # Handle datetime objects
-            if hasattr(value, "date") and callable(getattr(value, "date")):
+            if hasattr(value, "date") and callable(value.date):
                 return value.date()  # type: ignore[no-any-return]
             # Handle date objects
             if isinstance(value, date):
@@ -170,7 +166,5 @@ class BaseDataFetcher(ABC):
             self.logger.warning("Unexpected date type %s: %s", type(value), value)
             return datetime.now().date()
         except (ValueError, TypeError, AttributeError) as e:
-            self.logger.warning(
-                "Failed to convert %s to date: %s. Using current date", value, e
-            )
+            self.logger.warning("Failed to convert %s to date: %s. Using current date", value, e)
             return datetime.now().date()

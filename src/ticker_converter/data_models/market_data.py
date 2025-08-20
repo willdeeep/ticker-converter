@@ -8,7 +8,7 @@ This module provides comprehensive data models for financial market data with:
 - Support for serialization/deserialization with external APIs
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, Literal
 
@@ -63,7 +63,7 @@ class MarketDataPoint(BaseModel):
     timestamp: datetime = Field(
         ...,
         description="Trading day timestamp (UTC)",
-        examples=[datetime(2025, 8, 14, tzinfo=timezone.utc)],
+        examples=[datetime(2025, 8, 14, tzinfo=UTC)],
     )
     symbol: str = Field(
         ...,
@@ -119,12 +119,12 @@ class MarketDataPoint(BaseModel):
         """Normalize timestamp to UTC and validate reasonable date range."""
         # Ensure UTC timezone
         if v.tzinfo is None:
-            v = v.replace(tzinfo=timezone.utc)
-        elif v.tzinfo != timezone.utc:
-            v = v.astimezone(timezone.utc)
+            v = v.replace(tzinfo=UTC)
+        elif v.tzinfo != UTC:
+            v = v.astimezone(UTC)
 
         # Validate reasonable date range (not too far in past/future)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if v.year < 1980:
             raise ValueError("Timestamp cannot be before 1980")
         if v > now:
@@ -165,29 +165,19 @@ class MarketDataPoint(BaseModel):
         """Validate price relationships and business rules."""
         # Basic OHLC validation
         if self.high < self.low:
-            raise ValueError(
-                f"High price ({self.high}) cannot be less than low price ({self.low})"
-            )
+            raise ValueError(f"High price ({self.high}) cannot be less than low price ({self.low})")
 
         # High must be >= all other prices
         if self.high < self.open:
-            raise ValueError(
-                f"High price ({self.high}) cannot be less than open price ({self.open})"
-            )
+            raise ValueError(f"High price ({self.high}) cannot be less than open price ({self.open})")
         if self.high < self.close:
-            raise ValueError(
-                f"High price ({self.high}) cannot be less than close price ({self.close})"
-            )
+            raise ValueError(f"High price ({self.high}) cannot be less than close price ({self.close})")
 
         # Low must be <= all other prices
         if self.low > self.open:
-            raise ValueError(
-                f"Low price ({self.low}) cannot be greater than open price ({self.open})"
-            )
+            raise ValueError(f"Low price ({self.low}) cannot be greater than open price ({self.open})")
         if self.low > self.close:
-            raise ValueError(
-                f"Low price ({self.low}) cannot be greater than close price ({self.close})"
-            )
+            raise ValueError(f"Low price ({self.low}) cannot be greater than close price ({self.close})")
 
         # Additional business rules
         price_range = self.high - self.low
@@ -295,11 +285,9 @@ class RawMarketData(BaseModel):
         pattern=r"^[A-Z0-9.-]+$",
         description="Primary symbol for this dataset",
     )
-    data_type: Literal["daily", "intraday", "weekly", "monthly"] = Field(
-        ..., description="Type of market data"
-    )
+    data_type: Literal["daily", "intraday", "weekly", "monthly"] = Field(..., description="Type of market data")
     retrieved_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="UTC timestamp when data was retrieved",
     )
     api_call_metadata: dict[str, Any] | None = Field(
@@ -315,9 +303,7 @@ class RawMarketData(BaseModel):
 
     @field_validator("data_points")
     @classmethod
-    def validate_data_points_order(
-        cls, v: list[MarketDataPoint]
-    ) -> list[MarketDataPoint]:
+    def validate_data_points_order(cls, v: list[MarketDataPoint]) -> list[MarketDataPoint]:
         """Validate data points are in chronological order."""
         if len(v) <= 1:
             return v
@@ -339,10 +325,7 @@ class RawMarketData(BaseModel):
 
         for i, point in enumerate(self.data_points):
             if point.symbol != expected_symbol:
-                raise ValueError(
-                    f"Data point {i} has symbol '{point.symbol}' "
-                    f"but expected '{expected_symbol}'"
-                )
+                raise ValueError(f"Data point {i} has symbol '{point.symbol}' " f"but expected '{expected_symbol}'")
 
         return self
 
@@ -513,7 +496,7 @@ class CurrencyRate(BaseModel):
     timestamp: datetime = Field(
         ...,
         description="Rate timestamp (UTC)",
-        examples=[datetime(2025, 8, 14, tzinfo=timezone.utc)],
+        examples=[datetime(2025, 8, 14, tzinfo=UTC)],
     )
     from_currency: str = Field(
         ...,
@@ -557,7 +540,7 @@ class CurrencyRate(BaseModel):
         ..., description="Data source identifier"
     )
     retrieved_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="UTC timestamp when rate was retrieved",
     )
 
@@ -567,12 +550,12 @@ class CurrencyRate(BaseModel):
         """Normalize timestamp to UTC and validate date range."""
         # Ensure UTC timezone
         if v.tzinfo is None:
-            v = v.replace(tzinfo=timezone.utc)
-        elif v.tzinfo != timezone.utc:
-            v = v.astimezone(timezone.utc)
+            v = v.replace(tzinfo=UTC)
+        elif v.tzinfo != UTC:
+            v = v.astimezone(UTC)
 
         # Validate reasonable date range
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if v.year < 1990:  # Modern currency data starts around 1990
             raise ValueError("Currency rate timestamp cannot be before 1990")
         if v > now:
@@ -723,7 +706,7 @@ class CurrencyRate(BaseModel):
         Returns:
             True if rate is older than max_age_hours
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         age = now - self.timestamp
         return age.total_seconds() > (max_age_hours * 3600)
 

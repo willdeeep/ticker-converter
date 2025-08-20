@@ -37,9 +37,12 @@ class CurrencyDataFetcher(BaseDataFetcher):
                 self.TO_CURRENCY,
             )
 
-            response = self.api_client.get_currency_exchange_rate(
-                self.FROM_CURRENCY, self.TO_CURRENCY
-            )
+            response = self.api_client.get_currency_exchange_rate(self.FROM_CURRENCY, self.TO_CURRENCY)
+
+            # Handle None response
+            if response is None:
+                self.logger.error("API returned None response")
+                return None
 
             # Extract the real-time exchange rate data
             rate_data = response.get("Realtime Currency Exchange Rate", {})
@@ -49,21 +52,13 @@ class CurrencyDataFetcher(BaseDataFetcher):
                 return None
 
             result = {
-                "from_currency": rate_data.get(
-                    "1. From_Currency Code", self.FROM_CURRENCY
-                ),
+                "from_currency": rate_data.get("1. From_Currency Code", self.FROM_CURRENCY),
                 "to_currency": rate_data.get("3. To_Currency Code", self.TO_CURRENCY),
-                "exchange_rate": self._safe_float_conversion(
-                    rate_data.get("5. Exchange Rate", 0), "exchange_rate"
-                ),
+                "exchange_rate": self._safe_float_conversion(rate_data.get("5. Exchange Rate", 0), "exchange_rate"),
                 "last_refreshed": rate_data.get("6. Last Refreshed", ""),
                 "timezone": rate_data.get("7. Time Zone", "UTC"),
-                "bid_price": self._safe_float_conversion(
-                    rate_data.get("8. Bid Price", 0), "bid_price"
-                ),
-                "ask_price": self._safe_float_conversion(
-                    rate_data.get("9. Ask Price", 0), "ask_price"
-                ),
+                "bid_price": self._safe_float_conversion(rate_data.get("8. Bid Price", 0), "bid_price"),
+                "ask_price": self._safe_float_conversion(rate_data.get("9. Ask Price", 0), "ask_price"),
             }
 
             self.logger.info(
@@ -99,14 +94,10 @@ class CurrencyDataFetcher(BaseDataFetcher):
             # Determine output size based on days requested
             output_size = OutputSize.FULL if days_back > 100 else OutputSize.COMPACT
 
-            df = self.api_client.get_forex_daily(
-                self.FROM_CURRENCY, self.TO_CURRENCY, output_size
-            )
+            df = self.api_client.get_forex_daily(self.FROM_CURRENCY, self.TO_CURRENCY, output_size)
 
             if df.empty:
-                self.logger.warning(
-                    "No FX data returned for {self.FROM_CURRENCY}/%s", self.TO_CURRENCY
-                )
+                self.logger.warning("No FX data returned for {self.FROM_CURRENCY}/%s", self.TO_CURRENCY)
                 return None
 
             # Limit to requested number of days if specified
@@ -123,9 +114,7 @@ class CurrencyDataFetcher(BaseDataFetcher):
             self.logger.error("Data processing error fetching FX data: %s", e)
             return None
 
-    def prepare_for_sql_insert(
-        self, df: pd.DataFrame, *args: Any
-    ) -> list[dict[str, Any]]:
+    def prepare_for_sql_insert(self, df: pd.DataFrame, *args: Any) -> list[dict[str, Any]]:
         """Prepare DataFrame data for SQL insertion into raw_currency_data table.
 
         Args:
@@ -147,9 +136,7 @@ class CurrencyDataFetcher(BaseDataFetcher):
                 exchange_rate = self._extract_exchange_rate(row, df.columns)
 
                 if exchange_rate is None:
-                    self.logger.warning(
-                        "Could not determine exchange rate for row: %s", row
-                    )
+                    self.logger.warning("Could not determine exchange rate for row: %s", row)
                     continue
 
                 record = {
@@ -194,9 +181,7 @@ class CurrencyDataFetcher(BaseDataFetcher):
 
         return None
 
-    def prepare_current_rate_for_sql(
-        self, rate_data: dict[str, Any]
-    ) -> dict[str, Any] | None:
+    def prepare_current_rate_for_sql(self, rate_data: dict[str, Any]) -> dict[str, Any] | None:
         """Prepare current rate data for SQL insertion.
 
         Args:
@@ -213,9 +198,7 @@ class CurrencyDataFetcher(BaseDataFetcher):
             last_refreshed = rate_data.get("last_refreshed", "")
             if last_refreshed:
                 # Try to parse the datetime string
-                data_date = datetime.strptime(
-                    last_refreshed.split()[0], "%Y-%m-%d"
-                ).date()
+                data_date = datetime.strptime(last_refreshed.split()[0], "%Y-%m-%d").date()
             else:
                 data_date = datetime.now().date()
         except (ValueError, IndexError):
