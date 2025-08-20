@@ -41,9 +41,7 @@ def test_etl_dag() -> None:
             raise ValueError("AIRFLOW__CORE__DAGS_FOLDER environment variable not set")
 
         if "dags" not in dags_folder:
-            raise ValueError(
-                f"AIRFLOW__CORE__DAGS_FOLDER seems incorrect: {dags_folder}"
-            )
+            raise ValueError(f"AIRFLOW__CORE__DAGS_FOLDER seems incorrect: {dags_folder}")
 
         print(f"✅ AIRFLOW__CORE__DAGS_FOLDER correctly set to: {dags_folder}")
         return "airflow_config_ok"
@@ -64,9 +62,7 @@ def test_etl_dag() -> None:
         try:
             response = requests.get("https://www.alphavantage.co", timeout=10)
             if response.status_code != 200:
-                raise ConnectionError(
-                    f"Cannot reach alphavantage.co: {response.status_code}"
-                )
+                raise ConnectionError(f"Cannot reach alphavantage.co: {response.status_code}")
         except requests.RequestException as e:
             raise ConnectionError(f"Cannot connect to Alpha Vantage: {e}") from e
 

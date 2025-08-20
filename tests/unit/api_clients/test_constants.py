@@ -45,10 +45,7 @@ class TestConstants:
         """Test AlphaVantageResponseKey enumeration values."""
         assert AlphaVantageResponseKey.TIME_SERIES_DAILY == "Time Series (Daily)"
         assert AlphaVantageResponseKey.TIME_SERIES_FX_DAILY == "Time Series (FX Daily)"
-        assert (
-            AlphaVantageResponseKey.REALTIME_CURRENCY_EXCHANGE_RATE
-            == "Realtime Currency Exchange Rate"
-        )
+        assert AlphaVantageResponseKey.REALTIME_CURRENCY_EXCHANGE_RATE == "Realtime Currency Exchange Rate"
         assert AlphaVantageResponseKey.ERROR_MESSAGE == "Error Message"
         assert AlphaVantageResponseKey.NOTE == "Note"
 
@@ -131,9 +128,7 @@ class TestConstants:
 
         # Test that repr() shows the enum member
         assert "OutputSize.COMPACT" in repr(OutputSize.COMPACT)
-        assert "AlphaVantageFunction.TIME_SERIES_DAILY" in repr(
-            AlphaVantageFunction.TIME_SERIES_DAILY
-        )
+        assert "AlphaVantageFunction.TIME_SERIES_DAILY" in repr(AlphaVantageFunction.TIME_SERIES_DAILY)
 
     def test_enum_attribute_access(self) -> None:
         """Test that enum members can be accessed as attributes."""
@@ -170,10 +165,7 @@ class TestConstants:
         # Test that response keys match Alpha Vantage API documentation
         assert AlphaVantageResponseKey.TIME_SERIES_DAILY == "Time Series (Daily)"
         assert AlphaVantageResponseKey.ERROR_MESSAGE == "Error Message"
-        assert (
-            AlphaVantageResponseKey.REALTIME_CURRENCY_EXCHANGE_RATE
-            == "Realtime Currency Exchange Rate"
-        )
+        assert AlphaVantageResponseKey.REALTIME_CURRENCY_EXCHANGE_RATE == "Realtime Currency Exchange Rate"
 
     def test_value_key_consistency(self) -> None:
         """Test that value keys are consistent with Alpha Vantage format."""

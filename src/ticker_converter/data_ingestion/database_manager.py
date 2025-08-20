@@ -86,9 +86,7 @@ class DatabaseManager:
             if conn:
                 conn.close()
 
-    def execute_query(
-        self, query: str, params: tuple[Any, ...] | None = None
-    ) -> list[dict[str, Any]]:
+    def execute_query(self, query: str, params: tuple[Any, ...] | None = None) -> list[dict[str, Any]]:
         """Execute a query and return results.
 
         Args:
@@ -156,15 +154,11 @@ class DatabaseManager:
         """
         try:
             # Check for stock data
-            stock_result = self.execute_query(
-                "SELECT COUNT(*) as count FROM raw_stock_data"
-            )
+            stock_result = self.execute_query("SELECT COUNT(*) as count FROM raw_stock_data")
             stock_count = int(stock_result[0]["count"])
 
             # Check for currency data
-            currency_result = self.execute_query(
-                "SELECT COUNT(*) as count FROM raw_currency_data"
-            )
+            currency_result = self.execute_query("SELECT COUNT(*) as count FROM raw_currency_data")
             currency_count = int(currency_result[0]["count"])
 
             is_empty = stock_count == 0 and currency_count == 0
@@ -218,9 +212,7 @@ class DatabaseManager:
             Latest date or None if no data
         """
         try:
-            result = self.execute_query(
-                "SELECT MAX(data_date) as latest_date FROM raw_currency_data"
-            )
+            result = self.execute_query("SELECT MAX(data_date) as latest_date FROM raw_currency_data")
             latest_date = result[0]["latest_date"] if result else None
 
             if isinstance(latest_date, str):
@@ -307,9 +299,7 @@ class DatabaseManager:
             self.logger.error("Error inserting currency data: %s", e)
             return 0
 
-    def get_missing_dates_for_symbol(
-        self, symbol: str, days_back: int = 10
-    ) -> list[datetime]:
+    def get_missing_dates_for_symbol(self, symbol: str, days_back: int = 10) -> list[datetime]:
         """Get list of missing dates for a symbol within the last N days.
 
         Args:
@@ -330,9 +320,7 @@ class DatabaseManager:
             WHERE symbol = ? AND data_date >= ? AND data_date <= ?
             """
 
-            existing_results = self.execute_query(
-                existing_query, (symbol, start_date, end_date)
-            )
+            existing_results = self.execute_query(existing_query, (symbol, start_date, end_date))
             existing_dates = {
                 (
                     datetime.strptime(row["data_date"], "%Y-%m-%d").date()
@@ -354,9 +342,7 @@ class DatabaseManager:
             # Find missing dates
             missing_dates = [date for date in all_dates if date not in existing_dates]
 
-            return [
-                datetime.combine(date, datetime.min.time()) for date in missing_dates
-            ]
+            return [datetime.combine(date, datetime.min.time()) for date in missing_dates]
 
         except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
             self.logger.error("Error finding missing dates for %s: %s", symbol, e)
@@ -376,12 +362,8 @@ class DatabaseManager:
                 cursor.execute("SELECT 1")
 
                 # Get table counts
-                stock_count = self.execute_query(
-                    "SELECT COUNT(*) as count FROM raw_stock_data"
-                )[0]["count"]
-                currency_count = self.execute_query(
-                    "SELECT COUNT(*) as count FROM raw_currency_data"
-                )[0]["count"]
+                stock_count = self.execute_query("SELECT COUNT(*) as count FROM raw_stock_data")[0]["count"]
+                currency_count = self.execute_query("SELECT COUNT(*) as count FROM raw_currency_data")[0]["count"]
 
                 # Get date ranges
                 latest_stock = self.get_latest_stock_date()
@@ -391,12 +373,8 @@ class DatabaseManager:
                     "status": "healthy",
                     "stock_records": stock_count,
                     "currency_records": currency_count,
-                    "latest_stock_date": (
-                        latest_stock.isoformat() if latest_stock else None
-                    ),
-                    "latest_currency_date": (
-                        latest_currency.isoformat() if latest_currency else None
-                    ),
+                    "latest_stock_date": (latest_stock.isoformat() if latest_stock else None),
+                    "latest_currency_date": (latest_currency.isoformat() if latest_currency else None),
                     "is_empty": self.is_database_empty(),
                 }
 

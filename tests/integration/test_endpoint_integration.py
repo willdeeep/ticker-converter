@@ -55,9 +55,7 @@ class TestAPIEndpointAccessibility:
                 response = client.get(path)
                 if response.status_code == 200:
                     health_found = True
-                    assert (
-                        response.json() is not None
-                    ), "Health check should return JSON"
+                    assert response.json() is not None, "Health check should return JSON"
                     break
 
             # If no health endpoint exists, that's okay for now
@@ -74,15 +72,9 @@ class TestAPIEndpointAccessibility:
             openapi_response = client.get("/openapi.json")
 
             # At least one documentation endpoint should work
-            working_docs = [
-                r
-                for r in [docs_response, redoc_response, openapi_response]
-                if r.status_code == 200
-            ]
+            working_docs = [r for r in [docs_response, redoc_response, openapi_response] if r.status_code == 200]
 
-            assert (
-                len(working_docs) > 0
-            ), "At least one documentation endpoint should work"
+            assert len(working_docs) > 0, "At least one documentation endpoint should work"
 
 
 class TestAPIEndpointData:
@@ -111,9 +103,7 @@ class TestAPIEndpointData:
                     data = response.json()
 
                     # Validate response structure
-                    assert isinstance(
-                        data, (dict, list)
-                    ), "Response should be JSON object or array"
+                    assert isinstance(data, (dict, list)), "Response should be JSON object or array"
 
                     # If it's a dict, check for common ticker data fields
                     if isinstance(data, dict):
@@ -126,12 +116,8 @@ class TestAPIEndpointData:
                             "high",
                             "low",
                         ]
-                        found_fields = [
-                            field for field in expected_fields if field in data
-                        ]
-                        assert (
-                            len(found_fields) > 0
-                        ), f"Should contain ticker data fields, got: {list(data.keys())}"
+                        found_fields = [field for field in expected_fields if field in data]
+                        assert len(found_fields) > 0, f"Should contain ticker data fields, got: {list(data.keys())}"
 
                     break
                 if response.status_code == 422:
@@ -140,9 +126,7 @@ class TestAPIEndpointData:
                     break
 
             if not endpoint_found:
-                pytest.skip(
-                    "No ticker data endpoint found - may not be implemented yet"
-                )
+                pytest.skip("No ticker data endpoint found - may not be implemented yet")
 
     @pytest.mark.skipif(not FASTAPI_AVAILABLE, reason="FastAPI app not available")
     def test_api_error_handling(self) -> None:
@@ -160,13 +144,9 @@ class TestAPIEndpointData:
 
                 if response.status_code in [404, 422, 400]:
                     # Good - API handles invalid requests properly
-                    if response.headers.get("content-type", "").startswith(
-                        "application/json"
-                    ):
+                    if response.headers.get("content-type", "").startswith("application/json"):
                         error_data = response.json()
-                        assert isinstance(
-                            error_data, dict
-                        ), "Error response should be JSON object"
+                        assert isinstance(error_data, dict), "Error response should be JSON object"
                         # Common error response fields
                         assert any(
                             key in error_data for key in ["detail", "error", "message"]
@@ -210,14 +190,10 @@ class TestAPIProductionReadiness:
                 "x-xss-protection",
             ]
 
-            security_found = any(
-                header in response.headers for header in security_headers
-            )
+            security_found = any(header in response.headers for header in security_headers)
 
             if not security_found:
-                pytest.skip(
-                    "Security headers not configured - acceptable for development"
-                )
+                pytest.skip("Security headers not configured - acceptable for development")
 
     @pytest.mark.skipif(not FASTAPI_AVAILABLE, reason="FastAPI app not available")
     def test_api_response_times(self) -> None:
@@ -259,9 +235,7 @@ class TestAPIWithExternalServices:
                     # Look for database status in response
                     if isinstance(data, dict):
                         db_status_keys = ["database", "db", "postgres", "storage"]
-                        db_status_found = any(
-                            key in str(data).lower() for key in db_status_keys
-                        )
+                        db_status_found = any(key in str(data).lower() for key in db_status_keys)
 
                         if db_status_found:
                             # API reports database status - good!
@@ -296,15 +270,11 @@ class TestAPIWithExternalServices:
                     break
                 if response.status_code in [429, 503]:
                     # Rate limited or service unavailable - API is configured correctly
-                    pytest.skip(
-                        f"External API rate limited or unavailable: {response.status_code}"
-                    )
+                    pytest.skip(f"External API rate limited or unavailable: {response.status_code}")
                     break
                 if response.status_code == 422:
                     # Validation error - endpoint exists but needs different parameters
-                    pytest.skip(
-                        "Ticker endpoint exists but requires different parameters"
-                    )
+                    pytest.skip("Ticker endpoint exists but requires different parameters")
                     break
             else:
                 pytest.skip("No external API endpoints found")
@@ -328,9 +298,7 @@ class TestAPIManualStartup:
             if os.path.exists(api_file):
                 found_files.append(api_file)
 
-        assert (
-            len(found_files) > 0
-        ), f"No API startup script found. Checked: {api_files}"
+        assert len(found_files) > 0, f"No API startup script found. Checked: {api_files}"
 
     def test_api_startup_configuration(self) -> None:
         """Test API startup configuration."""

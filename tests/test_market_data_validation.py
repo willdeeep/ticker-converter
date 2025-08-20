@@ -76,9 +76,7 @@ class TestMarketDataPointValidation:
 
     def test_negative_volume_raises_error(self) -> None:
         """Test that negative volume raises validation error."""
-        with pytest.raises(
-            ValidationError, match="Input should be greater than or equal to 0"
-        ):
+        with pytest.raises(ValidationError, match="Input should be greater than or equal to 0"):
             MarketDataPoint(
                 symbol="AAPL",
                 timestamp=datetime(2025, 1, 1),

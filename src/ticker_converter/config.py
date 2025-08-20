@@ -54,10 +54,7 @@ class DatabaseSettings(BaseSettings):
         # Build PostgreSQL URL if password is provided
         password_value = self.password.get_secret_value()
         if password_value:
-            return (
-                f"postgresql://{self.user}:{password_value}"
-                f"@{self.host}:{self.port}/{self.name}"
-            )
+            return f"postgresql://{self.user}:{password_value}" f"@{self.host}:{self.port}/{self.name}"
 
         # Fall back to SQLite for local development
         self.sqlite_path.parent.mkdir(parents=True, exist_ok=True)
@@ -102,12 +99,8 @@ class APISettings(BaseSettings):
     )
 
     # Request configuration
-    timeout: int = Field(
-        default=30, ge=1, le=300, description="Request timeout in seconds"
-    )
-    max_retries: int = Field(
-        default=3, ge=0, le=10, description="Maximum number of retry attempts"
-    )
+    timeout: int = Field(default=30, ge=1, le=300, description="Request timeout in seconds")
+    max_retries: int = Field(default=3, ge=0, le=10, description="Maximum number of retry attempts")
     rate_limit_delay: int = Field(
         default=12,
         ge=1,
@@ -116,9 +109,7 @@ class APISettings(BaseSettings):
     )
 
     # Request batching
-    batch_size: int = Field(
-        default=100, ge=1, le=1000, description="Batch size for bulk operations"
-    )
+    batch_size: int = Field(default=100, ge=1, le=1000, description="Batch size for bulk operations")
 
     @field_validator("api_key", mode="before")
     @classmethod
@@ -156,15 +147,9 @@ class LoggingSettings(BaseSettings):
         default="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         description="Log format string",
     )
-    file_path: Path | None = Field(
-        default=None, description="Log file path (None for console only)"
-    )
-    max_bytes: int = Field(
-        default=10_000_000, description="Maximum log file size in bytes"
-    )
-    backup_count: int = Field(
-        default=5, description="Number of backup log files to keep"
-    )
+    file_path: Path | None = Field(default=None, description="Log file path (None for console only)")
+    max_bytes: int = Field(default=10_000_000, description="Maximum log file size in bytes")
+    backup_count: int = Field(default=5, description="Number of backup log files to keep")
 
     @field_validator("level")
     @classmethod
@@ -194,17 +179,13 @@ class AppSettings(BaseSettings):
     debug: bool = Field(default=False, description="Enable debug mode")
 
     # Environment
-    environment: str = Field(
-        default="development", description="Application environment"
-    )
+    environment: str = Field(default="development", description="Application environment")
 
     # Data directory
     data_dir: Path = Field(default=Path("data"), description="Data directory path")
 
     # Worker configuration
-    max_workers: int = Field(
-        default=4, ge=1, le=32, description="Maximum number of worker threads"
-    )
+    max_workers: int = Field(default=4, ge=1, le=32, description="Maximum number of worker threads")
 
     @field_validator("environment")
     @classmethod

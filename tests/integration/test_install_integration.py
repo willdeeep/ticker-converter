@@ -73,9 +73,7 @@ class TestEnvironmentConfiguration:
         for var_name, bad_values in sensitive_checks.items():
             value = os.getenv(var_name, "").lower()
             for bad_value in bad_values:
-                assert (
-                    value != bad_value.lower()
-                ), f"{var_name} should not use placeholder value '{bad_value}'"
+                assert value != bad_value.lower(), f"{var_name} should not use placeholder value '{bad_value}'"
 
 
 class TestDatabaseConfiguration:
@@ -113,9 +111,7 @@ class TestDatabaseConfiguration:
 
         if database_url:
             # If DATABASE_URL is provided, it should be valid format
-            assert (
-                "postgresql://" in database_url
-            ), "DATABASE_URL should use postgresql:// scheme"
+            assert "postgresql://" in database_url, "DATABASE_URL should use postgresql:// scheme"
         else:
             # If no DATABASE_URL, should be able to construct from components
             host = os.getenv("POSTGRES_HOST")
@@ -126,9 +122,7 @@ class TestDatabaseConfiguration:
 
             # Construct URL and verify format
             constructed_url = f"postgresql://{user}:{password}@{host}:{port}/{db}"
-            assert (
-                "postgresql://" in constructed_url
-            ), "Constructed database URL should be valid PostgreSQL format"
+            assert "postgresql://" in constructed_url, "Constructed database URL should be valid PostgreSQL format"
 
 
 class TestAirflowConfiguration:
@@ -142,23 +136,17 @@ class TestAirflowConfiguration:
         assert airflow_home != "", "AIRFLOW_HOME cannot be empty"
 
         # Should use project-relative path, not system-wide
-        assert (
-            "${PWD}" in airflow_home or "airflow" in airflow_home
-        ), "AIRFLOW_HOME should be project-relative"
+        assert "${PWD}" in airflow_home or "airflow" in airflow_home, "AIRFLOW_HOME should be project-relative"
 
     def test_airflow_dags_folder_from_env(self) -> None:
         """Test that AIRFLOW__CORE__DAGS_FOLDER is configured from environment."""
         dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
 
-        assert (
-            dags_folder is not None
-        ), "AIRFLOW__CORE__DAGS_FOLDER must be set in environment"
+        assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER must be set in environment"
         assert dags_folder != "", "AIRFLOW__CORE__DAGS_FOLDER cannot be empty"
 
         # Should point to project dags directory
-        assert (
-            "dags" in dags_folder
-        ), "AIRFLOW__CORE__DAGS_FOLDER should point to dags directory"
+        assert "dags" in dags_folder, "AIRFLOW__CORE__DAGS_FOLDER should point to dags directory"
 
     def test_airflow_admin_user_from_env(self) -> None:
         """Test that Airflow admin user is configured from environment."""
@@ -179,9 +167,7 @@ class TestAirflowConfiguration:
         """Test that Airflow security configuration comes from environment."""
         jwt_secret = os.getenv("AIRFLOW__API_AUTH__JWT_SECRET")
 
-        assert (
-            jwt_secret is not None
-        ), "AIRFLOW__API_AUTH__JWT_SECRET must be set in environment"
+        assert jwt_secret is not None, "AIRFLOW__API_AUTH__JWT_SECRET must be set in environment"
         assert jwt_secret != "", "AIRFLOW__API_AUTH__JWT_SECRET cannot be empty"
 
         # Should not be default/placeholder value
@@ -194,9 +180,7 @@ class TestAirflowConfiguration:
 
         for placeholder in placeholder_values:
             if jwt_secret == placeholder:
-                pytest.skip(
-                    f"JWT secret uses placeholder value '{placeholder}' - acceptable for development"
-                )
+                pytest.skip(f"JWT secret uses placeholder value '{placeholder}' - acceptable for development")
 
 
 class TestAPIConfiguration:
@@ -220,16 +204,12 @@ class TestAPIConfiguration:
 
         assert timeout is not None, "API_TIMEOUT must be set in environment"
         assert max_retries is not None, "MAX_RETRIES must be set in environment"
-        assert (
-            rate_limit_delay is not None
-        ), "RATE_LIMIT_DELAY must be set in environment"
+        assert rate_limit_delay is not None, "RATE_LIMIT_DELAY must be set in environment"
 
         # Should be numeric values
         assert timeout.replace(".", "").isdigit(), "API_TIMEOUT should be numeric"
         assert max_retries.isdigit(), "MAX_RETRIES should be numeric"
-        assert rate_limit_delay.replace(
-            ".", ""
-        ).isdigit(), "RATE_LIMIT_DELAY should be numeric"
+        assert rate_limit_delay.replace(".", "").isdigit(), "RATE_LIMIT_DELAY should be numeric"
 
     def test_fastapi_config_from_env(self) -> None:
         """Test that FastAPI configuration comes from environment."""
@@ -245,9 +225,7 @@ class TestAPIConfiguration:
 
         # LOG_LEVEL should be valid logging level
         valid_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-        assert (
-            log_level in valid_log_levels
-        ), f"LOG_LEVEL should be one of {valid_log_levels}"
+        assert log_level in valid_log_levels, f"LOG_LEVEL should be one of {valid_log_levels}"
 
 
 class TestMakeInstallIntegration:
@@ -333,17 +311,11 @@ class TestConfigurationConsistency:
             postgres_db = os.getenv("POSTGRES_DB")
 
             if postgres_host and postgres_db:
-                assert (
-                    postgres_host in db_url
-                ), "Database URL should contain configured host"
-                assert (
-                    postgres_db in db_url
-                ), "Database URL should contain configured database"
+                assert postgres_host in db_url, "Database URL should contain configured host"
+                assert postgres_db in db_url, "Database URL should contain configured database"
 
         except ImportError:
-            pytest.skip(
-                "get_database_url function not implemented yet - acceptable for current development stage"
-            )
+            pytest.skip("get_database_url function not implemented yet - acceptable for current development stage")
 
     def test_no_hardcoded_configuration_in_source(self) -> None:
         """Test that source code doesn't contain hardcoded configuration values."""
@@ -359,9 +331,7 @@ class TestConfigurationConsistency:
         # Should use os.getenv() for configuration or have environment-based config
         # This is flexible - either os.getenv or other environment configuration is acceptable
         env_config_indicators = ["os.getenv", "os.environ", "getenv", "environ"]
-        has_env_config = any(
-            indicator in db_source for indicator in env_config_indicators
-        )
+        has_env_config = any(indicator in db_source for indicator in env_config_indicators)
 
         if not has_env_config:
             # If no environment config found, that's acceptable if module doesn't handle config directly
@@ -378,9 +348,7 @@ class TestConfigurationConsistency:
         ]
 
         for pattern in hardcoded_patterns:
-            assert (
-                pattern not in db_source
-            ), f"Database module should not contain hardcoded value: {pattern}"
+            assert pattern not in db_source, f"Database module should not contain hardcoded value: {pattern}"
 
 
 class TestEnvironmentVariableExpansion:
@@ -397,16 +365,12 @@ class TestEnvironmentVariableExpansion:
             expanded_path = airflow_home.replace("${PWD}", os.getcwd())
             # Path might not exist yet, but parent should be valid
             parent_path = Path(expanded_path).parent
-            assert (
-                parent_path.exists()
-            ), f"Parent of AIRFLOW_HOME path should exist: {parent_path}"
+            assert parent_path.exists(), f"Parent of AIRFLOW_HOME path should exist: {parent_path}"
 
         if "${PWD}" in dags_folder:
             expanded_path = dags_folder.replace("${PWD}", os.getcwd())
             # DAGs folder should exist
-            assert Path(
-                expanded_path
-            ).exists(), f"DAGs folder should exist: {expanded_path}"
+            assert Path(expanded_path).exists(), f"DAGs folder should exist: {expanded_path}"
 
     def test_environment_isolation(self) -> None:
         """Test that configuration is properly isolated per environment."""
@@ -417,12 +381,8 @@ class TestEnvironmentVariableExpansion:
         system_paths = ["/usr/local/airflow", "/opt/airflow", "~/.airflow"]
 
         for system_path in system_paths:
-            assert (
-                system_path not in airflow_home
-            ), f"Should not use system-wide Airflow path: {system_path}"
+            assert system_path not in airflow_home, f"Should not use system-wide Airflow path: {system_path}"
 
         # Should be project-local
         current_dir = os.getcwd()
-        assert (
-            current_dir in airflow_home or "${PWD}" in airflow_home
-        ), "AIRFLOW_HOME should be project-local"
+        assert current_dir in airflow_home or "${PWD}" in airflow_home, "AIRFLOW_HOME should be project-local"

@@ -71,9 +71,7 @@ class TestAlphaVantageClientHttpRequests:
         client = AlphaVantageClient(api_key="test_key")
         client.session.get = Mock(return_value=mock_response)
 
-        result = client.make_request(
-            {"function": "TIME_SERIES_DAILY", "symbol": "AAPL"}
-        )
+        result = client.make_request({"function": "TIME_SERIES_DAILY", "symbol": "AAPL"})
 
         assert result == {"test": "data"}
         client.session.get.assert_called_once()

@@ -33,9 +33,7 @@ class TestCurrencyDataFetcherInitialization:
         assert CurrencyDataFetcher.REQUIRED_COLUMNS == ["Date"]
 
     @patch("src.ticker_converter.data_ingestion.base_fetcher.AlphaVantageClient")
-    def test_initialization_with_custom_api_client(
-        self, mock_client_class: Mock
-    ) -> None:
+    def test_initialization_with_custom_api_client(self, mock_client_class: Mock) -> None:
         """Test initialization with custom API client."""
         mock_client = Mock()
         mock_client_class.return_value = mock_client
@@ -82,9 +80,7 @@ class TestCurrencyDataFetcherCurrentExchangeRate:
         assert result["bid_price"] == 0.7863
         assert result["ask_price"] == 0.7867
 
-        self.mock_api_client.get_currency_exchange_rate.assert_called_once_with(
-            "USD", "GBP"
-        )
+        self.mock_api_client.get_currency_exchange_rate.assert_called_once_with("USD", "GBP")
 
     def test_fetch_current_exchange_rate_missing_data(self) -> None:
         """Test handling of response with missing exchange rate data."""
@@ -129,9 +125,7 @@ class TestCurrencyDataFetcherCurrentExchangeRate:
 
     def test_fetch_current_exchange_rate_api_error(self) -> None:
         """Test handling of AlphaVantage API errors."""
-        self.mock_api_client.get_currency_exchange_rate.side_effect = (
-            AlphaVantageAPIError("API limit exceeded")
-        )
+        self.mock_api_client.get_currency_exchange_rate.side_effect = AlphaVantageAPIError("API limit exceeded")
 
         with patch.object(self.fetcher, "_handle_api_error") as mock_handle_api_error:
             result = self.fetcher.fetch_current_exchange_rate()
@@ -178,9 +172,7 @@ class TestCurrencyDataFetcherDailyFxData:
         result = self.fetcher.fetch_daily_fx_data(days_back=5)
 
         assert result == mock_df
-        self.mock_api_client.get_forex_daily.assert_called_once_with(
-            "USD", "GBP", "compact"
-        )
+        self.mock_api_client.get_forex_daily.assert_called_once_with("USD", "GBP", "compact")
 
     def test_fetch_daily_fx_data_no_time_series(self) -> None:
         """Test handling of empty DataFrame result."""
@@ -195,11 +187,7 @@ class TestCurrencyDataFetcherDailyFxData:
 
     def test_fetch_daily_fx_data_empty_dataframe(self) -> None:
         """Test handling of empty DataFrame result."""
-        mock_response = {
-            "Time Series FX (Daily)": {
-                "2025-08-17": {"1. open": "0.7850", "4. close": "0.7865"}
-            }
-        }
+        mock_response = {"Time Series FX (Daily)": {"2025-08-17": {"1. open": "0.7850", "4. close": "0.7865"}}}
 
         self.mock_api_client.get_fx_daily.return_value = mock_response
 
@@ -221,20 +209,14 @@ class TestCurrencyDataFetcherDailyFxData:
 
         self.mock_api_client.get_forex_daily.return_value = mock_df
 
-        result = self.fetcher.fetch_daily_fx_data(
-            days_back=200
-        )  # Should trigger "full" output size
+        result = self.fetcher.fetch_daily_fx_data(days_back=200)  # Should trigger "full" output size
 
         assert result == mock_df
-        self.mock_api_client.get_forex_daily.assert_called_once_with(
-            "USD", "GBP", "full"
-        )
+        self.mock_api_client.get_forex_daily.assert_called_once_with("USD", "GBP", "full")
 
     def test_fetch_daily_fx_data_api_error(self) -> None:
         """Test handling of API errors during daily data fetch."""
-        self.mock_api_client.get_forex_daily.side_effect = AlphaVantageAPIError(
-            "API error"
-        )
+        self.mock_api_client.get_forex_daily.side_effect = AlphaVantageAPIError("API error")
 
         result = self.fetcher.fetch_daily_fx_data()
 
@@ -242,9 +224,7 @@ class TestCurrencyDataFetcherDailyFxData:
 
     def test_fetch_daily_fx_data_data_error(self) -> None:
         """Test handling of data processing errors."""
-        self.mock_api_client.get_forex_daily.side_effect = ValueError(
-            "Data processing error"
-        )
+        self.mock_api_client.get_forex_daily.side_effect = ValueError("Data processing error")
 
         result = self.fetcher.fetch_daily_fx_data()
 
@@ -267,9 +247,7 @@ class TestCurrencyDataFetcherSqlPreparation:
         result = self.fetcher.prepare_for_sql_insert(df)
 
         assert len(result) == 2
-        assert (
-            result[0]["data_date"].strftime("%Y-%m-%d") == "2025-08-17"
-        )  # data_date is a date object
+        assert result[0]["data_date"].strftime("%Y-%m-%d") == "2025-08-17"  # data_date is a date object
         assert result[0]["from_currency"] == "USD"
         assert result[0]["to_currency"] == "GBP"
         assert result[0]["exchange_rate"] == 0.7865
@@ -344,9 +322,7 @@ class TestCurrencyDataFetcherSqlPreparation:
         result = self.fetcher.prepare_current_rate_for_sql(current_rate_data)
 
         assert result is not None
-        assert (
-            result["data_date"].strftime("%Y-%m-%d") == "2025-08-17"
-        )  # data_date, not date
+        assert result["data_date"].strftime("%Y-%m-%d") == "2025-08-17"  # data_date, not date
         assert result["from_currency"] == "USD"
         assert result["to_currency"] == "GBP"
         assert result["exchange_rate"] == 0.7865
@@ -399,9 +375,7 @@ class TestCurrencyDataFetcherIntegration:
 
     def test_fetch_and_prepare_fx_data_fetch_failure(self) -> None:
         """Test fetch and prepare with fetch failure."""
-        self.mock_api_client.get_fx_daily.side_effect = AlphaVantageAPIError(
-            "API error"
-        )
+        self.mock_api_client.get_fx_daily.side_effect = AlphaVantageAPIError("API error")
 
         with patch.object(self.fetcher, "_handle_api_error"):
             result = self.fetcher.fetch_and_prepare_fx_data()
@@ -428,9 +402,7 @@ class TestCurrencyDataFetcherIntegration:
             "timezone": "UTC",
         }
 
-        with patch.object(
-            self.fetcher, "fetch_current_exchange_rate", return_value=mock_current_data
-        ):
+        with patch.object(self.fetcher, "fetch_current_exchange_rate", return_value=mock_current_data):
             result = self.fetcher.get_latest_available_rate()
 
             assert result is not None
@@ -440,9 +412,7 @@ class TestCurrencyDataFetcherIntegration:
 
     def test_get_latest_available_rate_failure(self) -> None:
         """Test getting latest rate when fetch fails."""
-        with patch.object(
-            self.fetcher, "fetch_current_exchange_rate", return_value=None
-        ):
+        with patch.object(self.fetcher, "fetch_current_exchange_rate", return_value=None):
             result = self.fetcher.get_latest_available_rate()
 
             assert result is None
@@ -457,9 +427,7 @@ class TestCurrencyDataFetcherIntegration:
             "timezone": "UTC",
         }
 
-        with patch.object(
-            self.fetcher, "fetch_current_exchange_rate", return_value=mock_current_data
-        ):
+        with patch.object(self.fetcher, "fetch_current_exchange_rate", return_value=mock_current_data):
             result = self.fetcher.get_latest_available_rate()
 
             # Should not be None - invalid date should fall back to current time
@@ -481,9 +449,7 @@ class TestCurrencyDataFetcherErrorHandling:
     def test_comprehensive_error_scenarios(self) -> None:
         """Test various error scenarios across all methods."""
         # Test TimeoutError - this is caught by the (ValueError, KeyError, TypeError) clause
-        self.mock_api_client.get_currency_exchange_rate.side_effect = ValueError(
-            "Network timeout simulation"
-        )
+        self.mock_api_client.get_currency_exchange_rate.side_effect = ValueError("Network timeout simulation")
 
         result = self.fetcher.fetch_current_exchange_rate()
         assert result is None
@@ -494,15 +460,11 @@ class TestCurrencyDataFetcherErrorHandling:
         malformed_responses = [
             {"wrong": "structure"},
             {"Realtime Currency Exchange Rate": None},
-            {
-                "Realtime Currency Exchange Rate": {}
-            },  # Empty dict instead of "not a dict"
+            {"Realtime Currency Exchange Rate": {}},  # Empty dict instead of "not a dict"
         ]
 
         for malformed_response in malformed_responses:
-            self.mock_api_client.get_currency_exchange_rate.return_value = (
-                malformed_response
-            )
+            self.mock_api_client.get_currency_exchange_rate.return_value = malformed_response
             result = self.fetcher.fetch_current_exchange_rate()
             assert result is None
 

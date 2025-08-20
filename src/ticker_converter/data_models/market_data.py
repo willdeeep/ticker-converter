@@ -165,29 +165,19 @@ class MarketDataPoint(BaseModel):
         """Validate price relationships and business rules."""
         # Basic OHLC validation
         if self.high < self.low:
-            raise ValueError(
-                f"High price ({self.high}) cannot be less than low price ({self.low})"
-            )
+            raise ValueError(f"High price ({self.high}) cannot be less than low price ({self.low})")
 
         # High must be >= all other prices
         if self.high < self.open:
-            raise ValueError(
-                f"High price ({self.high}) cannot be less than open price ({self.open})"
-            )
+            raise ValueError(f"High price ({self.high}) cannot be less than open price ({self.open})")
         if self.high < self.close:
-            raise ValueError(
-                f"High price ({self.high}) cannot be less than close price ({self.close})"
-            )
+            raise ValueError(f"High price ({self.high}) cannot be less than close price ({self.close})")
 
         # Low must be <= all other prices
         if self.low > self.open:
-            raise ValueError(
-                f"Low price ({self.low}) cannot be greater than open price ({self.open})"
-            )
+            raise ValueError(f"Low price ({self.low}) cannot be greater than open price ({self.open})")
         if self.low > self.close:
-            raise ValueError(
-                f"Low price ({self.low}) cannot be greater than close price ({self.close})"
-            )
+            raise ValueError(f"Low price ({self.low}) cannot be greater than close price ({self.close})")
 
         # Additional business rules
         price_range = self.high - self.low
@@ -295,9 +285,7 @@ class RawMarketData(BaseModel):
         pattern=r"^[A-Z0-9.-]+$",
         description="Primary symbol for this dataset",
     )
-    data_type: Literal["daily", "intraday", "weekly", "monthly"] = Field(
-        ..., description="Type of market data"
-    )
+    data_type: Literal["daily", "intraday", "weekly", "monthly"] = Field(..., description="Type of market data")
     retrieved_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         description="UTC timestamp when data was retrieved",
@@ -315,9 +303,7 @@ class RawMarketData(BaseModel):
 
     @field_validator("data_points")
     @classmethod
-    def validate_data_points_order(
-        cls, v: list[MarketDataPoint]
-    ) -> list[MarketDataPoint]:
+    def validate_data_points_order(cls, v: list[MarketDataPoint]) -> list[MarketDataPoint]:
         """Validate data points are in chronological order."""
         if len(v) <= 1:
             return v
@@ -339,10 +325,7 @@ class RawMarketData(BaseModel):
 
         for i, point in enumerate(self.data_points):
             if point.symbol != expected_symbol:
-                raise ValueError(
-                    f"Data point {i} has symbol '{point.symbol}' "
-                    f"but expected '{expected_symbol}'"
-                )
+                raise ValueError(f"Data point {i} has symbol '{point.symbol}' " f"but expected '{expected_symbol}'")
 
         return self
 

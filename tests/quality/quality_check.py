@@ -32,9 +32,7 @@ def main() -> int:
     success = True
 
     print("🚀 Running comprehensive quality gate validation...")
-    print(
-        "📋 Quality Gate Pipeline: Black → isort → Pylint → MyPy → Tests with Coverage"
-    )
+    print("📋 Quality Gate Pipeline: Black → isort → Pylint → MyPy → Tests with Coverage")
     print()
 
     # 1. Black code formatting check
@@ -63,9 +61,7 @@ def main() -> int:
         "dags/",
         "--score=yes",
     ]
-    result = subprocess.run(
-        pylint_cmd, cwd=project_root, capture_output=True, text=True, check=False
-    )
+    result = subprocess.run(pylint_cmd, cwd=project_root, capture_output=True, text=True, check=False)
     if result.returncode == 0 and "10.00/10" in result.stdout:
         print("✅ Pylint score: 10.00/10 PASSED")
     else:

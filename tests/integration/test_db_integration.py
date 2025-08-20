@@ -264,11 +264,7 @@ class TestDatabaseDataQuality:
             table_counts = {}
             for table in tables:
                 table_name = table[0]
-                cursor.execute(
-                    sql.SQL("SELECT COUNT(*) FROM {}").format(
-                        sql.Identifier(table_name)
-                    )
-                )
+                cursor.execute(sql.SQL("SELECT COUNT(*) FROM {}").format(sql.Identifier(table_name)))
                 count = cursor.fetchone()[0]
                 table_counts[table_name] = count
 
@@ -311,9 +307,7 @@ class TestDatabaseDataQuality:
             ticker_tables = cursor.fetchall()
 
             if not ticker_tables:
-                pytest.skip(
-                    "No ticker-related tables found - data quality check not applicable"
-                )
+                pytest.skip("No ticker-related tables found - data quality check not applicable")
 
             # Basic data quality checks
             for table in ticker_tables:
@@ -345,9 +339,7 @@ class TestDatabaseDataQuality:
                     )
                     null_count = cursor.fetchone()[0]
 
-                    print(
-                        f"Table {table_name}, column {col_name}: {null_count} NULL values"
-                    )
+                    print(f"Table {table_name}, column {col_name}: {null_count} NULL values")
 
             cursor.close()
             conn.close()

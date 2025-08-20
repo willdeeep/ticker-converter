@@ -54,9 +54,7 @@ def convert_time_series_to_dataframe(
         # Volume handling (different keys for different endpoints)
         if AlphaVantageValueKey.VOLUME.value in values:
             volume_value = values[AlphaVantageValueKey.VOLUME.value]
-            row["Volume"] = (
-                int(volume_value) if volume_value.isdigit() else float(volume_value)
-            )
+            row["Volume"] = int(volume_value) if volume_value.isdigit() else float(volume_value)
 
         # Add any additional columns
         row.update(additional_columns)

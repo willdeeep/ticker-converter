@@ -39,12 +39,8 @@ class TestAuthenticationErrors:
     def test_authentication_error_detection(self) -> None:
         """Test detection of various authentication error patterns."""
         auth_error_responses = [
-            {
-                "Error Message": "Invalid API call. Please retry or visit the documentation"
-            },
-            {
-                "Information": "Thank you for using Alpha Vantage! Our standard API call frequency is 5 calls per minute"
-            },
+            {"Error Message": "Invalid API call. Please retry or visit the documentation"},
+            {"Information": "Thank you for using Alpha Vantage! Our standard API call frequency is 5 calls per minute"},
             {"Note": "Thank you for using Alpha Vantage! Please consider upgrading"},
         ]
 
@@ -73,9 +69,7 @@ class TestRateLimitErrors:
         """Test API rate limit error handling."""
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "Error Message": "You have reached the 5 API requests per minute limit"
-        }
+        mock_response.json.return_value = {"Error Message": "You have reached the 5 API requests per minute limit"}
 
         client = AlphaVantageClient(api_key="test_key")
         mock_setup.assert_called_once()
@@ -88,12 +82,8 @@ class TestRateLimitErrors:
     def test_rate_limit_error_patterns(self) -> None:
         """Test various rate limit error response patterns."""
         rate_limit_responses = [
-            {
-                "Information": "Thank you for using Alpha Vantage! Our standard API call frequency is 5 calls per minute"
-            },
-            {
-                "Note": "Thank you for using Alpha Vantage! Please visit https://www.alphavantage.co/premium/ to upgrade"
-            },
+            {"Information": "Thank you for using Alpha Vantage! Our standard API call frequency is 5 calls per minute"},
+            {"Note": "Thank you for using Alpha Vantage! Please visit https://www.alphavantage.co/premium/ to upgrade"},
         ]
 
         client = AlphaVantageClient()
@@ -178,12 +168,8 @@ class TestNetworkErrors:
             with patch.object(client, "session") as mock_session:
                 mock_session.get.side_effect = error
 
-                with pytest.raises(
-                    (AlphaVantageRequestError, AlphaVantageTimeoutError)
-                ):
-                    client.make_request(
-                        {"function": "TIME_SERIES_DAILY", "symbol": "AAPL"}
-                    )
+                with pytest.raises((AlphaVantageRequestError, AlphaVantageTimeoutError)):
+                    client.make_request({"function": "TIME_SERIES_DAILY", "symbol": "AAPL"})
 
     def test_http_status_errors(self) -> None:
         """Test HTTP status code error handling."""
@@ -196,15 +182,11 @@ class TestNetworkErrors:
             with patch.object(client, "session") as mock_session:
                 mock_response = Mock()
                 mock_response.status_code = status_code
-                mock_response.raise_for_status.side_effect = requests.HTTPError(
-                    f"HTTP {status_code}"
-                )
+                mock_response.raise_for_status.side_effect = requests.HTTPError(f"HTTP {status_code}")
                 mock_session.get.return_value = mock_response
 
                 with pytest.raises(AlphaVantageRequestError):
-                    client.make_request(
-                        {"function": "TIME_SERIES_DAILY", "symbol": "AAPL"}
-                    )
+                    client.make_request({"function": "TIME_SERIES_DAILY", "symbol": "AAPL"})
 
         # Test authentication error codes separately
         auth_error_codes = [401, 403]
@@ -217,9 +199,7 @@ class TestNetworkErrors:
                 mock_session.get.return_value = mock_response
 
                 with pytest.raises(AlphaVantageAuthenticationError):
-                    client.make_request(
-                        {"function": "TIME_SERIES_DAILY", "symbol": "AAPL"}
-                    )
+                    client.make_request({"function": "TIME_SERIES_DAILY", "symbol": "AAPL"})
 
 
 class TestEdgeCases:
@@ -239,9 +219,7 @@ class TestEdgeCases:
             }
         }
 
-        with patch.object(
-            AlphaVantageClient, "make_request", return_value=mock_response
-        ):
+        with patch.object(AlphaVantageClient, "make_request", return_value=mock_response):
             client = AlphaVantageClient()
 
             # Simulate multiple requests

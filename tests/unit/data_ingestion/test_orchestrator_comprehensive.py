@@ -17,15 +17,9 @@ class TestDataIngestionOrchestratorInitialization:
     def test_init_with_default_components(self) -> None:
         """Test initialization with default component instances."""
         with (
-            patch(
-                "src.ticker_converter.data_ingestion.orchestrator.DatabaseManager"
-            ) as mock_db_cls,
-            patch(
-                "src.ticker_converter.data_ingestion.orchestrator.NYSEDataFetcher"
-            ) as mock_nyse_cls,
-            patch(
-                "src.ticker_converter.data_ingestion.orchestrator.CurrencyDataFetcher"
-            ) as mock_currency_cls,
+            patch("src.ticker_converter.data_ingestion.orchestrator.DatabaseManager") as mock_db_cls,
+            patch("src.ticker_converter.data_ingestion.orchestrator.NYSEDataFetcher") as mock_nyse_cls,
+            patch("src.ticker_converter.data_ingestion.orchestrator.CurrencyDataFetcher") as mock_currency_cls,
         ):
 
             orchestrator = DataIngestionOrchestrator()
@@ -38,10 +32,7 @@ class TestDataIngestionOrchestratorInitialization:
             assert orchestrator.db_manager is not None
             assert orchestrator.nyse_fetcher is not None
             assert orchestrator.currency_fetcher is not None
-            assert (
-                orchestrator.logger.name
-                == "src.ticker_converter.data_ingestion.orchestrator"
-            )
+            assert orchestrator.logger.name == "src.ticker_converter.data_ingestion.orchestrator"
 
     def test_init_with_provided_components(self) -> None:
         """Test initialization with provided component instances."""
@@ -62,12 +53,8 @@ class TestDataIngestionOrchestratorInitialization:
         mock_db = Mock()
 
         with (
-            patch(
-                "src.ticker_converter.data_ingestion.orchestrator.NYSEDataFetcher"
-            ) as mock_nyse_cls,
-            patch(
-                "src.ticker_converter.data_ingestion.orchestrator.CurrencyDataFetcher"
-            ) as mock_currency_cls,
+            patch("src.ticker_converter.data_ingestion.orchestrator.NYSEDataFetcher") as mock_nyse_cls,
+            patch("src.ticker_converter.data_ingestion.orchestrator.CurrencyDataFetcher") as mock_currency_cls,
         ):
 
             orchestrator = DataIngestionOrchestrator(db_manager=mock_db)
@@ -136,9 +123,7 @@ class TestDataIngestionOrchestratorInitialSetup:
         assert "setup_started" in result
         assert "setup_completed" in result
         assert result["days_requested"] == 10
-        assert (
-            result["total_records_inserted"] == 1
-        )  # Currency data overwrites stock data in update()
+        assert result["total_records_inserted"] == 1  # Currency data overwrites stock data in update()
         assert result["stock_data"]["records_fetched"] == 2
         assert result["stock_data"]["records_inserted"] == 2
         assert result["currency_data"]["records_fetched"] == 1
@@ -148,9 +133,7 @@ class TestDataIngestionOrchestratorInitialSetup:
     def test_perform_initial_setup_stock_data_failure(self) -> None:
         """Test initial setup when stock data fetching fails."""
         self.mock_nyse.fetch_and_prepare_all_data.return_value = None
-        self.mock_currency.fetch_and_prepare_fx_data.return_value = [
-            {"date": "2025-08-17", "rate": 0.78}
-        ]
+        self.mock_currency.fetch_and_prepare_fx_data.return_value = [{"date": "2025-08-17", "rate": 0.78}]
         self.mock_db.insert_currency_data.return_value = 1
 
         result = self.orchestrator.perform_initial_setup(days_back=5)
@@ -182,9 +165,7 @@ class TestDataIngestionOrchestratorInitialSetup:
         result = self.orchestrator.perform_initial_setup(days_back=7)
 
         # Verify currency data error is recorded
-        assert any(
-            "Failed to fetch currency data" in error for error in result["errors"]
-        )
+        assert any("Failed to fetch currency data" in error for error in result["errors"])
         assert result["total_records_inserted"] == 1  # Only stock data
 
         # Verify stock data still processed
@@ -200,16 +181,12 @@ class TestDataIngestionOrchestratorInitialSetup:
 
         # Verify currency data error is recorded (stock error gets overwritten by currency result)
         assert len(result["errors"]) == 1
-        assert any(
-            "Failed to fetch currency data" in error for error in result["errors"]
-        )
+        assert any("Failed to fetch currency data" in error for error in result["errors"])
         assert result["total_records_inserted"] == 0
 
     def test_perform_initial_setup_unexpected_exception(self) -> None:
         """Test initial setup handling unexpected exceptions."""
-        self.mock_nyse.fetch_and_prepare_all_data.side_effect = ValueError(
-            "API connection failed"
-        )
+        self.mock_nyse.fetch_and_prepare_all_data.side_effect = ValueError("API connection failed")
 
         result = self.orchestrator.perform_initial_setup(days_back=5)
 
@@ -220,12 +197,8 @@ class TestDataIngestionOrchestratorInitialSetup:
 
     def test_create_base_result(self) -> None:
         """Test creation of base result dictionary."""
-        with patch(
-            "src.ticker_converter.data_ingestion.orchestrator.datetime"
-        ) as mock_datetime:
-            mock_datetime.now.return_value.isoformat.return_value = (
-                "2025-08-17T10:30:00"
-            )
+        with patch("src.ticker_converter.data_ingestion.orchestrator.datetime") as mock_datetime:
+            mock_datetime.now.return_value.isoformat.return_value = "2025-08-17T10:30:00"
 
             result = self.orchestrator._create_base_result(15)
 
@@ -345,9 +318,7 @@ class TestDataIngestionOrchestratorDailyUpdate:
 
         # Verify API calls with 3-day lookback
         self.mock_nyse.fetch_and_prepare_all_data.assert_called_once_with(days_back=3)
-        self.mock_currency.fetch_and_prepare_fx_data.assert_called_once_with(
-            days_back=3
-        )
+        self.mock_currency.fetch_and_prepare_fx_data.assert_called_once_with(days_back=3)
         self.mock_db.insert_stock_data.assert_called_once_with(stock_data)
         self.mock_db.insert_currency_data.assert_called_once_with(currency_data)
 
@@ -409,9 +380,7 @@ class TestDataIngestionOrchestratorDailyUpdate:
 
     def test_perform_daily_update_exception_handling(self) -> None:
         """Test daily update exception handling."""
-        self.mock_nyse.fetch_and_prepare_all_data.side_effect = ValueError(
-            "Network timeout"
-        )
+        self.mock_nyse.fetch_and_prepare_all_data.side_effect = ValueError("Network timeout")
 
         result = self.orchestrator.perform_daily_update()
 
@@ -422,22 +391,16 @@ class TestDataIngestionOrchestratorDailyUpdate:
 
     def test_perform_daily_update_type_error_handling(self) -> None:
         """Test daily update handling different exception types."""
-        self.mock_nyse.fetch_and_prepare_all_data.side_effect = TypeError(
-            "Invalid type"
-        )
+        self.mock_nyse.fetch_and_prepare_all_data.side_effect = TypeError("Invalid type")
 
         result = self.orchestrator.perform_daily_update()
 
         assert result["success"] is False
-        assert any(
-            "Daily update failed: Invalid type" in error for error in result["errors"]
-        )
+        assert any("Daily update failed: Invalid type" in error for error in result["errors"])
 
     def test_perform_daily_update_runtime_error_handling(self) -> None:
         """Test daily update handling runtime errors."""
-        self.mock_db.insert_stock_data.side_effect = RuntimeError(
-            "Database connection lost"
-        )
+        self.mock_db.insert_stock_data.side_effect = RuntimeError("Database connection lost")
         stock_data = [{"symbol": "AAPL", "date": "2025-08-17", "close": 151.00}]
         self.mock_nyse.fetch_and_prepare_all_data.return_value = stock_data
 
@@ -483,9 +446,7 @@ class TestDataIngestionOrchestratorFullIngestion:
             "errors": [],
         }
 
-        with patch.object(
-            self.orchestrator, "perform_initial_setup", return_value=setup_result
-        ) as mock_setup:
+        with patch.object(self.orchestrator, "perform_initial_setup", return_value=setup_result) as mock_setup:
             result = self.orchestrator.run_full_ingestion()
 
             # Verify initial setup was called
@@ -517,9 +478,7 @@ class TestDataIngestionOrchestratorFullIngestion:
             "errors": [],
         }
 
-        with patch.object(
-            self.orchestrator, "perform_daily_update", return_value=update_result
-        ) as mock_update:
+        with patch.object(self.orchestrator, "perform_daily_update", return_value=update_result) as mock_update:
             result = self.orchestrator.run_full_ingestion()
 
             # Verify daily update was called
@@ -547,9 +506,7 @@ class TestDataIngestionOrchestratorFullIngestion:
             "errors": ["Failed to fetch data"],
         }
 
-        with patch.object(
-            self.orchestrator, "perform_initial_setup", return_value=setup_result
-        ):
+        with patch.object(self.orchestrator, "perform_initial_setup", return_value=setup_result):
             result = self.orchestrator.run_full_ingestion()
 
             assert result["success"] is False
@@ -569,9 +526,7 @@ class TestDataIngestionOrchestratorFullIngestion:
             "errors": ["API rate limit exceeded"],
         }
 
-        with patch.object(
-            self.orchestrator, "perform_daily_update", return_value=update_result
-        ):
+        with patch.object(self.orchestrator, "perform_daily_update", return_value=update_result):
             result = self.orchestrator.run_full_ingestion()
 
             assert result["success"] is False
@@ -598,9 +553,7 @@ class TestDataIngestionOrchestratorFullIngestion:
     def test_run_full_ingestion_database_connection_failure(self) -> None:
         """Test full ingestion handles database connection failures (bug fix verification)."""
         # Test the fixed bug - database connection failure should now be caught
-        self.mock_db.is_database_empty.side_effect = RuntimeError(
-            "Database connection failed"
-        )
+        self.mock_db.is_database_empty.side_effect = RuntimeError("Database connection failed")
 
         result = self.orchestrator.run_full_ingestion()
 
@@ -608,13 +561,9 @@ class TestDataIngestionOrchestratorFullIngestion:
         assert result["success"] is False
         assert "error" in result
         assert "Database connection failed" in result["error"]
-        assert (
-            result["database_status"] is None
-        )  # Should remain None due to early failure
+        assert result["database_status"] is None  # Should remain None due to early failure
         assert result["was_empty"] is None  # Should remain None due to early failure
-        assert (
-            result["operation_performed"] is None
-        )  # Should remain None due to early failure
+        assert result["operation_performed"] is None  # Should remain None due to early failure
 
     def test_run_full_ingestion_health_check_included(self) -> None:
         """Test that health check results are included in ingestion results."""
@@ -623,9 +572,7 @@ class TestDataIngestionOrchestratorFullIngestion:
         self.mock_db.health_check.return_value = health_status
 
         update_result = {"success": True, "total_records_inserted": 3}
-        with patch.object(
-            self.orchestrator, "perform_daily_update", return_value=update_result
-        ):
+        with patch.object(self.orchestrator, "perform_daily_update", return_value=update_result):
             result = self.orchestrator.run_full_ingestion()
 
             assert result["database_status"] == health_status
@@ -770,9 +717,7 @@ class TestDataIngestionOrchestratorStatus:
         """Test status retrieval when currency data has only one element."""
         self.mock_db.health_check.return_value = {"status": "healthy"}
         self.mock_nyse.check_data_freshness.return_value = {"AAPL": None}
-        self.mock_currency.get_latest_available_rate.return_value = (
-            date(2025, 8, 17),
-        )  # Only date, no rate
+        self.mock_currency.get_latest_available_rate.return_value = (date(2025, 8, 17),)  # Only date, no rate
         self.mock_nyse.MAGNIFICENT_SEVEN = [
             "AAPL",
             "MSFT",
@@ -893,9 +838,7 @@ class TestDataIngestionOrchestratorIntegration:
         # Note: initial_setup doesn't return "success" field, so full_ingestion defaults to False
         assert result["success"] is False  # Default when no "success" field in results
         assert result["operation_performed"] == "initial_setup"
-        assert (
-            result["results"]["total_records_inserted"] == 1
-        )  # Currency overwrites stock total
+        assert result["results"]["total_records_inserted"] == 1  # Currency overwrites stock total
         assert len(result["results"]["errors"]) == 0
 
         # Verify all components were called correctly
@@ -932,9 +875,7 @@ class TestDataIngestionOrchestratorIntegration:
 
         # Verify 3-day lookback for daily updates
         self.mock_nyse.fetch_and_prepare_all_data.assert_called_once_with(days_back=3)
-        self.mock_currency.fetch_and_prepare_fx_data.assert_called_once_with(
-            days_back=3
-        )
+        self.mock_currency.fetch_and_prepare_fx_data.assert_called_once_with(days_back=3)
 
     def test_resilient_error_handling_across_components(self) -> None:
         """Test that orchestrator handles errors gracefully across all components."""
@@ -953,10 +894,7 @@ class TestDataIngestionOrchestratorIntegration:
         # Verify partial success is handled correctly
         assert result["operation_performed"] == "initial_setup"
         assert result["results"]["total_records_inserted"] == 1  # Only currency data
-        assert any(
-            "Failed to fetch stock data" in error
-            for error in result["results"]["errors"]
-        )
+        assert any("Failed to fetch stock data" in error for error in result["results"]["errors"])
 
         # Verify currency data was still processed
         self.mock_db.insert_currency_data.assert_called_once_with(currency_data)
@@ -966,10 +904,7 @@ class TestDataIngestionOrchestratorIntegration:
         # This test verifies that the logger is set up and would be called
         # In a real scenario, you might want to test actual log output
         assert self.orchestrator.logger is not None
-        assert (
-            self.orchestrator.logger.name
-            == "src.ticker_converter.data_ingestion.orchestrator"
-        )
+        assert self.orchestrator.logger.name == "src.ticker_converter.data_ingestion.orchestrator"
 
         # Test that logger is used in methods (would require log capture in real implementation)
         with patch.object(self.orchestrator.logger, "info") as mock_log_info:

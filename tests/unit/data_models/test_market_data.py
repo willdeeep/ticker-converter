@@ -65,9 +65,7 @@ class TestMarketDataPoint:
                 volume=1000000,
             )
 
-        assert "High price (105.0) cannot be less than close price (110.0)" in str(
-            exc_info.value
-        )
+        assert "High price (105.0) cannot be less than close price (110.0)" in str(exc_info.value)
 
     def test_negative_prices(self) -> None:
         """Test validation of negative prices."""
@@ -226,9 +224,7 @@ class TestCurrencyRate:
 
         assert rate.from_currency == "USD"
         assert rate.to_currency == "GBP"
-        assert (
-            float(rate.rate) == 0.8
-        )  # Rate is Decimal, convert to float for comparison
+        assert float(rate.rate) == 0.8  # Rate is Decimal, convert to float for comparison
         assert rate.source == "alpha_vantage"
 
     def test_currency_code_uppercase(self) -> None:

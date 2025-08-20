@@ -86,16 +86,12 @@ class AlphaVantageClient:
             status_forcelist=[],
         )
 
-        adapter = HTTPAdapter(
-            pool_connections=10, pool_maxsize=20, max_retries=retry_strategy
-        )
+        adapter = HTTPAdapter(pool_connections=10, pool_maxsize=20, max_retries=retry_strategy)
 
         self.session = requests.Session()
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
-        self.session.headers.update(
-            {"User-Agent": f"TickerConverter/1.0 (Python/{sys.version.split()[0]})"}
-        )
+        self.session.headers.update({"User-Agent": f"TickerConverter/1.0 (Python/{sys.version.split()[0]})"})
 
     async def __aenter__(self) -> "AlphaVantageClient":
         """Async context manager entry with optimized connection pooling."""
@@ -107,16 +103,12 @@ class AlphaVantageClient:
             enable_cleanup_closed=True,
         )
 
-        timeout = aiohttp.ClientTimeout(
-            total=self.timeout, connect=30, sock_read=self.timeout
-        )
+        timeout = aiohttp.ClientTimeout(total=self.timeout, connect=30, sock_read=self.timeout)
 
         self._aio_session = aiohttp.ClientSession(
             connector=connector,
             timeout=timeout,
-            headers={
-                "User-Agent": f"TickerConverter/1.0 (Python/{sys.version.split()[0]})"
-            },
+            headers={"User-Agent": f"TickerConverter/1.0 (Python/{sys.version.split()[0]})"},
         )
         self.logger.debug("Async session initialized with connection pooling")
         return self
@@ -146,10 +138,7 @@ class AlphaVantageClient:
     def __repr__(self) -> str:
         """Detailed representation with masked API key."""
         masked_key = "***" if self.api_key else "None"
-        return (
-            f"AlphaVantageClient(api_key={masked_key}, "
-            f"timeout={self.timeout}, max_retries={self.max_retries})"
-        )
+        return f"AlphaVantageClient(api_key={masked_key}, " f"timeout={self.timeout}, max_retries={self.max_retries})"
 
     def make_request(self, params: dict[str, Any]) -> dict[str, Any]:
         """Make a synchronous request to the Alpha Vantage API with retry logic.
@@ -224,30 +213,21 @@ class AlphaVantageClient:
 
                     # Check for specific error types
                     error_lower = error_msg.lower()
-                    if (
-                        "rate limit" in error_lower
-                        or "requests per minute" in error_lower
-                    ):
+                    if "rate limit" in error_lower or "requests per minute" in error_lower:
                         if attempt < self.max_retries - 1:
                             wait_time = calculate_backoff_delay_with_jitter(attempt)
-                            self.logger.info(
-                                "Rate limit backoff: %.2f seconds", wait_time
-                            )
+                            self.logger.info("Rate limit backoff: %.2f seconds", wait_time)
                             time.sleep(wait_time)
                             continue
                         raise AlphaVantageRateLimitError(f"API Rate Limit: {error_msg}")
                     if "invalid api" in error_lower or "authentication" in error_lower:
-                        raise AlphaVantageAuthenticationError(
-                            f"Authentication Error: {error_msg}"
-                        )
+                        raise AlphaVantageAuthenticationError(f"Authentication Error: {error_msg}")
                     else:
                         raise AlphaVantageAPIError(f"API Error: {error_msg}")
 
                 rate_limit_msg = extract_rate_limit_message(data)
                 if rate_limit_msg:
-                    self.logger.warning(
-                        "Rate limit detected in response: %s", rate_limit_msg
-                    )
+                    self.logger.warning("Rate limit detected in response: %s", rate_limit_msg)
 
                     if attempt < self.max_retries - 1:
                         wait_time = calculate_backoff_delay_with_jitter(attempt)
@@ -279,9 +259,7 @@ class AlphaVantageClient:
                     time.sleep(wait_time)
                     continue
 
-                raise AlphaVantageRequestError(
-                    f"HTTP error after {self.max_retries} attempts"
-                ) from e
+                raise AlphaVantageRequestError(f"HTTP error after {self.max_retries} attempts") from e
 
             except requests.Timeout as e:
                 last_exception = e
@@ -297,9 +275,7 @@ class AlphaVantageClient:
                     time.sleep(wait_time)
                     continue
 
-                raise AlphaVantageTimeoutError(
-                    f"Request timed out after {self.max_retries} attempts"
-                ) from e
+                raise AlphaVantageTimeoutError(f"Request timed out after {self.max_retries} attempts") from e
 
             except requests.RequestException as e:
                 last_exception = e
@@ -317,9 +293,7 @@ class AlphaVantageClient:
                     continue
 
         # All attempts failed
-        raise AlphaVantageRequestError(
-            f"Request failed after {self.max_retries} attempts"
-        ) from last_exception
+        raise AlphaVantageRequestError(f"Request failed after {self.max_retries} attempts") from last_exception
 
     async def make_request_async(self, params: dict[str, Any]) -> dict[str, Any]:
         """Make an async request to the Alpha Vantage API with retry logic.
@@ -339,9 +313,7 @@ class AlphaVantageClient:
             AlphaVantageAPIError: For other API errors.
         """
         if not self._aio_session:
-            raise AlphaVantageConfigError(
-                "Async session not initialized. Use async context manager."
-            )
+            raise AlphaVantageConfigError("Async session not initialized. Use async context manager.")
 
         prepared_params = prepare_api_params(params, self.api_key)
         last_exception: Exception | None = None
@@ -356,9 +328,7 @@ class AlphaVantageClient:
                 )
 
                 timeout = aiohttp.ClientTimeout(total=self.timeout)
-                async with self._aio_session.get(
-                    self.base_url, params=prepared_params, timeout=timeout
-                ) as response:
+                async with self._aio_session.get(self.base_url, params=prepared_params, timeout=timeout) as response:
                     # Enhanced HTTP status code handling
                     if response.status in (401, 403):
                         error_text = await response.text()
@@ -375,9 +345,7 @@ class AlphaVantageClient:
                         self.logger.warning("Rate limit hit (HTTP 429)")
                         if attempt < self.max_retries - 1:
                             wait_time = calculate_backoff_delay_with_jitter(attempt)
-                            self.logger.info(
-                                "Rate limit backoff: %.2f seconds", wait_time
-                            )
+                            self.logger.info("Rate limit backoff: %.2f seconds", wait_time)
                             await asyncio.sleep(wait_time)
                             continue
                         else:
@@ -387,20 +355,14 @@ class AlphaVantageClient:
 
                     if not 200 <= response.status < 300:
                         error_text = await response.text()
-                        self.logger.error(
-                            "HTTP error %d: %s", response.status, error_text
-                        )
-                        raise AlphaVantageRequestError(
-                            f"HTTP {response.status}: {error_text}"
-                        )
+                        self.logger.error("HTTP error %d: %s", response.status, error_text)
+                        raise AlphaVantageRequestError(f"HTTP {response.status}: {error_text}")
 
                     try:
                         data: dict[str, Any] = await response.json()
                     except (ValueError, aiohttp.ContentTypeError) as e:
                         self.logger.error("Failed to parse JSON response: %s", str(e))
-                        raise AlphaVantageDataError(
-                            "Invalid JSON response from API"
-                        ) from e
+                        raise AlphaVantageDataError("Invalid JSON response from API") from e
 
                 # Check for API errors in response data
                 error_msg = extract_error_message(data)
@@ -410,9 +372,7 @@ class AlphaVantageClient:
 
                 rate_limit_msg = extract_rate_limit_message(data)
                 if rate_limit_msg:
-                    self.logger.warning(
-                        "Rate limit detected in response: %s", rate_limit_msg
-                    )
+                    self.logger.warning("Rate limit detected in response: %s", rate_limit_msg)
 
                     if attempt < self.max_retries - 1:
                         wait_time = calculate_backoff_delay_with_jitter(attempt)
@@ -443,9 +403,7 @@ class AlphaVantageClient:
                     await asyncio.sleep(wait_time)
                     continue
                 else:
-                    raise AlphaVantageTimeoutError(
-                        f"Request timed out after {self.max_retries} attempts"
-                    ) from e
+                    raise AlphaVantageTimeoutError(f"Request timed out after {self.max_retries} attempts") from e
 
             except aiohttp.ClientError as e:
                 last_exception = e
@@ -463,15 +421,11 @@ class AlphaVantageClient:
                     continue
 
         # All attempts failed
-        raise AlphaVantageRequestError(
-            f"Async request failed after {self.max_retries} attempts"
-        ) from last_exception
+        raise AlphaVantageRequestError(f"Async request failed after {self.max_retries} attempts") from last_exception
 
     # ===== HIGH-LEVEL API METHODS =====
 
-    def get_daily_stock_data(
-        self, symbol: str, outputsize: OutputSize | str = OutputSize.COMPACT
-    ) -> pd.DataFrame:
+    def get_daily_stock_data(self, symbol: str, outputsize: OutputSize | str = OutputSize.COMPACT) -> pd.DataFrame:
         """Get daily stock data for a symbol.
 
         Args:
@@ -505,9 +459,7 @@ class AlphaVantageClient:
             time_series_key = AlphaVantageResponseKey.TIME_SERIES_DAILY.value
 
             if time_series_key not in data:
-                raise AlphaVantageDataError(
-                    f"Expected key '{time_series_key}' not found in response"
-                )
+                raise AlphaVantageDataError(f"Expected key '{time_series_key}' not found in response")
 
             time_series = data[time_series_key]
 
@@ -517,9 +469,7 @@ class AlphaVantageClient:
             )
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get daily stock data for %s: %s", symbol, str(e)
-            )
+            self.logger.error("Failed to get daily stock data for %s: %s", symbol, str(e))
             raise
 
     def get_intraday_stock_data(
@@ -553,9 +503,7 @@ class AlphaVantageClient:
             time_series_key = f"Time Series ({interval})"
 
             if time_series_key not in data:
-                raise AlphaVantageDataError(
-                    f"Expected key '{time_series_key}' not found in response"
-                )
+                raise AlphaVantageDataError(f"Expected key '{time_series_key}' not found in response")
 
             time_series = data[time_series_key]
 
@@ -606,9 +554,7 @@ class AlphaVantageClient:
             time_series_key = AlphaVantageResponseKey.TIME_SERIES_FX_DAILY.value
 
             if time_series_key not in data:
-                raise AlphaVantageDataError(
-                    f"Expected key '{time_series_key}' not found in response"
-                )
+                raise AlphaVantageDataError(f"Expected key '{time_series_key}' not found in response")
 
             time_series = data[time_series_key]
 
@@ -616,14 +562,10 @@ class AlphaVantageClient:
             return process_forex_time_series(time_series, from_symbol, to_symbol)
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get forex data for %s/%s: %s", from_symbol, to_symbol, str(e)
-            )
+            self.logger.error("Failed to get forex data for %s/%s: %s", from_symbol, to_symbol, str(e))
             raise
 
-    def get_digital_currency_daily(
-        self, symbol: str, market: str = "USD"
-    ) -> pd.DataFrame:
+    def get_digital_currency_daily(self, symbol: str, market: str = "USD") -> pd.DataFrame:
         """Get daily digital currency data.
 
         Args:
@@ -647,9 +589,7 @@ class AlphaVantageClient:
             time_series_key = "Time Series (Digital Currency Daily)"
 
             if time_series_key not in data:
-                raise AlphaVantageDataError(
-                    f"Expected key '{time_series_key}' not found in response"
-                )
+                raise AlphaVantageDataError(f"Expected key '{time_series_key}' not found in response")
 
             time_series = data[time_series_key]
 
@@ -667,9 +607,7 @@ class AlphaVantageClient:
 
     # ===== ASYNC METHODS =====
 
-    async def get_daily_async(
-        self, symbol: str, outputsize: OutputSize = OutputSize.COMPACT
-    ) -> pd.DataFrame:
+    async def get_daily_async(self, symbol: str, outputsize: OutputSize = OutputSize.COMPACT) -> pd.DataFrame:
         """Async version of get_daily_stock_data."""
         params = {
             "function": AlphaVantageFunction.TIME_SERIES_DAILY.value,
@@ -682,9 +620,7 @@ class AlphaVantageClient:
             time_series_key = AlphaVantageResponseKey.TIME_SERIES_DAILY.value
 
             if time_series_key not in data:
-                raise AlphaVantageDataError(
-                    f"Expected key '{time_series_key}' not found in response"
-                )
+                raise AlphaVantageDataError(f"Expected key '{time_series_key}' not found in response")
 
             time_series = data[time_series_key]
 
@@ -693,9 +629,7 @@ class AlphaVantageClient:
             )
 
         except Exception as e:
-            self.logger.error(
-                "Failed to get daily stock data for %s: %s", symbol, str(e)
-            )
+            self.logger.error("Failed to get daily stock data for %s: %s", symbol, str(e))
             raise
 
     async def get_intraday_async(
@@ -717,9 +651,7 @@ class AlphaVantageClient:
             time_series_key = f"Time Series ({interval})"
 
             if time_series_key not in data:
-                raise AlphaVantageDataError(
-                    f"Expected key '{time_series_key}' not found in response"
-                )
+                raise AlphaVantageDataError(f"Expected key '{time_series_key}' not found in response")
 
             time_series = data[time_series_key]
 
@@ -738,9 +670,7 @@ class AlphaVantageClient:
             )
             raise
 
-    def get_currency_exchange_rate(
-        self, from_currency: str, to_currency: str
-    ) -> dict[str, Any]:
+    def get_currency_exchange_rate(self, from_currency: str, to_currency: str) -> dict[str, Any]:
         """Get real-time exchange rate for currency pair.
 
         Args:

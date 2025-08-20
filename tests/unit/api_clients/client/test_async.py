@@ -74,9 +74,7 @@ class TestAsyncRequests:
             client = AlphaVantageClient()
 
             async with client:
-                result = await client.make_request_async(
-                    {"function": "TIME_SERIES_DAILY", "symbol": "AAPL"}
-                )
+                result = await client.make_request_async({"function": "TIME_SERIES_DAILY", "symbol": "AAPL"})
                 assert result == mock_response_data
 
     @pytest.mark.asyncio
@@ -94,9 +92,7 @@ class TestAsyncRequests:
 
             async with client:
                 with pytest.raises(AlphaVantageRequestError):
-                    await client.make_request_async(
-                        {"function": "TIME_SERIES_DAILY", "symbol": "AAPL"}
-                    )
+                    await client.make_request_async({"function": "TIME_SERIES_DAILY", "symbol": "AAPL"})
 
     @pytest.mark.asyncio
     async def test_async_make_request_timeout(self) -> None:
@@ -108,9 +104,7 @@ class TestAsyncRequests:
 
             async with client:
                 with pytest.raises(AlphaVantageTimeoutError):
-                    await client.make_request_async(
-                        {"function": "TIME_SERIES_DAILY", "symbol": "AAPL"}
-                    )
+                    await client.make_request_async({"function": "TIME_SERIES_DAILY", "symbol": "AAPL"})
 
 
 class TestAsyncEndpoints:
@@ -131,9 +125,7 @@ class TestAsyncEndpoints:
             }
         }
 
-        with patch.object(
-            AlphaVantageClient, "make_request_async", return_value=mock_response_data
-        ):
+        with patch.object(AlphaVantageClient, "make_request_async", return_value=mock_response_data):
             client = AlphaVantageClient()
 
             async with client:

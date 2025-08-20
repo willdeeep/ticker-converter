@@ -20,9 +20,7 @@ class TestAirflowConfiguration:
         """Test that AIRFLOW__CORE__DAGS_FOLDER is set from environment, not hardcoded."""
         dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
 
-        assert (
-            dags_folder is not None
-        ), "AIRFLOW__CORE__DAGS_FOLDER must be set in environment"
+        assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER must be set in environment"
         assert dags_folder != "", "AIRFLOW__CORE__DAGS_FOLDER cannot be empty"
 
         # Verify it points to a valid directory
@@ -32,9 +30,7 @@ class TestAirflowConfiguration:
 
         # Verify it contains the expected DAG files
         dag_files = list(dags_path.glob("*.py"))
-        assert (
-            len(dag_files) > 0
-        ), f"No Python files found in DAGs folder: {dags_folder}"
+        assert len(dag_files) > 0, f"No Python files found in DAGs folder: {dags_folder}"
 
         # Check for our test DAG
         test_dag_file = dags_path / "test_etl_dag.py"
@@ -47,12 +43,8 @@ class TestAirflowConfiguration:
         # AIRFLOW_HOME should be set for integration tests
         if airflow_home:
             airflow_path = Path(airflow_home)
-            assert (
-                airflow_path.exists()
-            ), f"Airflow home directory does not exist: {airflow_home}"
-            assert (
-                airflow_path.is_dir()
-            ), f"Airflow home is not a directory: {airflow_home}"
+            assert airflow_path.exists(), f"Airflow home directory does not exist: {airflow_home}"
+            assert airflow_path.is_dir(), f"Airflow home is not a directory: {airflow_home}"
 
     def test_required_airflow_environment_variables(self) -> None:
         """Test that required Airflow environment variables are set."""
@@ -69,9 +61,7 @@ class TestAirflowConfiguration:
         # Validate database connection string format
         db_conn = os.getenv("AIRFLOW__DATABASE__SQL_ALCHEMY_CONN")
         assert db_conn is not None, "Database connection string not set"
-        assert db_conn.startswith(
-            ("postgresql://", "sqlite:///")
-        ), "Database connection should be PostgreSQL or SQLite"
+        assert db_conn.startswith(("postgresql://", "sqlite:///")), "Database connection should be PostgreSQL or SQLite"
 
 
 class TestAirflowDAGValidation:
@@ -91,9 +81,7 @@ class TestAirflowDAGValidation:
         # Check that files are readable
         for py_file in python_files:
             assert py_file.is_file(), f"DAG file should be a file: {py_file}"
-            assert os.access(
-                py_file, os.R_OK
-            ), f"DAG file should be readable: {py_file}"
+            assert os.access(py_file, os.R_OK), f"DAG file should be readable: {py_file}"
 
     def test_test_etl_dag_syntax(self) -> None:
         """Test that test_etl_dag.py has valid Python syntax."""
@@ -153,9 +141,7 @@ class TestAirflowServiceConnectivity:
 
             # Extract components for validation
             parts = db_conn.replace("postgresql://", "").split("@")
-            assert (
-                len(parts) == 2
-            ), "Connection string format should be user:pass@host:port/db"
+            assert len(parts) == 2, "Connection string format should be user:pass@host:port/db"
 
             credentials, host_db = parts
             assert ":" in credentials, "Should have user:password format"
@@ -180,12 +166,8 @@ class TestAirflowServiceConnectivity:
         assert (
             'os.getenv("AIRFLOW__CORE__DAGS_FOLDER")' in content
         ), "DAG should use environment variable for DAGS_FOLDER"
-        assert (
-            'os.getenv("POSTGRES_USER"' in content
-        ), "DAG should use environment variable for POSTGRES_USER"
-        assert (
-            'os.getenv("ALPHA_VANTAGE_API_KEY"' in content
-        ), "DAG should use environment variable for API key"
+        assert 'os.getenv("POSTGRES_USER"' in content, "DAG should use environment variable for POSTGRES_USER"
+        assert 'os.getenv("ALPHA_VANTAGE_API_KEY"' in content, "DAG should use environment variable for API key"
 
         # Check that hardcoded values are not used
         hardcoded_patterns = [
@@ -240,9 +222,7 @@ class TestAirflowRuntime:
         try:
             # Set environment for airflow command
             env = os.environ.copy()
-            env["AIRFLOW__CORE__DAGS_FOLDER"] = os.getenv(
-                "AIRFLOW__CORE__DAGS_FOLDER", ""
-            )
+            env["AIRFLOW__CORE__DAGS_FOLDER"] = os.getenv("AIRFLOW__CORE__DAGS_FOLDER", "")
 
             # First try to refresh DAGs to make sure they're loaded
             subprocess.run(
@@ -280,9 +260,7 @@ class TestAirflowRuntime:
                             f"DAGs folder contains Python files but Airflow shows no DAGs - may need time to parse: {py_files}"
                         )
 
-                pytest.skip(
-                    "No DAGs found in Airflow - this may be expected for a fresh installation"
-                )
+                pytest.skip("No DAGs found in Airflow - this may be expected for a fresh installation")
 
             # If we have DAGs listed, good! Check if our test DAG is among them
             if "test_etl_dag" in result.stdout:
@@ -303,9 +281,7 @@ class TestAirflowRuntime:
         try:
             # Set environment for airflow command
             env = os.environ.copy()
-            env["AIRFLOW__CORE__DAGS_FOLDER"] = os.getenv(
-                "AIRFLOW__CORE__DAGS_FOLDER", ""
-            )
+            env["AIRFLOW__CORE__DAGS_FOLDER"] = os.getenv("AIRFLOW__CORE__DAGS_FOLDER", "")
 
             result = subprocess.run(
                 ["airflow", "dags", "show", "test_etl_dag"],

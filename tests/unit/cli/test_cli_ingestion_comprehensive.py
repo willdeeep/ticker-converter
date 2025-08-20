@@ -39,9 +39,7 @@ class TestCLIIngestionCommands:
     def test_ingestion_group_verbose_flag() -> None:
         """Test verbose flag functionality."""
         runner = CliRunner()
-        with patch(
-            "src.ticker_converter.cli_ingestion.setup_rich_logging"
-        ) as mock_logging:
+        with patch("src.ticker_converter.cli_ingestion.setup_rich_logging") as mock_logging:
             result = runner.invoke(ingestion, ["--verbose", "status"])
 
             # When a subcommand is provided, exit code depends on subcommand success
@@ -134,9 +132,7 @@ class TestSetupCommand:
     def test_setup_command_orchestrator_error(mock_orchestrator_class: Mock) -> None:
         """Test setup command handling orchestrator errors."""
         mock_orchestrator = MagicMock()
-        mock_orchestrator.perform_initial_setup.side_effect = Exception(
-            "Database connection failed"
-        )
+        mock_orchestrator.perform_initial_setup.side_effect = Exception("Database connection failed")
         mock_orchestrator_class.return_value = mock_orchestrator
 
         runner = CliRunner()
@@ -216,9 +212,7 @@ class TestUpdateCommand:
     def test_update_command_error_handling(mock_orchestrator_class: Mock) -> None:
         """Test update command error handling."""
         mock_orchestrator = MagicMock()
-        mock_orchestrator.run_full_ingestion.side_effect = ConnectionError(
-            "API unreachable"
-        )
+        mock_orchestrator.run_full_ingestion.side_effect = ConnectionError("API unreachable")
         mock_orchestrator_class.return_value = mock_orchestrator
 
         runner = CliRunner()
@@ -266,9 +260,7 @@ class TestRunCommand:
     def test_run_command_error_handling(mock_orchestrator_class: Mock) -> None:
         """Test run command error handling."""
         mock_orchestrator = MagicMock()
-        mock_orchestrator.run_full_ingestion.side_effect = RuntimeError(
-            "Orchestration failed"
-        )
+        mock_orchestrator.run_full_ingestion.side_effect = RuntimeError("Orchestration failed")
         mock_orchestrator_class.return_value = mock_orchestrator
 
         runner = CliRunner()
@@ -299,9 +291,7 @@ class TestStatusCommand:
         # Mock settings object
         mock_settings = MagicMock()
         mock_settings.database.get_url.return_value = "sqlite:///test.db"
-        mock_settings.api.api_key.get_secret_value.return_value = (
-            "test_api_key_1234567890"
-        )
+        mock_settings.api.api_key.get_secret_value.return_value = "test_api_key_1234567890"
         mock_settings.app.environment = "development"
         mock_settings.app.debug = True
         mock_settings.app.max_workers = 4
@@ -401,9 +391,7 @@ class TestHelperFunctions:
         """Test rich logging setup in normal mode."""
         with (
             patch("src.ticker_converter.cli_ingestion.logging") as mock_logging,
-            patch(
-                "src.ticker_converter.cli_ingestion.get_logging_config"
-            ) as mock_config,
+            patch("src.ticker_converter.cli_ingestion.get_logging_config") as mock_config,
         ):
 
             mock_config.return_value.level = "INFO"
@@ -418,9 +406,7 @@ class TestHelperFunctions:
         """Test rich logging setup in verbose mode."""
         with (
             patch("src.ticker_converter.cli_ingestion.logging") as mock_logging,
-            patch(
-                "src.ticker_converter.cli_ingestion.get_logging_config"
-            ) as mock_config,
+            patch("src.ticker_converter.cli_ingestion.get_logging_config") as mock_config,
         ):
 
             mock_config.return_value.level = "INFO"
@@ -440,9 +426,7 @@ class TestHelperFunctions:
             # Verify error was displayed
             assert mock_console.print.call_count >= 2
             calls = [call.args[0] for call in mock_console.print.call_args_list]
-            error_calls = [
-                call for call in calls if "Error during test operation" in call
-            ]
+            error_calls = [call for call in calls if "Error during test operation" in call]
             assert len(error_calls) > 0
 
     @staticmethod
@@ -491,12 +475,8 @@ class TestHelperFunctions:
                     assert written_data == results
 
                 # Verify console output included file confirmation
-                calls = [
-                    str(call.args[0]) for call in mock_console.print.call_args_list
-                ]
-                file_calls = [
-                    call for call in calls if f"Results written to {f.name}" in call
-                ]
+                calls = [str(call.args[0]) for call in mock_console.print.call_args_list]
+                file_calls = [call for call in calls if f"Results written to {f.name}" in call]
                 assert len(file_calls) > 0
 
 
@@ -506,9 +486,7 @@ class TestCLIIntegration:
     @staticmethod
     def test_cli_chain_setup_then_update() -> None:
         """Test running setup followed by update commands."""
-        with patch(
-            "src.ticker_converter.cli_ingestion.DataIngestionOrchestrator"
-        ) as mock_orch:
+        with patch("src.ticker_converter.cli_ingestion.DataIngestionOrchestrator") as mock_orch:
             mock_instance = MagicMock()
             mock_instance.perform_initial_setup.return_value = {"setup": "complete"}
             mock_instance.run_full_ingestion.return_value = {"update": "complete"}
@@ -531,9 +509,7 @@ class TestCLIIntegration:
     @staticmethod
     def test_cli_error_propagation() -> None:
         """Test that errors are properly propagated through CLI."""
-        with patch(
-            "src.ticker_converter.cli_ingestion.DataIngestionOrchestrator"
-        ) as mock_orch:
+        with patch("src.ticker_converter.cli_ingestion.DataIngestionOrchestrator") as mock_orch:
             mock_orch.side_effect = ImportError("Missing dependency")
 
             runner = CliRunner()
@@ -546,12 +522,8 @@ class TestCLIIntegration:
     def test_cli_verbose_logging_integration() -> None:
         """Test verbose logging integration across commands."""
         with (
-            patch(
-                "src.ticker_converter.cli_ingestion.setup_rich_logging"
-            ) as mock_logging,
-            patch(
-                "src.ticker_converter.cli_ingestion.DataIngestionOrchestrator"
-            ) as mock_orch,
+            patch("src.ticker_converter.cli_ingestion.setup_rich_logging") as mock_logging,
+            patch("src.ticker_converter.cli_ingestion.DataIngestionOrchestrator") as mock_orch,
         ):
 
             mock_instance = MagicMock()
@@ -567,18 +539,14 @@ class TestCLIIntegration:
     @staticmethod
     def test_cli_output_file_error_handling() -> None:
         """Test CLI behavior when output file cannot be written."""
-        with patch(
-            "src.ticker_converter.cli_ingestion.DataIngestionOrchestrator"
-        ) as mock_orch:
+        with patch("src.ticker_converter.cli_ingestion.DataIngestionOrchestrator") as mock_orch:
             mock_instance = MagicMock()
             mock_instance.perform_initial_setup.return_value = {"test": "data"}
             mock_orch.return_value = mock_instance
 
             runner = CliRunner()
             # Try to write to invalid path
-            result = runner.invoke(
-                ingestion, ["setup", "--output", "/invalid/path/output.json"]
-            )
+            result = runner.invoke(ingestion, ["setup", "--output", "/invalid/path/output.json"])
 
             # Should fail due to invalid file path
             assert result.exit_code != 0
@@ -593,9 +561,7 @@ class TestCLIParameterValidation:
         runner = CliRunner()
 
         # Test zero days
-        with patch(
-            "src.ticker_converter.cli_ingestion.DataIngestionOrchestrator"
-        ) as mock_orch:
+        with patch("src.ticker_converter.cli_ingestion.DataIngestionOrchestrator") as mock_orch:
             mock_instance = MagicMock()
             mock_instance.perform_initial_setup.return_value = {"days": 0}
             mock_orch.return_value = mock_instance
@@ -633,9 +599,7 @@ class TestCLIOutputFormatting:
     def test_progress_display_formatting() -> None:
         """Test that progress displays are properly formatted."""
         with (
-            patch(
-                "src.ticker_converter.cli_ingestion.DataIngestionOrchestrator"
-            ) as mock_orch,
+            patch("src.ticker_converter.cli_ingestion.DataIngestionOrchestrator") as mock_orch,
             patch("src.ticker_converter.cli_ingestion.Progress") as mock_progress,
         ):
 
@@ -645,9 +609,7 @@ class TestCLIOutputFormatting:
 
             # Mock progress context manager
             mock_progress_instance = MagicMock()
-            mock_progress.return_value.__enter__ = MagicMock(
-                return_value=mock_progress_instance
-            )
+            mock_progress.return_value.__enter__ = MagicMock(return_value=mock_progress_instance)
             mock_progress.return_value.__exit__ = MagicMock(return_value=None)
 
             runner = CliRunner()

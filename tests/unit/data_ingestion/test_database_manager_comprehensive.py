@@ -40,9 +40,7 @@ class TestDatabaseManagerInitialization:
 
     @patch("src.ticker_converter.data_ingestion.database_manager.config")
     @patch("src.ticker_converter.data_ingestion.database_manager.Path")
-    def test_get_default_connection_fallback_to_sqlite(
-        self, mock_path: Mock, mock_config: Mock
-    ) -> None:
+    def test_get_default_connection_fallback_to_sqlite(self, mock_path: Mock, mock_config: Mock) -> None:
         """Test fallback to SQLite when no config DATABASE_URL."""
         # Mock config without DATABASE_URL
         mock_config.DATABASE_URL = None
@@ -94,9 +92,7 @@ class TestDatabaseConnection:
         manager = DatabaseManager("postgresql://user:pass@localhost/db")
         connection = manager.get_connection()
 
-        mock_psycopg2.connect.assert_called_once_with(
-            "postgresql://user:pass@localhost/db"
-        )
+        mock_psycopg2.connect.assert_called_once_with("postgresql://user:pass@localhost/db")
         assert connection == mock_connection
 
     @patch("src.ticker_converter.data_ingestion.database_manager.sqlite3")
@@ -113,9 +109,7 @@ class TestDatabaseConnection:
         mock_connection.close.assert_called_once()
 
     @patch("src.ticker_converter.data_ingestion.database_manager.sqlite3")
-    def test_connection_context_manager_error_handling(
-        self, mock_sqlite3: Mock
-    ) -> None:
+    def test_connection_context_manager_error_handling(self, mock_sqlite3: Mock) -> None:
         """Test connection context manager error handling."""
         mock_connection = MagicMock()
         mock_sqlite3.connect.return_value = mock_connection
@@ -131,9 +125,7 @@ class TestDatabaseConnection:
         mock_connection.close.assert_called_once()
 
     @patch("src.ticker_converter.data_ingestion.database_manager.sqlite3")
-    def test_connection_context_manager_no_connection_error(
-        self, mock_sqlite3: Mock
-    ) -> None:
+    def test_connection_context_manager_no_connection_error(self, mock_sqlite3: Mock) -> None:
         """Test connection context manager when connection fails."""
         mock_sqlite3.connect.side_effect = sqlite3.Error("Connection failed")
 
@@ -169,9 +161,7 @@ class TestDatabaseQueryOperations:
         assert results == [mock_row1, mock_row2]
 
     @patch.object(DatabaseManager, "connection")
-    def test_execute_query_postgresql_success(
-        self, mock_connection_context: Mock
-    ) -> None:
+    def test_execute_query_postgresql_success(self, mock_connection_context: Mock) -> None:
         """Test successful query execution with PostgreSQL."""
         # Mock PostgreSQL connection and cursor
         mock_connection = MagicMock()
@@ -187,9 +177,7 @@ class TestDatabaseQueryOperations:
         manager = DatabaseManager("postgresql://user:pass@localhost/db")
 
         # Mock the psycopg2 isinstance check to return True
-        with patch(
-            "src.ticker_converter.data_ingestion.database_manager.isinstance"
-        ) as mock_isinstance:
+        with patch("src.ticker_converter.data_ingestion.database_manager.isinstance") as mock_isinstance:
             mock_isinstance.return_value = True
             results = manager.execute_query("SELECT * FROM stocks", ("param1",))
 
@@ -198,9 +186,7 @@ class TestDatabaseQueryOperations:
         assert results == [mock_row1, mock_row2]
 
     @patch.object(DatabaseManager, "connection")
-    def test_execute_query_with_no_parameters(
-        self, mock_connection_context: Mock
-    ) -> None:
+    def test_execute_query_with_no_parameters(self, mock_connection_context: Mock) -> None:
         """Test query execution without parameters."""
         mock_connection = MagicMock(spec=sqlite3.Connection)
         mock_cursor = MagicMock()
@@ -232,16 +218,12 @@ class TestDatabaseQueryOperations:
         manager = DatabaseManager("sqlite:///test.db")
         result = manager.execute_insert("INSERT INTO stocks VALUES (?, ?)", records)
 
-        mock_cursor.executemany.assert_called_once_with(
-            "INSERT INTO stocks VALUES (?, ?)", records
-        )
+        mock_cursor.executemany.assert_called_once_with("INSERT INTO stocks VALUES (?, ?)", records)
         mock_connection.commit.assert_called_once()
         assert result == 2
 
     @patch.object(DatabaseManager, "connection")
-    def test_execute_insert_postgresql_success(
-        self, mock_connection_context: Mock
-    ) -> None:
+    def test_execute_insert_postgresql_success(self, mock_connection_context: Mock) -> None:
         """Test successful insert operation with PostgreSQL."""
         mock_connection = MagicMock()
         mock_cursor = MagicMock()
@@ -261,9 +243,7 @@ class TestDatabaseQueryOperations:
 
             # Verify execute_values called with correct parameters
             expected_values = [["AAPL", 150.0], ["GOOGL", 2500.0]]
-            mock_execute_values.assert_called_once_with(
-                mock_cursor, "INSERT INTO stocks VALUES %s", expected_values
-            )
+            mock_execute_values.assert_called_once_with(mock_cursor, "INSERT INTO stocks VALUES %s", expected_values)
             mock_connection.commit.assert_called_once()
             assert result == 2
 
@@ -293,9 +273,7 @@ class TestDatabaseStatusChecking:
         assert mock_execute_query.call_count == 2
 
     @patch.object(DatabaseManager, "execute_query")
-    def test_is_database_empty_false_with_stock_data(
-        self, mock_execute_query: Mock
-    ) -> None:
+    def test_is_database_empty_false_with_stock_data(self, mock_execute_query: Mock) -> None:
         """Test database empty check when stock data exists."""
         mock_execute_query.side_effect = [
             [{"count": 5}],  # stock count
@@ -308,9 +286,7 @@ class TestDatabaseStatusChecking:
         assert result is False
 
     @patch.object(DatabaseManager, "execute_query")
-    def test_is_database_empty_false_with_currency_data(
-        self, mock_execute_query: Mock
-    ) -> None:
+    def test_is_database_empty_false_with_currency_data(self, mock_execute_query: Mock) -> None:
         """Test database empty check when currency data exists."""
         mock_execute_query.side_effect = [
             [{"count": 0}],  # stock count
@@ -342,9 +318,7 @@ class TestDatabaseStatusChecking:
         manager = DatabaseManager("sqlite:///test.db")
         result = manager.get_latest_stock_date("AAPL")
 
-        expected_query = (
-            "SELECT MAX(data_date) as latest_date FROM raw_stock_data WHERE symbol = ?"
-        )
+        expected_query = "SELECT MAX(data_date) as latest_date FROM raw_stock_data WHERE symbol = ?"
         mock_execute_query.assert_called_once_with(expected_query, ("AAPL",))
         assert result == datetime.strptime(test_date, "%Y-%m-%d")
 
@@ -372,9 +346,7 @@ class TestDatabaseStatusChecking:
         assert result is None
 
     @patch.object(DatabaseManager, "execute_query")
-    def test_get_latest_stock_date_error_handling(
-        self, mock_execute_query: Mock
-    ) -> None:
+    def test_get_latest_stock_date_error_handling(self, mock_execute_query: Mock) -> None:
         """Test getting latest stock date error handling."""
         mock_execute_query.side_effect = sqlite3.Error("Database error")
 
@@ -436,9 +408,7 @@ class TestDatabaseDataOperations:
         mock_execute_insert.assert_called_once()
 
     @patch.object(DatabaseManager, "execute_insert")
-    def test_insert_stock_data_postgresql_query(
-        self, mock_execute_insert: Mock
-    ) -> None:
+    def test_insert_stock_data_postgresql_query(self, mock_execute_insert: Mock) -> None:
         """Test stock data insertion uses correct PostgreSQL query."""
         mock_execute_insert.return_value = 1
 
@@ -497,9 +467,7 @@ class TestDatabaseDataOperations:
         mock_execute_insert.assert_called_once()
 
     @patch.object(DatabaseManager, "execute_insert")
-    def test_insert_currency_data_postgresql_query(
-        self, mock_execute_insert: Mock
-    ) -> None:
+    def test_insert_currency_data_postgresql_query(self, mock_execute_insert: Mock) -> None:
         """Test currency data insertion uses correct PostgreSQL query."""
         mock_execute_insert.return_value = 1
 
@@ -515,9 +483,7 @@ class TestDatabaseDataOperations:
         assert "ON CONFLICT" in query
 
     @patch.object(DatabaseManager, "execute_insert")
-    def test_insert_currency_data_error_handling(
-        self, mock_execute_insert: Mock
-    ) -> None:
+    def test_insert_currency_data_error_handling(self, mock_execute_insert: Mock) -> None:
         """Test currency data insertion error handling."""
         mock_execute_insert.side_effect = psycopg2.Error("Insert failed")
 
@@ -533,9 +499,7 @@ class TestDatabaseMissingDataAnalysis:
     """Test missing data analysis and date calculations."""
 
     @patch.object(DatabaseManager, "execute_query")
-    def test_get_missing_dates_for_symbol_success(
-        self, mock_execute_query: Mock
-    ) -> None:
+    def test_get_missing_dates_for_symbol_success(self, mock_execute_query: Mock) -> None:
         """Test getting missing dates for symbol successfully."""
         # Mock existing dates (missing one day in between)
         existing_dates = [
@@ -554,9 +518,7 @@ class TestDatabaseMissingDataAnalysis:
         assert all(isinstance(date, datetime) for date in missing_dates)
 
     @patch.object(DatabaseManager, "execute_query")
-    def test_get_missing_dates_for_symbol_all_present(
-        self, mock_execute_query: Mock
-    ) -> None:
+    def test_get_missing_dates_for_symbol_all_present(self, mock_execute_query: Mock) -> None:
         """Test getting missing dates when all dates are present."""
         # Mock all dates present for last 5 business days
         today = datetime.now().date()
@@ -576,9 +538,7 @@ class TestDatabaseMissingDataAnalysis:
         assert isinstance(missing_dates, list)
 
     @patch.object(DatabaseManager, "execute_query")
-    def test_get_missing_dates_for_symbol_error_handling(
-        self, mock_execute_query: Mock
-    ) -> None:
+    def test_get_missing_dates_for_symbol_error_handling(self, mock_execute_query: Mock) -> None:
         """Test getting missing dates error handling."""
         mock_execute_query.side_effect = sqlite3.Error("Query failed")
 
@@ -588,9 +548,7 @@ class TestDatabaseMissingDataAnalysis:
         assert missing_dates == []
 
     @patch.object(DatabaseManager, "execute_query")
-    def test_get_missing_dates_handles_datetime_objects(
-        self, mock_execute_query: Mock
-    ) -> None:
+    def test_get_missing_dates_handles_datetime_objects(self, mock_execute_query: Mock) -> None:
         """Test getting missing dates handles datetime objects correctly."""
         # Mock existing dates as datetime objects
         existing_dates = [
@@ -739,9 +697,7 @@ class TestDatabaseManagerErrorScenarios:
         assert manager.is_sqlite is False
 
     @patch.object(DatabaseManager, "connection")
-    def test_execute_query_with_invalid_query(
-        self, mock_connection_context: Mock
-    ) -> None:
+    def test_execute_query_with_invalid_query(self, mock_connection_context: Mock) -> None:
         """Test query execution with invalid SQL."""
         mock_connection = MagicMock(spec=sqlite3.Connection)
         mock_cursor = MagicMock()
@@ -755,15 +711,11 @@ class TestDatabaseManagerErrorScenarios:
             manager.execute_query("INVALID SQL SYNTAX")
 
     @patch.object(DatabaseManager, "connection")
-    def test_execute_insert_with_constraint_violation(
-        self, mock_connection_context: Mock
-    ) -> None:
+    def test_execute_insert_with_constraint_violation(self, mock_connection_context: Mock) -> None:
         """Test insert operation with constraint violation."""
         mock_connection = MagicMock(spec=sqlite3.Connection)
         mock_cursor = MagicMock()
-        mock_cursor.executemany.side_effect = sqlite3.IntegrityError(
-            "UNIQUE constraint failed"
-        )
+        mock_cursor.executemany.side_effect = sqlite3.IntegrityError("UNIQUE constraint failed")
         mock_connection.cursor.return_value = mock_cursor
         mock_connection_context.return_value.__enter__.return_value = mock_connection
 
@@ -775,16 +727,12 @@ class TestDatabaseManagerErrorScenarios:
             manager.execute_insert("INSERT INTO stocks VALUES (?, ?)", records)
 
     @patch("src.ticker_converter.data_ingestion.database_manager.config")
-    def test_get_default_connection_config_attribute_error(
-        self, mock_config: Mock
-    ) -> None:
+    def test_get_default_connection_config_attribute_error(self, mock_config: Mock) -> None:
         """Test default connection when config doesn't have DATABASE_URL attribute."""
         # Mock config without DATABASE_URL attribute
         delattr(mock_config, "DATABASE_URL")
 
-        with patch(
-            "src.ticker_converter.data_ingestion.database_manager.Path"
-        ) as mock_path:
+        with patch("src.ticker_converter.data_ingestion.database_manager.Path") as mock_path:
             mock_path_instance = MagicMock()
             mock_path.return_value = mock_path_instance
 
@@ -805,9 +753,7 @@ class TestDatabaseManagerErrorScenarios:
         assert result is None
 
     @patch.object(DatabaseManager, "execute_query")
-    def test_get_latest_currency_date_type_error(
-        self, mock_execute_query: Mock
-    ) -> None:
+    def test_get_latest_currency_date_type_error(self, mock_execute_query: Mock) -> None:
         """Test get_latest_currency_date with invalid data type."""
         mock_execute_query.return_value = [{"latest_date": 12345}]  # Invalid type
 

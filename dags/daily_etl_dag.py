@@ -143,9 +143,7 @@ def monitor_etl_process() -> None:
 
     # Log recent files
     if json_files:
-        recent_files = sorted(
-            json_files, key=lambda x: x.stat().st_mtime, reverse=True
-        )[:5]
+        recent_files = sorted(json_files, key=lambda x: x.stat().st_mtime, reverse=True)[:5]
         print("Recent files:")
         for file in recent_files:
             mtime = datetime.fromtimestamp(file.stat().st_mtime)

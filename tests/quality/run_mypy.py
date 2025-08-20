@@ -26,9 +26,7 @@ def main() -> int:
         "--pretty",
     ]
 
-    result = subprocess.run(
-        cmd, cwd=project_root, capture_output=True, text=True, check=False
-    )
+    result = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, check=False)
 
     if result.returncode == 0:
         print("✅ MyPy type checking passed successfully!")

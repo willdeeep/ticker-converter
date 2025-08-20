@@ -30,14 +30,10 @@ class TestAlphaVantageAPIAccessibility:
 
     def test_api_key_present_and_not_default(self) -> None:
         """Test that Alpha Vantage API key is present and not a default value."""
-        assert (
-            REAL_API_KEY is not None
-        ), "ALPHA_VANTAGE_API_KEY must be set in environment"
+        assert REAL_API_KEY is not None, "ALPHA_VANTAGE_API_KEY must be set in environment"
         assert REAL_API_KEY != "", "ALPHA_VANTAGE_API_KEY cannot be empty"
         assert REAL_API_KEY != "demo", "ALPHA_VANTAGE_API_KEY cannot be 'demo'"
-        assert (
-            REAL_API_KEY != "your_api_key_here"
-        ), "ALPHA_VANTAGE_API_KEY cannot be placeholder"
+        assert REAL_API_KEY != "your_api_key_here", "ALPHA_VANTAGE_API_KEY cannot be placeholder"
         assert len(REAL_API_KEY) > 10, "ALPHA_VANTAGE_API_KEY appears to be too short"
 
     def test_api_connectivity(self) -> None:
@@ -54,9 +50,7 @@ class TestAlphaVantageAPIAccessibility:
                 },
                 timeout=30,
             )
-            assert (
-                response.status_code == 200
-            ), f"API returned status {response.status_code}"
+            assert response.status_code == 200, f"API returned status {response.status_code}"
 
             # Check that we get JSON response
             data = response.json()
@@ -67,9 +61,7 @@ class TestAlphaVantageAPIAccessibility:
             has_rate_limit = any(key in data for key in ["Information", "Note"])
             has_error = "Error Message" in data
 
-            assert (
-                has_data or has_rate_limit or has_error
-            ), "API response format unexpected"
+            assert has_data or has_rate_limit or has_error, "API response format unexpected"
 
         except requests.exceptions.RequestException as e:
             pytest.fail(f"Unable to connect to Alpha Vantage API: {e}")
@@ -122,21 +114,15 @@ class TestAlphaVantageDataFormats:
                 "Volume",
                 "Symbol",
             ]
-            assert (
-                list(df.columns) == expected_columns
-            ), f"Expected columns {expected_columns}"
+            assert list(df.columns) == expected_columns, f"Expected columns {expected_columns}"
 
             # Check data types
-            assert pd.api.types.is_datetime64_any_dtype(
-                df["Date"]
-            ), "Date should be datetime"
+            assert pd.api.types.is_datetime64_any_dtype(df["Date"]), "Date should be datetime"
             assert pd.api.types.is_numeric_dtype(df["Open"]), "Open should be numeric"
             assert pd.api.types.is_numeric_dtype(df["High"]), "High should be numeric"
             assert pd.api.types.is_numeric_dtype(df["Low"]), "Low should be numeric"
             assert pd.api.types.is_numeric_dtype(df["Close"]), "Close should be numeric"
-            assert pd.api.types.is_integer_dtype(
-                df["Volume"]
-            ), "Volume should be integer"
+            assert pd.api.types.is_integer_dtype(df["Volume"]), "Volume should be integer"
 
             # Check symbol consistency
             if len(df) > 0:
