@@ -87,6 +87,7 @@ _setup_python_environment: ## Internal: Setup Python environment with pyenv and 
 _load_env: ## Internal: Load and export environment variables
 	@if [ ! -f .env ]; then \
 		echo -e "$(RED)Error: .env file not found. Run 'make setup' first.$(NC)"; \
+		echo -e "$(YELLOW)Tip: Copy .env.example to .env and customize the values$(NC)"; \
 		exit 1; \
 	fi
 
@@ -105,12 +106,16 @@ _validate_env: _load_env ## Internal: Validate required environment variables
 	$(call check_var,AIRFLOW_ADMIN_LASTNAME) && \
 	$(call check_var,AIRFLOW__API_AUTH__JWT_SECRET) && \
 	$(call check_var,ALPHA_VANTAGE_API_KEY) && \
-	echo -e "$(GREEN)Environment validation passed$(NC)"
+	echo -e "$(GREEN)✓ Environment validation passed$(NC)"
 
+# Function to validate individual environment variables
+# Usage: $(call check_var,VARIABLE_NAME)
+# Fails if variable is empty or contains placeholder values
 define check_var
 	if [ -z "$${$(1)}" ] || [ "$${$(1)}" = "your_alpha_vantage_api_key_here" ] || [ "$${$(1)}" = "your-secure-jwt-secret-key-change-for-production" ]; then \
-		echo -e "$(RED)Error: Required variable $(1) needs customization in .env$(NC)"; \
+		echo -e "$(RED)✗ Error: Required variable $(1) needs customization in .env$(NC)"; \
 		echo -e "$(YELLOW)Please edit .env and set a proper value for $(1)$(NC)"; \
+		echo -e "$(CYAN)Hint: Check .env.example for guidance$(NC)"; \
 		exit 1; \
 	fi
 endef
