@@ -12,7 +12,7 @@ RED := \033[0;31m
 CYAN := \033[0;36m
 NC := \033[0m
 
-.PHONY: help setup install install-test install-dev init-db airflow airflow-fix-config test test-ci act-pr lint lint-fix airflow-close db-close clean teardown-cache teardown-env teardown-airflow teardown-db
+.PHONY: help setup install install-test install-dev init-db airflow airflow-fix-config test test-ci act-pr lint lint-fix airflow-close db-close clean teardown-cache teardown-env teardown-airflow teardown-db _load_env _validate_env _setup_python_environment
 
 # ============================================================================
 # HELP
@@ -79,6 +79,45 @@ _setup_python_environment: ## Internal: Setup Python environment with pyenv and 
 		echo -e "$(GREEN)Virtual environment already exists$(NC)"; \
 	fi
 	@echo -e "$(GREEN)Python environment setup completed$(NC)"
+
+# ============================================================================
+# ENVIRONMENT INFRASTRUCTURE
+# ============================================================================
+
+_load_env: ## Internal: Load and export environment variables
+	@if [ ! -f .env ]; then \
+		echo -e "$(RED)Error: .env file not found. Run 'make setup' first.$(NC)"; \
+		exit 1; \
+	fi
+
+_validate_env: _load_env ## Internal: Validate required environment variables  
+	@echo -e "$(YELLOW)Validating environment variables...$(NC)"
+	@set -a && . ./.env && set +a && \
+	$(call check_var,POSTGRES_HOST) && \
+	$(call check_var,POSTGRES_PORT) && \
+	$(call check_var,POSTGRES_DB) && \
+	$(call check_var,POSTGRES_USER) && \
+	$(call check_var,POSTGRES_PASSWORD) && \
+	$(call check_var,AIRFLOW_ADMIN_USERNAME) && \
+	$(call check_var,AIRFLOW_ADMIN_PASSWORD) && \
+	$(call check_var,AIRFLOW_ADMIN_EMAIL) && \
+	$(call check_var,AIRFLOW_ADMIN_FIRSTNAME) && \
+	$(call check_var,AIRFLOW_ADMIN_LASTNAME) && \
+	$(call check_var,AIRFLOW__API_AUTH__JWT_SECRET) && \
+	$(call check_var,ALPHA_VANTAGE_API_KEY) && \
+	echo -e "$(GREEN)Environment validation passed$(NC)"
+
+define check_var
+	if [ -z "$${$(1)}" ] || [ "$${$(1)}" = "your_alpha_vantage_api_key_here" ] || [ "$${$(1)}" = "your-secure-jwt-secret-key-change-for-production" ]; then \
+		echo -e "$(RED)Error: Required variable $(1) needs customization in .env$(NC)"; \
+		echo -e "$(YELLOW)Please edit .env and set a proper value for $(1)$(NC)"; \
+		exit 1; \
+	fi
+endef
+
+# ============================================================================
+# SETUP AND RUN
+# ============================================================================
 
 install: ## Install all running dependencies
 	@echo -e "$(BLUE)Installing production dependencies...$(NC)"
