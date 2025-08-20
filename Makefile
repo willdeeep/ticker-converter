@@ -41,16 +41,34 @@ help: ## Show this help message
 # SETUP AND RUN
 # ============================================================================
 
-setup: ## Sets up environment variables
-	@echo -e "$(BLUE)Setting up environment variables...$(NC)"
+setup: ## Complete project setup with customizable environment
+	@echo -e "$(BLUE)Setting up ticker-converter project...$(NC)"
+	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo -e "$(CYAN)STEP 1: Customize Environment Configuration$(NC)"
+	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@if [ ! -f .env ]; then \
-				echo -e "$(YELLOW)Creating .env file from .env.example...$(NC)"; \
+		echo -e "$(YELLOW)Please customize .env.example with your values:$(NC)"; \
+		echo -e "$(CYAN)  • ALPHA_VANTAGE_API_KEY: Get from https://www.alphavantage.co/support/#api-key$(NC)"; \
+		echo -e "$(CYAN)  • Database credentials: Set your PostgreSQL configuration$(NC)"; \
+		echo -e "$(CYAN)  • Airflow admin: Set your preferred admin username/password$(NC)"; \
+		echo -e "$(CYAN)  • JWT secret: Change from default for security$(NC)"; \
+		echo -e ""; \
+		echo -e "$(YELLOW)Press Enter after customizing .env.example to continue...$(NC)"; \
+		read -p ""; \
 		cp .env.example .env; \
-				echo -e "$(CYAN)Please review and update the .env file with your specific values.$(NC)"; \
-				echo -e "$(CYAN)Default values have been set from .env.example$(NC)"; \
+		echo -e "$(GREEN)✓ Copied customized .env.example to .env$(NC)"; \
 	else \
-				echo -e "$(GREEN).env file already exists$(NC)"; \
+		echo -e "$(GREEN)✓ .env file already exists$(NC)"; \
 	fi
+	@echo -e "$(CYAN)STEP 2: Validate Configuration$(NC)"
+	@$(MAKE) _validate_env
+	@echo -e "$(CYAN)STEP 3: Setup Python Environment$(NC)"
+	@$(MAKE) _setup_python_environment
+	@echo -e "$(CYAN)STEP 4: Install Dependencies$(NC)"
+	@$(MAKE) install
+	@echo -e "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo -e "$(GREEN)✓ Setup completed! Run 'make help' to see available commands$(NC)"
+	@echo -e "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 
 _setup_python_environment: ## Internal: Setup Python environment with pyenv and virtual environment
 	@echo -e "$(BLUE)Setting up Python environment...$(NC)"
