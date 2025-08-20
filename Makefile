@@ -12,7 +12,7 @@ RED := \033[0;31m
 CYAN := \033[0;36m
 NC := \033[0m
 
-.PHONY: help setup install install-test install-dev init-db airflow airflow-fix-config test test-ci act-pr lint lint-fix airflow-close db-close clean teardown-cache teardown-env teardown-airflow teardown-db _load_env _validate_env _setup_python_environment
+.PHONY: help setup install install-test install-dev init-db run airflow airflow-fix-config test test-ci act-pr lint lint-fix airflow-close db-close clean teardown-cache teardown-env teardown-airflow teardown-db _load_env _validate_env _setup_python_environment
 
 # ============================================================================
 # HELP
@@ -22,19 +22,28 @@ help: ## Show this help message
 	@echo -e "$(CYAN)Ticker Converter - Available Commands:$(NC)"
 	@echo ""
 	@echo -e "$(YELLOW)Help:$(NC)"
-	@grep -E '^(help):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^(help):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s
+", $$1, $$2}'
 	@echo ""
-	@echo -e "$(YELLOW)Setup and run:$(NC)"
-	@grep -E '^(setup|install|install-test|install-dev|init-db|airflow|airflow-fix-config):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@echo -e "$(YELLOW)Setup and install:$(NC)"
+	@grep -E '^(setup|install|install-test|install-dev|init-db):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s
+", $$1, $$2}'
+	@echo ""
+	@echo -e "$(YELLOW)Run and inspect:$(NC)"
+	@grep -E '^(run|inspect|airflow|airflow-fix-config):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s
+", $$1, $$2}'
 	@echo ""
 	@echo -e "$(YELLOW)Testing:$(NC)"
-	@grep -E '^(test|test-int|test-ci|act-pr|lint|lint-fix|quality):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^(test|test-int|test-ci|act-pr|lint|lint-fix|quality):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s
+", $$1, $$2}'
 	@echo ""
 	@echo -e "$(YELLOW)Shutdown and clean:$(NC)"
-	@grep -E '^(airflow-close|db-close|clean):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^(airflow-close|db-close|clean):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s
+", $$1, $$2}'
 	@echo ""
 	@echo -e "$(YELLOW)Teardown:$(NC)"
-	@grep -E '^(teardown-cache|teardown-env|teardown-airflow|teardown-db):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^(teardown-cache|teardown-env|teardown-airflow|teardown-db):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s
+", $$1, $$2}'
 	@echo ""
 
 # ============================================================================
@@ -166,6 +175,11 @@ install-dev: ## Install full development environment
 	@.venv/bin/python -m pip install -e ".[dev,test]"
 	@echo -e "$(GREEN)Full development environment installed$(NC)"
 
+inspect: ## Inspect system components and configuration
+	@echo -e "$(BLUE)Running system diagnostics...$(NC)"
+	@$(PYTHON) scripts/inspect_system.py $(if $(DETAILED),--detailed) $(if $(JSON),--json)
+	@echo -e "$(GREEN)System inspection completed$(NC)"
+
 init-db: ## Initialise PostgreSQL database using defaults
 	@echo -e "$(BLUE)Initializing PostgreSQL database...$(NC)"
 	@echo -e "$(YELLOW)Loading environment variables...$(NC)"
@@ -260,6 +274,22 @@ airflow: ## Start Apache Airflow instance with default user
 	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" \
 	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
 	airflow api-server --port 8080
+
+run: _validate_env ## Execute data pipeline (run or run DAG_NAME=manual_backfill)
+	@if [ -n "$(DAG_NAME)" ]; then \
+		echo -e "$(BLUE)Triggering Airflow DAG: $(DAG_NAME)$(NC)"; \
+		cd $(PWD) && \
+		AIRFLOW_HOME="$${PWD}/airflow" \
+		AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
+		AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" \
+		airflow dags trigger $(DAG_NAME); \
+		echo -e "$(GREEN)✅ DAG $(DAG_NAME) triggered successfully$(NC)"; \
+	else \
+		echo -e "$(BLUE)Running data ingestion pipeline...$(NC)"; \
+		echo -e "$(YELLOW)📊 Fetching latest market data and currency rates$(NC)"; \
+		$(PYTHON) -c "from src.ticker_converter.integrations.orchestrator import DataIngestionOrchestrator; orchestrator = DataIngestionOrchestrator(); results = orchestrator.run_full_ingestion(); print('✅ Pipeline completed:', results)"; \
+		echo -e "$(GREEN)✅ Data pipeline completed successfully$(NC)"; \
+	fi
 
 airflow-config: ## Fix Airflow 3.0.4 configuration deprecation warnings
 	@echo -e "$(BLUE)Setting Airflow configuration for 3.0.4...$(NC)"
