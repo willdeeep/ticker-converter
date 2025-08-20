@@ -222,7 +222,7 @@ test-int: ## Run integration tests only (requires external services)
 	export AIRFLOW_HOME="$$PWD/airflow" && \
 	export AIRFLOW__CORE__DAGS_FOLDER="$$PWD/dags" && \
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:///$$(pwd)/airflow/airflow.db" && \
-	$(PYTHON) -m pytest tests/integration/ -v --tb=short
+	$(PYTHON) -m pytest tests/integration/ -v --tb=short --no-cov
 
 test-ci: ## Run all CI tests
 	@echo -e "$(BLUE)Running CI tests...$(NC)"
