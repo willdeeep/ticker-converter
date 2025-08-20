@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 
-def run_command(cmd, description, cwd=None):
+def run_command(cmd: list[str], description: str, cwd: Path | None = None) -> bool:
     """Run a command and return success status."""
     print(f"🔍 {description}...")
     result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=False)
@@ -26,7 +26,7 @@ def run_command(cmd, description, cwd=None):
         return False
 
 
-def main():
+def main() -> int:
     """Run all code quality checks."""
     project_root = Path(__file__).parent.parent.parent
     success = True

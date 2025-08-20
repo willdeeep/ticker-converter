@@ -105,6 +105,7 @@ make run  # Executes daily ETL pipeline
 #### Testing and Quality Assurance
 ```bash
 make test      # Run test suite with coverage
+make test-int  # Run integration tests (external services)
 make lint      # Check code quality
 make lint-fix  # Auto-fix formatting issues
 make act-pr    # Test GitHub Actions locally
@@ -260,16 +261,24 @@ ticker-converter/
 ### Testing Strategy
 Run comprehensive tests with coverage reporting:
 ```bash
-make test  # Runs pytest with coverage (Current: 67% coverage, 138+ tests)
+make test      # Runs pytest with coverage (Current: 67% coverage, 138+ tests)
+make test-int  # Runs integration tests for external services
 ```
 
-**Testing Achievement Status**:
+**Unit Testing Achievement Status**:
 - ✅ **CLI Module**: 97% coverage (Phase 1 Priority 1 COMPLETED)
 - ✅ **Database Manager**: 99% coverage (Phase 1 Priority 2 COMPLETED)
 - 🎯 **Next Priorities**: Orchestrator (32%), NYSE Fetcher (20%)
 - 📊 **Overall Progress**: 67/80 coverage target (84% progress)
 
+**Integration Testing Coverage**:
+- ✅ **Alpha Vantage API**: Connectivity, authentication, data format validation
+- ✅ **PostgreSQL Database**: Connection, permissions, schema validation
+- ✅ **Apache Airflow**: Configuration, DAG validation, runtime checks
+- ✅ **FastAPI Endpoints**: Application startup, data serialization, error handling
+
 Coverage reports are generated in `htmlcov/` for detailed analysis.
+Integration test documentation available in `docs/user_guides/integration_testing.md`.
 
 ## Installation Options
 

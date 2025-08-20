@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
+from _pytest.config import Config
 
 from src.ticker_converter.api_clients import AlphaVantageClient
 from src.ticker_converter.api_clients.constants import APIConfig
@@ -45,7 +46,7 @@ def _configure_test_environment() -> None:
         print("This will consume your Alpha Vantage API quota!")
 
 
-def pytest_configure(config) -> None:  # pylint: disable=unused-argument
+def pytest_configure(config: Config) -> None:  # pylint: disable=unused-argument
     """Configure pytest with safety checks for API usage."""
     _configure_test_environment()
 
