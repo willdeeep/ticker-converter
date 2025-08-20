@@ -28,7 +28,7 @@ help: ## Show this help message
 	@grep -E '^(setup|install|install-test|install-dev|init-db|airflow|airflow-fix-config):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo -e "$(YELLOW)Testing:$(NC)"
-	@grep -E '^(test|test-ci|act-pr|lint|lint-fix):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^(test|test-ci|act-pr|lint|lint-fix|quality):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo -e "$(YELLOW)Shutdown and clean:$(NC)"
 	@grep -E '^(airflow-close|db-close|clean):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -204,6 +204,63 @@ lint-fix: ## Auto-fix code quality issues
 	@$(PYTHON) -m black .
 	@$(PYTHON) -m isort .
 	@echo -e "$(GREEN)Code quality fixes applied$(NC)"
+
+quality: ## Run comprehensive quality gate checks with detailed reporting
+	@echo -e "$(BLUE)Running comprehensive quality gate validation...$(NC)"
+	@echo -e "$(CYAN)Quality Gate Pipeline: Black → isort → Pylint → MyPy → Tests with Coverage$(NC)"
+	@echo ""
+	@echo -e "$(YELLOW)Step 1/5: Code Formatting (Black)...$(NC)"
+	@if $(PYTHON) -m black --check .; then \
+		echo -e "$(GREEN)✓ Black formatting: PASSED$(NC)"; \
+	else \
+		echo -e "$(RED)✗ Black formatting: FAILED$(NC)"; \
+		echo -e "$(CYAN)Fix with: make lint-fix$(NC)"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo -e "$(YELLOW)Step 2/5: Import Sorting (isort)...$(NC)"
+	@if $(PYTHON) -m isort --check-only .; then \
+		echo -e "$(GREEN)✓ Import sorting: PASSED$(NC)"; \
+	else \
+		echo -e "$(RED)✗ Import sorting: FAILED$(NC)"; \
+		echo -e "$(CYAN)Fix with: make lint-fix$(NC)"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo -e "$(YELLOW)Step 3/5: Code Quality (Pylint)...$(NC)"
+	@if $(PYTHON) -m pylint src/$(PACKAGE_NAME) dags/ --score=yes | grep -q "10.00/10"; then \
+		echo -e "$(GREEN)✓ Pylint score: 10.00/10 PASSED$(NC)"; \
+	else \
+		echo -e "$(RED)✗ Pylint score: FAILED (must be 10.00/10)$(NC)"; \
+		echo -e "$(CYAN)Review issues above and fix code quality problems$(NC)"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo -e "$(YELLOW)Step 4/5: Type Checking (MyPy)...$(NC)"
+	@if $(PYTHON) -m mypy src/$(PACKAGE_NAME); then \
+		echo -e "$(GREEN)✓ MyPy type checking: PASSED$(NC)"; \
+	else \
+		echo -e "$(RED)✗ MyPy type checking: FAILED$(NC)"; \
+		echo -e "$(CYAN)Fix type annotation issues above$(NC)"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo -e "$(YELLOW)Step 5/5: Test Suite with Coverage...$(NC)"
+	@if $(PYTHON) -m pytest tests/ --cov=$(PACKAGE_NAME) --cov-report=term-missing --cov-fail-under=67 --ignore=tests/integration -v; then \
+		echo -e "$(GREEN)✓ Tests and coverage: PASSED$(NC)"; \
+	else \
+		echo -e "$(RED)✗ Tests or coverage: FAILED$(NC)"; \
+		echo -e "$(CYAN)Fix failing tests or improve coverage to 67%+$(NC)"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo -e "$(GREEN)All Quality Gates PASSED!$(NC)"
+	@echo -e "$(CYAN)✓ Code formatting: Black compliant$(NC)"
+	@echo -e "$(CYAN)✓ Import sorting: isort compliant$(NC)"
+	@echo -e "$(CYAN)✓ Code quality: Pylint 10.00/10$(NC)"
+	@echo -e "$(CYAN)✓ Type safety: MyPy clean$(NC)"
+	@echo -e "$(CYAN)✓ Test coverage: 67%+ with all tests passing$(NC)"
+	@echo -e "$(GREEN)Ready for commit and pull request!$(NC)"
 
 # ============================================================================
 # SHUTDOWN AND CLEAN

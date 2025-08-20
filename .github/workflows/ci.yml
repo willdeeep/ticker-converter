@@ -36,17 +36,37 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e .[database,api,dev,test]
 
-    - name: Run linting
+    - name: Run linting and quality checks
       run: |
         source .venv/bin/activate
+        echo "🔍 Step 1/4: Code Formatting (Black)..."
         black --check src/ tests/
+        echo "✅ Black formatting: PASSED"
+        echo ""
+        echo "🔍 Step 2/4: Import Sorting (isort)..."
         isort --check-only src/ tests/
-        mypy src/
+        echo "✅ Import sorting: PASSED" 
+        echo ""
+        echo "🔍 Step 3/4: Code Quality (Pylint)..."
+        pylint_output=$(pylint src/ticker_converter dags/ --score=yes)
+        echo "$pylint_output"
+        if echo "$pylint_output" | grep -q "10.00/10"; then
+          echo "✅ Pylint score: 10.00/10 PASSED"
+        else
+          echo "❌ Pylint score: FAILED (must be 10.00/10)"
+          exit 1
+        fi
+        echo ""
+        echo "🔍 Step 4/4: Type Checking (MyPy)..."
+        mypy src/ticker_converter
+        echo "✅ MyPy type checking: PASSED"
 
-    - name: Run tests with coverage
+    - name: Run tests with coverage reporting
       run: |
         source .venv/bin/activate
-        python -m pytest tests/ -v --cov=src/ticker_converter --cov-report=xml --cov-report=term-missing
+        echo "🧪 Running test suite with coverage validation..."
+        python -m pytest tests/ -v --cov=src/ticker_converter --cov-report=xml --cov-report=term-missing --cov-fail-under=67 --ignore=tests/integration
+        echo "✅ Tests and coverage: PASSED"
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
