@@ -1,3 +1,4 @@
+-- Purpose: Create dimension tables for NYSE stock analysis data warehouse
 -- Dimension Tables for NYSE Stock Analysis
 -- Creates lookup tables for stocks, dates, and currencies
 

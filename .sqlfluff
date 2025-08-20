@@ -1,0 +1,39 @@
+# SQL Linting Configuration for sqlfluff
+# https://docs.sqlfluff.com/en/stable/configuration.html
+
+[sqlfluff]
+# SQL dialect
+dialect = postgres
+
+# Rules to exclude (comma-separated)
+exclude_rules = L003,L012,L016
+
+# Maximum line length
+max_line_length = 120
+
+# Indentation settings
+indented_joins = True
+indented_on_contents = True
+template_blocks_indent = False
+
+# Modern layout configuration for comma placement
+[sqlfluff:layout:type:comma]
+line_position = trailing
+spacing_before = touch
+spacing_after = single
+
+# Keyword capitalization rules
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+# Function name capitalization rules
+[sqlfluff:rules:capitalisation.functions]
+capitalisation_policy = upper
+
+# Literal capitalization rules
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = upper
+
+# Identifier capitalization rules
+[sqlfluff:rules:capitalisation.identifiers]
+capitalisation_policy = lower

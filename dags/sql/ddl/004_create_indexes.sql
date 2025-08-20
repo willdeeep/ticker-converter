@@ -1,3 +1,4 @@
+-- Purpose: Create performance indexes to optimize query performance for NYSE stock analytics
 -- Performance Indexes for NYSE Stock Analytics
 -- Creates indexes to optimize query performance
 

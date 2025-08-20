@@ -72,12 +72,12 @@ class BackfillDAGConfig:
 
 def extract_historical_stock_data(start_date: str, end_date: str, symbols: list[str] | None = None) -> str:
     """Extract historical stock data for specified date range.
-    
+
     Args:
         start_date: Start date in YYYY-MM-DD format
         end_date: End date in YYYY-MM-DD format
         symbols: Optional list of specific symbols to backfill
-        
+
     Returns:
         Path to the created JSON file
     """
@@ -91,7 +91,7 @@ def extract_historical_stock_data(start_date: str, end_date: str, symbols: list[
     # Extract historical stock data
     # Note: This would need to be enhanced to support date ranges in the fetcher
     historical_data = nyse_fetcher.fetch_and_prepare_all_data()
-    
+
     # Add backfill metadata
     backfill_metadata = {
         "backfill_type": "historical_stock_data",
@@ -99,7 +99,7 @@ def extract_historical_stock_data(start_date: str, end_date: str, symbols: list[
         "end_date": end_date,
         "symbols": symbols or "all",
         "extraction_timestamp": datetime.now().isoformat(),
-        "data": historical_data
+        "data": historical_data,
     }
 
     # Save to JSON file with backfill identifier
@@ -115,11 +115,11 @@ def extract_historical_stock_data(start_date: str, end_date: str, symbols: list[
 
 def extract_historical_exchange_data(start_date: str, end_date: str) -> str:
     """Extract historical exchange rate data for specified date range.
-    
+
     Args:
         start_date: Start date in YYYY-MM-DD format
         end_date: End date in YYYY-MM-DD format
-        
+
     Returns:
         Path to the created JSON file
     """
@@ -133,14 +133,14 @@ def extract_historical_exchange_data(start_date: str, end_date: str) -> str:
     # Extract historical exchange rate data
     # Note: This would need to be enhanced to support date ranges in the fetcher
     historical_data = currency_fetcher.fetch_and_prepare_fx_data()
-    
+
     # Add backfill metadata
     backfill_metadata = {
         "backfill_type": "historical_exchange_data",
         "start_date": start_date,
         "end_date": end_date,
         "extraction_timestamp": datetime.now().isoformat(),
-        "data": historical_data
+        "data": historical_data,
     }
 
     # Save to JSON file with backfill identifier
@@ -156,41 +156,35 @@ def extract_historical_exchange_data(start_date: str, end_date: str) -> str:
 
 def generate_backfill_summary(stock_file: str, exchange_file: str, start_date: str, end_date: str) -> dict:
     """Generate backfill completion summary.
-    
+
     Args:
         stock_file: Path to stock data file
         exchange_file: Path to exchange data file
         start_date: Backfill start date
         end_date: Backfill end date
-        
+
     Returns:
         Dictionary containing backfill summary
     """
     summary = {
         "backfill_completed": datetime.now().isoformat(),
-        "date_range": {
-            "start_date": start_date,
-            "end_date": end_date
-        },
-        "files_created": {
-            "stock_data": stock_file,
-            "exchange_data": exchange_file
-        },
+        "date_range": {"start_date": start_date, "end_date": end_date},
+        "files_created": {"stock_data": stock_file, "exchange_data": exchange_file},
         "status": "completed",
         "next_steps": [
             "Review data quality validation results",
-            "Check for any data gaps or anomalies", 
-            "Verify data integrity in target tables"
-        ]
+            "Check for any data gaps or anomalies",
+            "Verify data integrity in target tables",
+        ],
     }
-    
+
     # Save summary report
     raw_data_path = Path(BackfillDAGConfig.RAW_DATA_DIR)
     summary_file = raw_data_path / f"backfill_summary_{start_date}_{end_date}.json"
-    
+
     with open(summary_file, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, default=str)
-    
+
     print(f"Backfill summary saved to {summary_file}")
     return summary
 
@@ -205,27 +199,13 @@ def generate_backfill_summary(stock_file: str, exchange_file: str, start_date: s
     tags=BackfillDAGConfig.TAGS,
     default_args=BackfillDAGConfig.DEFAULT_ARGS,
     params={
-        "start_date": Param(
-            default="2024-01-01",
-            description="Start date for backfill (YYYY-MM-DD)",
-            type="string"
-        ),
-        "end_date": Param(
-            default="2024-01-31", 
-            description="End date for backfill (YYYY-MM-DD)",
-            type="string"
-        ),
-        "symbols": Param(
-            default="",
-            description="Comma-separated list of symbols (empty for all)",
-            type="string"
-        ),
+        "start_date": Param(default="2024-01-01", description="Start date for backfill (YYYY-MM-DD)", type="string"),
+        "end_date": Param(default="2024-01-31", description="End date for backfill (YYYY-MM-DD)", type="string"),
+        "symbols": Param(default="", description="Comma-separated list of symbols (empty for all)", type="string"),
         "validate_only": Param(
-            default=False,
-            description="Only validate date range without extracting data",
-            type="boolean"
-        )
-    }
+            default=False, description="Only validate date range without extracting data", type="boolean"
+        ),
+    },
 )
 def ticker_converter_manual_backfill() -> None:
     """Manual backfill DAG using Airflow 3.0 syntax with configurable parameters."""
@@ -239,32 +219,32 @@ def ticker_converter_manual_backfill() -> None:
         end_date = params["end_date"]
         symbols = params["symbols"]
         validate_only = params["validate_only"]
-        
+
         # Parse and validate dates
         try:
             start_dt = datetime.strptime(start_date, "%Y-%m-%d")
             end_dt = datetime.strptime(end_date, "%Y-%m-%d")
         except ValueError as e:
             raise ValueError(f"Invalid date format. Use YYYY-MM-DD: {e}") from e
-        
+
         if start_dt >= end_dt:
             raise ValueError("Start date must be before end date")
-        
+
         if end_dt > datetime.now():
             raise ValueError("End date cannot be in the future")
-        
+
         # Parse symbols
         symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()] if symbols else None
-        
+
         validation_result = {
             "start_date": start_date,
             "end_date": end_date,
             "symbols": symbol_list,
             "validate_only": validate_only,
             "date_range_days": (end_dt - start_dt).days,
-            "validation_status": "passed"
+            "validation_status": "passed",
         }
-        
+
         print(f"Backfill validation passed: {validation_result}")
         return validation_result
 
@@ -272,30 +252,25 @@ def ticker_converter_manual_backfill() -> None:
     def extract_historical_stocks(**context) -> str:
         """Extract historical stock data based on parameters."""
         validation_result = context["ti"].xcom_pull(task_ids="validate_parameters")
-        
+
         if validation_result["validate_only"]:
             print("Validation-only mode: Skipping stock data extraction")
             return "validation_only"
-        
+
         return extract_historical_stock_data(
-            validation_result["start_date"],
-            validation_result["end_date"], 
-            validation_result["symbols"]
+            validation_result["start_date"], validation_result["end_date"], validation_result["symbols"]
         )
 
     @task
     def extract_historical_exchange(**context) -> str:
         """Extract historical exchange rate data based on parameters."""
         validation_result = context["ti"].xcom_pull(task_ids="validate_parameters")
-        
+
         if validation_result["validate_only"]:
             print("Validation-only mode: Skipping exchange data extraction")
             return "validation_only"
-        
-        return extract_historical_exchange_data(
-            validation_result["start_date"],
-            validation_result["end_date"]
-        )
+
+        return extract_historical_exchange_data(validation_result["start_date"], validation_result["end_date"])
 
     @task
     def generate_completion_report(**context) -> dict:
@@ -303,19 +278,16 @@ def ticker_converter_manual_backfill() -> None:
         validation_result = context["ti"].xcom_pull(task_ids="validate_parameters")
         stock_file = context["ti"].xcom_pull(task_ids="extract_historical_stocks")
         exchange_file = context["ti"].xcom_pull(task_ids="extract_historical_exchange")
-        
+
         if validation_result["validate_only"]:
             return {
                 "validation_only": True,
                 "parameters_validated": validation_result,
-                "status": "validation_completed"
+                "status": "validation_completed",
             }
-        
+
         return generate_backfill_summary(
-            stock_file,
-            exchange_file,
-            validation_result["start_date"],
-            validation_result["end_date"]
+            stock_file, exchange_file, validation_result["start_date"], validation_result["end_date"]
         )
 
     # Create control tasks

@@ -19,103 +19,84 @@ except ImportError:
 
 def inspect_system(detailed: bool = False) -> dict:
     """Inspect system components and return diagnostics."""
-    diagnostics = {
-        "timestamp": platform.node(),
-        "detailed": detailed,
-        "components": {}
-    }
-    
+    diagnostics = {"timestamp": platform.node(), "detailed": detailed, "components": {}}
+
     print("🔍 Running system diagnostics...")
-    
+
     # Check database configuration
     try:
         settings = get_settings()
         db_url = settings.database.get_url()
         if db_url:
-            diagnostics["components"]["database"] = {
-                "status": "✅ Configured",
-                "details": "Database URL configured"
-            }
+            diagnostics["components"]["database"] = {"status": "✅ Configured", "details": "Database URL configured"}
         else:
-            diagnostics["components"]["database"] = {
-                "status": "❌ Missing", 
-                "details": "Database URL not configured"
-            }
+            diagnostics["components"]["database"] = {"status": "❌ Missing", "details": "Database URL not configured"}
     except Exception as e:
-        diagnostics["components"]["database"] = {
-            "status": "❌ Error",
-            "details": f"Configuration error: {str(e)}"
-        }
-    
-    # Check API configuration  
+        diagnostics["components"]["database"] = {"status": "❌ Error", "details": f"Configuration error: {str(e)}"}
+
+    # Check API configuration
     try:
-        api_key = getattr(settings, 'api_key', None)
+        api_key = getattr(settings, "api_key", None)
         if api_key:
-            diagnostics["components"]["api"] = {
-                "status": "✅ Configured",
-                "details": "API key configured"
-            }
+            diagnostics["components"]["api"] = {"status": "✅ Configured", "details": "API key configured"}
         else:
             diagnostics["components"]["api"] = {
                 "status": "⚠️  Missing",
-                "details": "API key not configured (may use dummy data)"
+                "details": "API key not configured (may use dummy data)",
             }
     except Exception as e:
-        diagnostics["components"]["api"] = {
-            "status": "❌ Error", 
-            "details": f"API configuration error: {str(e)}"
-        }
-    
+        diagnostics["components"]["api"] = {"status": "❌ Error", "details": f"API configuration error: {str(e)}"}
+
     # Environment information
     env = os.getenv("ENVIRONMENT", "development")
     diagnostics["components"]["environment"] = {
         "status": "✅ Development" if env == "development" else "🚀 Production",
-        "details": f"Environment: {env}"
+        "details": f"Environment: {env}",
     }
-    
+
     if detailed:
         # Add detailed system information
         diagnostics["system_info"] = {
             "platform": f"{platform.system()} {platform.release()}",
             "python": platform.python_version(),
-            "node": platform.node()
+            "node": platform.node(),
         }
-    
+
     return diagnostics
 
 
 def main():
-    """Main inspection function.""" 
+    """Main inspection function."""
     detailed = "--detailed" in sys.argv
-    
+
     try:
         diagnostics = inspect_system(detailed)
-        
+
         # Print results
         print("\n📋 System Component Status:")
         print("=" * 50)
-        
+
         for component, info in diagnostics["components"].items():
             print(f"{component.title():.<20} {info['status']}")
             if detailed:
                 print(f"  └─ {info['details']}")
-        
+
         if detailed and "system_info" in diagnostics:
             print("\n🖥️  System Information:")
             print("=" * 50)
             for key, value in diagnostics["system_info"].items():
                 print(f"{key.title():.<20} {value}")
-        
+
         print("\n✅ System diagnostics completed")
         print("💡 Use 'make help' for available operations")
-        
+
         # Write JSON output if requested
         if "--json" in sys.argv:
             output_file = "system_diagnostics.json"
             with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(diagnostics, f, indent=2)
             print(f"📄 JSON output written to {output_file}")
-            
+
     except Exception as error:
         print(f"❌ Diagnostic error: {error}")
         sys.exit(1)

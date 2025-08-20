@@ -70,10 +70,24 @@ dev = [
     "isort>=5.12.0",
     "mypy>=1.5.0",
 
+    # Enhanced linting tools
+    "sqlfluff>=3.0.0",  # SQL linter and formatter
+
     # Development tools
     "pre-commit>=3.4.0",
     "ipython>=8.0.0",
     "jupyter>=1.0.0",
+]
+
+quality = [
+    # All quality tools for enhanced CI/CD pipeline
+    "pylint>=3.0.0",
+    "black>=23.0.0", 
+    "isort>=5.12.0",
+    "mypy>=1.5.0",
+    "sqlfluff>=3.0.0",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
 ]
 
 [project.urls]

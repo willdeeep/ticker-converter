@@ -1,3 +1,4 @@
+-- Purpose: Create analytical views for FastAPI endpoints and data analysis
 -- Analytical Views for FastAPI Endpoints
 -- Creates materialized views for common queries
 

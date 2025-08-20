@@ -1,3 +1,4 @@
+-- Purpose: Create fact tables for storing stock prices and currency exchange rates
 -- Fact Tables for NYSE Stock Data
 -- Creates tables for price data and currency rates
 
