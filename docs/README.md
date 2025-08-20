@@ -15,7 +15,7 @@ docs/
 ```
 
 ## Purpose
-Contains organized and regularly updated series of markdown documents that clearly detail different aspects of the project, arranged into sub-directories by subject. This documentation is referenced in the root `README.md` "Further Reading" section and serves as the authoritative project documentation.
+Contains organized and regularly updated series of markdown documents that clearly detail different aspects of the projec t, arranged into sub-directories by subject. This documentation is referenced in the root `README.md` "Further Reading" section and serves as the authoritative project documentation.
 
 ## Directory Structure
 
