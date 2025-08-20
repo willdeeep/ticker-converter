@@ -482,7 +482,7 @@ class TestHelperFunctions:
 
         with patch("src.ticker_converter.cli_ingestion.console") as mock_console:
             with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
-                output_results(results, f)
+                output_results(results, f)  # type: ignore[arg-type]
                 f.flush()
 
                 # Verify file was written

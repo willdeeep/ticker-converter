@@ -5,6 +5,7 @@ covering current exchange rates, historical data, SQL preparation, and error sce
 """
 
 from datetime import datetime
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pandas as pd
@@ -32,7 +33,9 @@ class TestCurrencyDataFetcherInitialization:
         assert CurrencyDataFetcher.REQUIRED_COLUMNS == ["Date"]
 
     @patch("src.ticker_converter.data_ingestion.base_fetcher.AlphaVantageClient")
-    def test_initialization_with_custom_api_client(self, mock_client_class) -> None:
+    def test_initialization_with_custom_api_client(
+        self, mock_client_class: Mock
+    ) -> None:
         """Test initialization with custom API client."""
         mock_client = Mock()
         mock_client_class.return_value = mock_client
@@ -54,7 +57,7 @@ class TestCurrencyDataFetcherCurrentExchangeRate:
 
     def test_fetch_current_exchange_rate_success(self) -> None:
         """Test successful current exchange rate fetching."""
-        mock_response = {
+        mock_response: dict[str, Any] = {
             "Realtime Currency Exchange Rate": {
                 "1. From_Currency Code": "USD",
                 "3. To_Currency Code": "GBP",
@@ -85,7 +88,7 @@ class TestCurrencyDataFetcherCurrentExchangeRate:
 
     def test_fetch_current_exchange_rate_missing_data(self) -> None:
         """Test handling of response with missing exchange rate data."""
-        mock_response = {"Some Other Data": {}}
+        mock_response: dict[str, Any] = {"Some Other Data": {}}
 
         self.mock_api_client.get_currency_exchange_rate.return_value = mock_response
 
@@ -95,7 +98,7 @@ class TestCurrencyDataFetcherCurrentExchangeRate:
 
     def test_fetch_current_exchange_rate_empty_response(self) -> None:
         """Test handling of empty response."""
-        mock_response = {}
+        mock_response: dict[str, Any] = {}
 
         self.mock_api_client.get_currency_exchange_rate.return_value = mock_response
 
@@ -340,6 +343,7 @@ class TestCurrencyDataFetcherSqlPreparation:
 
         result = self.fetcher.prepare_current_rate_for_sql(current_rate_data)
 
+        assert result is not None
         assert (
             result["data_date"].strftime("%Y-%m-%d") == "2025-08-17"
         )  # data_date, not date
@@ -349,7 +353,7 @@ class TestCurrencyDataFetcherSqlPreparation:
 
     def test_prepare_current_rate_for_sql_missing_data(self) -> None:
         """Test SQL preparation with missing current rate data."""
-        result = self.fetcher.prepare_current_rate_for_sql(None)
+        result = self.fetcher.prepare_current_rate_for_sql(None)  # type: ignore[arg-type]
 
         assert result is None
 
@@ -406,7 +410,7 @@ class TestCurrencyDataFetcherIntegration:
 
     def test_fetch_and_prepare_fx_data_no_data(self) -> None:
         """Test fetch and prepare with no data returned."""
-        mock_response = {"Some Other Data": {}}
+        mock_response: dict[str, Any] = {"Some Other Data": {}}
 
         self.mock_api_client.get_fx_daily.return_value = mock_response
 

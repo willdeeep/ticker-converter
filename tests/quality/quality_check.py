@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 
-def run_command(cmd, description, cwd=None) -> bool:
+def run_command(cmd: list[str], description: str, cwd: Path | None = None) -> bool:
     """Run a command and return success status."""
     print(f"🔍 {description}...")
     result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=False)

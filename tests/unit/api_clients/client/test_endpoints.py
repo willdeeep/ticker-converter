@@ -14,7 +14,7 @@ class TestStockDataEndpoints:
     """Test stock data API endpoints."""
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_get_daily_stock_data_success(self, mock_make_request) -> None:
+    def test_get_daily_stock_data_success(self, mock_make_request: Mock) -> None:
         """Test successful daily stock data retrieval."""
         mock_response = {
             "Meta Data": {"1. Information": "Daily Prices", "2. Symbol": "AAPL"},
@@ -46,7 +46,7 @@ class TestStockDataEndpoints:
         assert result.iloc[0]["Symbol"] == "AAPL"
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_get_intraday_stock_data_success(self, mock_make_request) -> None:
+    def test_get_intraday_stock_data_no_data(self, mock_make_request: Mock) -> None:
         """Test successful intraday stock data retrieval."""
         mock_response = {
             "Meta Data": {
@@ -113,7 +113,7 @@ class TestForexAndCryptoEndpoints:
     """Test forex and cryptocurrency API endpoints."""
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_get_forex_daily_success(self, mock_make_request) -> None:
+    def test_get_forex_daily_success(self, mock_make_request: Mock) -> None:
         """Test successful forex daily data retrieval."""
         mock_response = {
             "Meta Data": {
@@ -139,7 +139,7 @@ class TestForexAndCryptoEndpoints:
         assert not result.empty
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_get_digital_currency_daily_success(self, mock_make_request) -> None:
+    def test_get_digital_currency_daily_success(self, mock_make_request: Mock) -> None:
         """Test successful digital currency daily data retrieval."""
         mock_response = {
             "Meta Data": {
@@ -226,7 +226,7 @@ class TestDataValidationAndErrorHandling:
     """Test data validation and error handling for API endpoints."""
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_empty_response_handling(self, mock_make_request) -> None:
+    def test_empty_response_handling(self, mock_make_request: Mock) -> None:
         """Test handling of empty or malformed responses."""
         mock_make_request.return_value = {}
 
@@ -236,7 +236,7 @@ class TestDataValidationAndErrorHandling:
             client.get_daily_stock_data("AAPL", OutputSize.COMPACT)
 
     @patch.object(AlphaVantageClient, "make_request")
-    def test_malformed_time_series_response(self, mock_make_request) -> None:
+    def test_malformed_time_series_response(self, mock_make_request: Mock) -> None:
         """Test handling of malformed time series response."""
         mock_response = {
             "Meta Data": {"1. Information": "Daily Prices", "2. Symbol": "AAPL"}
