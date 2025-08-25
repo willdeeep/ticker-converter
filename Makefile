@@ -189,7 +189,7 @@ _install_quality_tools: ## Helper: Install system-level quality tools (checkmake
 		if command -v brew >/dev/null 2>&1; then \
 			brew install checkmake || echo "⚠️  Failed to install checkmake via brew"; \
 		elif command -v go >/dev/null 2>&1; then \
-			go install github.com/mrtazz/checkmake/cmd/checkmake@latest || echo "⚠️  Failed to install checkmake via go"; \
+			go install github.com/checkmake/checkmake/cmd/checkmake@latest || echo "⚠️  Failed to install checkmake via go"; \
 		else \
 			echo "ℹ️  checkmake installation skipped - requires brew or go"; \
 		fi; \

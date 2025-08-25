@@ -34,10 +34,10 @@ WHERE rcd.date_value NOT IN (SELECT dd.date_value FROM dim_date AS dd);
 -- Update stock dimension with any new symbols
 INSERT INTO dim_stocks (symbol, company_name, sector, market_cap_category)
 SELECT DISTINCT
-    rsd.symbol,
+    symbol,
     'Unknown Company' AS company_name,
     'Unknown Sector' AS sector,
     'Unknown Cap' AS market_cap_category
-FROM raw_stock_data AS rsd
-WHERE rsd.symbol NOT IN (SELECT ds.symbol FROM dim_stocks AS ds)
+FROM raw_stock_data
+WHERE symbol NOT IN (SELECT ds.symbol FROM dim_stocks AS ds)
 ON CONFLICT (symbol) DO NOTHING;
