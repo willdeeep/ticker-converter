@@ -229,61 +229,7 @@ init-db: ## Initialise PostgreSQL database using defaults
 
 airflow: ## Start Apache Airflow instance with default user
 	@echo -e "$(BLUE)Starting Apache Airflow...$(NC)"
-	@echo -e "$(YELLOW)Activating virtual environment...$(NC)"
-	@source .venv/bin/activate && \
-	echo -e "$(YELLOW)Loading environment variables...$(NC)" && \
-	source .env && \
-	echo -e "$(YELLOW)Setting up project-local Airflow configuration...$(NC)" && \
-	export AIRFLOW_HOME="$${PWD}/airflow" && \
-	export AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" && \
-	export AIRFLOW__CORE__LOAD_EXAMPLES=False && \
-	export AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" && \
-	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" && \
-	export AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" && \
-	echo -e "$(YELLOW)Airflow Home: $${PWD}/airflow$(NC)" && \
-	echo -e "$(YELLOW)DAGs Folder: $${PWD}/dags$(NC)" && \
-	echo -e "$(YELLOW)Setting up Airflow database...$(NC)" && \
-	AIRFLOW_HOME="$${PWD}/airflow" \
-	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
-	AIRFLOW__CORE__LOAD_EXAMPLES=False \
-	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
-	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" \
-	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
-	airflow db migrate && \
-	echo -e "$(YELLOW)Creating default admin user (if not exists)...$(NC)" && \
-	AIRFLOW_HOME="$${PWD}/airflow" \
-	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
-	AIRFLOW__CORE__LOAD_EXAMPLES=False \
-	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
-	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" \
-	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
-	airflow users create \
-		--username $$AIRFLOW_ADMIN_USERNAME \
-		--firstname $$AIRFLOW_ADMIN_FIRSTNAME \
-		--lastname $$AIRFLOW_ADMIN_LASTNAME \
-		--role Admin \
-		--email $$AIRFLOW_ADMIN_EMAIL \
-		--password $$AIRFLOW_ADMIN_PASSWORD 2>/dev/null || echo -e "$(YELLOW)User already exists$(NC)" && \
-	echo -e "$(GREEN)Starting Airflow scheduler and API server...$(NC)" && \
-	echo -e "$(CYAN)Airflow will be available at: http://localhost:8080$(NC)" && \
-	echo -e "$(GREEN)Username: $$AIRFLOW_ADMIN_USERNAME | Password: $$AIRFLOW_ADMIN_PASSWORD$(NC)" && \
-	echo -e "$(YELLOW)Starting scheduler in background...$(NC)" && \
-	AIRFLOW_HOME="$${PWD}/airflow" \
-	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
-	AIRFLOW__CORE__LOAD_EXAMPLES=False \
-	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
-	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" \
-	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
-	airflow scheduler --daemon && \
-	sleep 2 && \
-	echo -e "$(YELLOW)Starting API server...$(NC)" && \
-	AIRFLOW_HOME="$${PWD}/airflow" \
-	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
-	AIRFLOW__CORE__LOAD_EXAMPLES=False \
-	AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" \
-	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" \
-	AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
-	airflow api-server --port 8080
+	@source .venv/bin/activate && $(PYTHON) scripts/airflow.py start
 
 run: _validate_env ## Execute data pipeline (run or run DAG_NAME=manual_backfill)
 	@if [ -n "$(DAG_NAME)" ]; then \
@@ -464,11 +410,10 @@ quality: ## Run comprehensive quality gate validation
 
 airflow-close: ## Closes down Airflow
 	@echo -e "$(BLUE)Closing Airflow...$(NC)"
-	@if pgrep -f "airflow" > /dev/null; then \
-		pkill -f "airflow" && echo -e "$(GREEN)Airflow stopped$(NC)"; \
-	else \
-		echo -e "$(YELLOW)Airflow is not running$(NC)"; \
-	fi
+	@source .venv/bin/activate && $(PYTHON) scripts/airflow.py stop
+
+airflow-status: ## Check Airflow service status
+	@source .venv/bin/activate && $(PYTHON) scripts/airflow.py status
 
 db-close: ## Shuts down local PostgreSQL instance
 	@echo -e "$(BLUE)Shutting down PostgreSQL...$(NC)"
@@ -517,25 +462,8 @@ teardown-env: ## Remove environment file and virtual environment
 	@echo -e "$(GREEN)Environment cleanup completed$(NC)"
 
 teardown-airflow: ## Shutdown Airflow and remove all Airflow files
-	@echo -e "$(RED)WARNING: This will shutdown Airflow and delete all airflow/ files$(NC)"
-	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
-	@echo -e "$(BLUE)Shutting down Airflow and removing files...$(NC)"
-	@if pgrep -f "airflow" > /dev/null; then \
-		pkill -f "airflow"; \
-		echo -e "$(YELLOW)Airflow processes stopped$(NC)"; \
-		sleep 2; \
-	fi
-	@# Remove airflow directory with better error handling
-	@if [ -d "airflow" ]; then \
-		sleep 1; \
-		rm -rf airflow/ 2>/dev/null || (chmod -R 755 airflow/ 2>/dev/null && rm -rf airflow/) || true; \
-		if [ ! -d "airflow" ]; then \
-			echo -e "$(GREEN)Airflow files removed$(NC)"; \
-		else \
-			echo -e "$(YELLOW)Some airflow files may remain - manual cleanup may be needed$(NC)"; \
-		fi; \
-	fi
-	@echo -e "$(GREEN)Airflow teardown completed$(NC)"
+	@echo -e "$(BLUE)Tearing down Airflow...$(NC)"
+	@source .venv/bin/activate && $(PYTHON) scripts/airflow.py teardown
 
 teardown-db: ## Shutdown and remove PostgreSQL database
 	@echo -e "$(RED)WARNING: This will shutdown PostgreSQL and delete the database$(NC)"

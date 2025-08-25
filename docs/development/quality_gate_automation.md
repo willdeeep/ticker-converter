@@ -97,14 +97,14 @@ The CI/CD pipeline includes enhanced quality gate reporting:
     echo "🔍 Step 1/4: Code Formatting (Black)..."
     black --check src/ tests/
     echo "✅ Black formatting: PASSED"
-    
+
     echo "🔍 Step 2/4: Import Sorting (isort)..."
     isort --check-only src/ tests/
     echo "✅ Import sorting: PASSED"
-    
+
     echo "🔍 Step 3/4: Code Quality (Pylint)..."
     # Validates 10.00/10 Pylint score
-    
+
     echo "🔍 Step 4/4: Type Checking (MyPy)..."
     mypy src/ticker_converter
 

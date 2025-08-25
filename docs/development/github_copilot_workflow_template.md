@@ -264,7 +264,7 @@ For each GitHub issue, follow this systematic development cycle:
     # Validate with act CLI
     act --job pytest
     act --job lint-check
-    
+
     # Create pull request
     gh pr create \
       --title "Implement currency validation logic" \
@@ -347,7 +347,7 @@ grep -A 10 "Phase ${PHASE_NUMBER}" "$ROADMAP_FILE" | \
   grep "^[0-9]\." | \
   while IFS= read -r deliverable; do
     title=$(echo "$deliverable" | sed 's/^[0-9]*\. \*\*\(.*\)\*\*/\1/')
-    
+
     gh issue create \
       --title "$title" \
       --label "phase-${PHASE_NUMBER},type:feature" \
@@ -571,25 +571,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11.12'
-    
+
     - name: Install dependencies
       run: |
         pip install -e .[dev]
-    
+
     - name: Code formatting check
       run: black --check src/
-    
+
     - name: Linting
       run: pylint src/ --fail-under=10
-    
+
     - name: Type checking
       run: mypy src/
-    
+
     - name: Run tests
       run: pytest --cov=src --cov-fail-under=50 tests/
 ```

@@ -71,7 +71,7 @@ SELECT
     ev.invalid_rates,
     ev.suspicious_high_rates,
     ev.self_conversions,
-    
+
     -- Overall data quality score
     CASE 
         WHEN sv.invalid_open_prices + sv.invalid_high_prices + sv.invalid_low_prices + 
@@ -91,10 +91,10 @@ SELECT
         THEN 'FAIR'
         ELSE 'POOR'
     END as data_quality_score,
-    
+
     -- Missing symbols summary
     (SELECT string_agg(symbol, ', ') FROM missing_symbols WHERE status = 'MISSING') as missing_symbols,
     (SELECT COUNT(*) FROM missing_symbols WHERE status = 'MISSING') as missing_symbol_count
-    
+
 FROM stock_validation sv
 CROSS JOIN exchange_validation ev;
