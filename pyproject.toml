@@ -43,51 +43,26 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-api = [
-    "fastapi>=0.104.0",
-    "uvicorn[standard]>=0.24.0",
-    "pydantic>=2.4.0",
-]
-
-database = [
-    "psycopg2-binary>=2.9.7",
-]
-
 test = [
+    # Testing framework
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
     "httpx>=0.24.0",
     "responses>=0.23.0",
     "graphviz>=0.21",
-]
-
-dev = [
-    "ticker-converter[test]",
-    # Code quality tools
+    
+    # Code quality and linting tools
     "pylint>=3.0.0",
     "black>=23.0.0",
     "isort>=5.12.0",
     "mypy>=1.5.0",
-
-    # Enhanced linting tools
-    "sqlfluff>=3.0.0",  # SQL linter and formatter
-
+    "sqlfluff>=3.0.0",
+    
     # Development tools
     "pre-commit>=3.4.0",
     "ipython>=8.0.0",
     "jupyter>=1.0.0",
-]
-
-quality = [
-    # All quality tools for enhanced CI/CD pipeline
-    "pylint>=3.0.0",
-    "black>=23.0.0", 
-    "isort>=5.12.0",
-    "mypy>=1.5.0",
-    "sqlfluff>=3.0.0",
-    "pytest>=7.4.0",
-    "pytest-cov>=4.1.0",
 ]
 
 [project.urls]
