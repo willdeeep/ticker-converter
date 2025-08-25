@@ -12,7 +12,7 @@ RED := \033[0;31m
 CYAN := \033[0;36m
 NC := \033[0m
 
-.PHONY: help setup install install-test install-dev install-quality init-db run airflow airflow-fix-config test test-ci act-pr lint lint-makefile lint-sql lint-black lint-isort lint-pylint lint-mypy lint-fix airflow-close db-close clean teardown-cache teardown-env teardown-airflow teardown-db _load_env _validate_env _setup_python_environment _install_quality_tools
+.PHONY: help setup install install-test init-db run airflow airflow-fix-config test test-ci act-pr lint lint-makefile lint-sql lint-black lint-isort lint-pylint lint-mypy lint-fix airflow-close db-close clean teardown-cache teardown-env teardown-airflow teardown-db _load_env _validate_env _setup_python_environment _install_quality_tools
 
 # ============================================================================
 # HELP
@@ -25,7 +25,7 @@ help: ## Show this help message
 	@grep -E '^(help):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo -e "$(YELLOW)Setup and install:$(NC)"
-	@grep -E '^(setup|install|install-test|install-dev|install-quality|init-db):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^(setup|install|install-test|init-db):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo -e "$(YELLOW)Run and inspect:$(NC)"
 	@grep -E '^(run|inspect|airflow|airflow-fix-config):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -44,8 +44,8 @@ help: ## Show this help message
 # SETUP AND RUN
 # ============================================================================
 
-setup: ## Complete project setup with customizable environment
-	@echo -e "$(BLUE)Setting up ticker-converter project...$(NC)"
+setup: ## Initialize project and basic environment (environment variables)
+	@echo -e "$(BLUE)Setting up ticker-converter project environment...$(NC)"
 	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo -e "$(CYAN)STEP 1: Customize Environment Configuration$(NC)"
 	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
@@ -67,10 +67,12 @@ setup: ## Complete project setup with customizable environment
 	@$(MAKE) _validate_env
 	@echo -e "$(CYAN)STEP 3: Setup Python Environment$(NC)"
 	@$(MAKE) _setup_python_environment
-	@echo -e "$(CYAN)STEP 4: Install Dependencies$(NC)"
-	@$(MAKE) install
 	@echo -e "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo -e "$(GREEN)✓ Setup completed! Run 'make help' to see available commands$(NC)"
+	@echo -e "$(GREEN)✓ Environment setup completed!$(NC)"
+	@echo -e "$(CYAN)Next steps:$(NC)"
+	@echo -e "$(YELLOW)  • Production runtime: make install$(NC)"
+	@echo -e "$(YELLOW)  • Testing workflow: make install-test$(NC)"
+	@echo -e "$(YELLOW)  • Development work: make install-dev$(NC)"
 	@echo -e "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 
 _setup_python_environment: ## Internal: Setup Python environment with pyenv and virtual environment
@@ -145,41 +147,25 @@ endef
 # SETUP AND RUN
 # ============================================================================
 
-install: ## Install all running dependencies
-	@echo -e "$(BLUE)Installing production dependencies...$(NC)"
+install: ## Install all runtime dependencies (Airflow, FastAPI, database, etc.)
+	@echo -e "$(BLUE)Installing all runtime dependencies...$(NC)"
 	@$(MAKE) _setup_python_environment
-	@echo -e "$(YELLOW)Installing production dependencies...$(NC)"
+	@echo -e "$(YELLOW)Installing all runtime dependencies (FastAPI, database, HTTP, Airflow)...$(NC)"
 	@.venv/bin/python -m pip install --upgrade pip
 	@.venv/bin/python -m pip install -e .
-	@echo -e "$(GREEN)Production dependencies installed$(NC)"
+	@echo -e "$(GREEN)✓ Runtime dependencies installed$(NC)"
+	@echo -e "$(CYAN)Dependencies: FastAPI, uvicorn, pydantic, psycopg2-binary, asyncpg, pandas, requests, aiohttp, python-dotenv, apache-airflow$(NC)"
 
-install-test: ## Install production + testing dependencies
-	@echo -e "$(BLUE)Installing production and testing dependencies...$(NC)"
+install-test: ## Install everything needed for testing/validation (pytest, black, mypy, sqlfluff, etc.)
+	@echo -e "$(BLUE)Installing all testing and validation dependencies...$(NC)"
 	@$(MAKE) _setup_python_environment
-	@echo -e "$(YELLOW)Installing production and testing dependencies...$(NC)"
+	@echo -e "$(YELLOW)Installing runtime + testing/validation dependencies...$(NC)"
 	@.venv/bin/python -m pip install --upgrade pip
 	@.venv/bin/python -m pip install -e ".[test]"
-	@echo -e "$(GREEN)Production and testing dependencies installed$(NC)"
-
-install-dev: ## Install full development environment with quality tools
-	@echo -e "$(BLUE)Installing full development environment...$(NC)"
-	@$(MAKE) _setup_python_environment
-	@echo -e "$(YELLOW)Installing full development environment...$(NC)"
-	@.venv/bin/python -m pip install --upgrade pip
-	@.venv/bin/python -m pip install -e ".[dev,test,quality]"
 	@echo -e "$(YELLOW)Installing system-level quality tools...$(NC)"
 	@$(MAKE) _install_quality_tools
-	@echo -e "$(GREEN)Full development environment with quality tools installed$(NC)"
-
-install-quality: ## Install quality tools for enhanced CI/CD pipeline
-	@echo -e "$(BLUE)Installing quality pipeline tools...$(NC)"
-	@$(MAKE) _setup_python_environment
-	@echo -e "$(YELLOW)Installing Python quality tools...$(NC)"
-	@.venv/bin/python -m pip install --upgrade pip
-	@.venv/bin/python -m pip install -e ".[quality]"
-	@echo -e "$(YELLOW)Installing system-level quality tools...$(NC)"
-	@$(MAKE) _install_quality_tools
-	@echo -e "$(GREEN)Quality pipeline tools installed$(NC)"
+	@echo -e "$(GREEN)✓ All testing and validation dependencies installed$(NC)"
+	@echo -e "$(CYAN)Dependencies: Runtime + pytest, black, mypy, pylint, sqlfluff, pre-commit, ipython, jupyter$(NC)"
 
 _install_quality_tools: ## Helper: Install system-level quality tools (checkmake, etc.)
 	@echo "Installing optional system-level quality tools..."
