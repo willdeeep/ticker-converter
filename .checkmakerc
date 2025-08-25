@@ -1,0 +1,18 @@
+# Checkmake configuration for Makefile linting
+# https://github.com/mrtazz/checkmake
+
+# Format: rule_name:error_level
+# Error levels: error, warning, info
+
+# Enable all rules as warnings by default
+phonydeclared:warning
+timestampexpanded:warning
+maxbodylinelength:warning
+indentation:warning
+
+# Configure specific rules
+maxbodylinelength:120  # Allow longer lines for complex commands
+indentation:tab       # Enforce tab indentation (GNU Make standard)
+
+# Disable rules that conflict with our style
+missingphony:info     # Some targets are intentionally not phony

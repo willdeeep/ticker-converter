@@ -1,0 +1,103 @@
+# SQL Linting Configuration for sqlfluff
+# https://docs.sqlfluff.com/en/stable/configuration.html
+
+[sqlfluff]
+# SQL dialect
+dialect = postgres
+
+# Templater to use for SQL files
+templater = jinja
+
+# Rules to exclude globally (comma-separated)
+# L003: Indentation length (handled by our custom settings)
+# L012: Trailing operators (we prefer leading)  
+# L016: Long lines (handled by max_line_length)
+# ST09: Joins should list the table referenced earlier first (can cause irresolvable issues)
+# LT01: Layout spacing (auto-fixable whitespace issues)
+# LT03: Trailing operators (conflicts with our leading operator preference)
+# LT08: CTE newlines (overly restrictive for our query style)
+# AL05: Unused aliases (can occur in templated queries)
+# AL08: Unique column aliases (conflicts with ETL patterns)
+# CP01: Keyword capitalization (causes parsing issues with templates)
+# CP02: Identifier capitalization (style preference)
+# CP03: Function capitalization (style preference)  
+# CP05: Type capitalization (style preference)
+# LT14: Keyword newlines (overly restrictive layout)
+exclude_rules = L003,L012,L016,ST09,LT01,LT03,LT08,AL05,AL08,CP01,CP02,CP03,CP05,LT14
+
+# Maximum line length
+max_line_length = 120
+
+# Indentation settings
+indented_joins = True
+indented_on_contents = True
+template_blocks_indent = False
+
+# Jinja templater configuration
+[sqlfluff:templater:jinja]
+# Define context for common Airflow variables
+[sqlfluff:templater:jinja:context]
+# Airflow context variables for ETL/backfill scripts - using dict notation
+params = {"start_date": "2024-01-01", "end_date": "2024-12-31"}
+# Standard Airflow variables
+ds = "2024-01-01"
+ts = "2024-01-01T00:00:00.000000+00:00"
+ds_nodash = "20240101"
+prev_ds = "2023-12-31"
+next_ds = "2024-01-02"
+# Execution context
+execution_date = "2024-01-01"
+dag_run = {"conf": {}}
+# Common macro outputs  
+macros = {"datetime": {"now": "2024-01-01T00:00:00"}, "ds_add": "2024-01-01"}
+# Task instance context
+ti = {"xcom_pull": "dummy_value"}
+
+# For files that use different templating, we'll handle via line-level exclusions
+
+# Modern layout configuration for comma placement
+[sqlfluff:layout:type:comma]
+line_position = trailing
+spacing_before = touch
+spacing_after = single
+
+# Keyword capitalization rules
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+# Function name capitalization rules
+[sqlfluff:rules:capitalisation.functions]
+capitalisation_policy = upper
+
+# Literal capitalization rules
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = upper
+
+# Identifier capitalization rules
+[sqlfluff:rules:capitalisation.identifiers]
+capitalisation_policy = lower
+
+# Layout rules
+[sqlfluff:rules:layout.operators]
+line_position = leading
+
+# Reference rules - more lenient for complex analytical queries
+[sqlfluff:rules:references.consistent]
+# Allow mixed reference styles when needed for readability
+single_table_references = consistent
+qualified_references = consistent
+
+# Aliasing rules
+[sqlfluff:rules:aliasing.table]
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.column]
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.expression]
+allow_scalar = True
+
+# Layout rules - disable overly strict spacing rules
+[sqlfluff:rules:layout.spacing]
+# Allow some flexibility in spacing
+tab_space_size = 4
