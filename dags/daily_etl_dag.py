@@ -20,7 +20,10 @@ from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.providers.standard.operators.empty import EmptyOperator
 
 # Add the src directory to the Python path (must be before ticker_converter imports)
-sys.path.append("/Users/willhuntleyclarke/repos/interests/ticker-converter/src")
+# Get the project root dynamically based on the DAG file location
+_dag_file_path = Path(__file__).resolve()
+_project_root = _dag_file_path.parent.parent  # Go up from dags/ to project root
+sys.path.append(str(_project_root / "src"))
 
 # These imports depend on the path modification above
 # pylint: disable=wrong-import-position
@@ -53,17 +56,19 @@ class DAGConfig:
     # Database connection
     POSTGRES_CONN_ID = "postgres_default"
 
-    # File paths
-    RAW_DATA_DIR = "raw_data/exchange"
-    SQL_DIR = "dags/sql"
+    # File paths (dynamically resolved based on DAG location)
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent  # Go up from dags/ to project root
+    RAW_EXCHANGE_DIR = PROJECT_ROOT / "dags" / "raw_data" / "exchange"
+    RAW_STOCKS_DIR = PROJECT_ROOT / "dags" / "raw_data" / "stocks"
+    SQL_DIR = PROJECT_ROOT / "dags" / "sql"
 
-    # SQL files for data processing
+    # SQL files for data processing (using string paths for Airflow compatibility)
     SQL_FILES = {
-        "load_raw_stock_data": "sql/etl/load_raw_stock_data_to_postgres.sql",
-        "load_raw_exchange_data": "sql/etl/load_raw_exchange_data_to_postgres.sql",
-        "clean_transform_data": "sql/etl/clean_transform_data.sql",
-        "data_quality_checks": "sql/etl/data_quality_checks.sql",
-        "cleanup_old_data": "sql/etl/cleanup_old_data.sql",
+        "load_raw_stock_data": str(PROJECT_ROOT / "dags" / "sql" / "etl" / "load_raw_stock_data_to_postgres.sql"),
+        "load_raw_exchange_data": str(PROJECT_ROOT / "dags" / "sql" / "etl" / "load_raw_exchange_data_to_postgres.sql"),
+        "clean_transform_data": str(PROJECT_ROOT / "dags" / "sql" / "etl" / "clean_transform_data.sql"),
+        "data_quality_checks": str(PROJECT_ROOT / "dags" / "sql" / "etl" / "data_quality_checks.sql"),
+        "cleanup_old_data": str(PROJECT_ROOT / "dags" / "sql" / "etl" / "cleanup_old_data.sql"),
     }
 
 
@@ -77,7 +82,7 @@ def extract_stock_prices_to_json() -> None:
     nyse_fetcher = NYSEDataFetcher()
 
     # Ensure raw data directory exists
-    raw_data_path = Path(DAGConfig.RAW_DATA_DIR)
+    raw_data_path = DAGConfig.RAW_STOCKS_DIR
     raw_data_path.mkdir(parents=True, exist_ok=True)
 
     # Extract stock data using the refactored fetcher
@@ -103,7 +108,7 @@ def extract_exchange_rates_to_json() -> None:
     currency_fetcher = CurrencyDataFetcher()
 
     # Ensure raw data directory exists
-    raw_data_path = Path(DAGConfig.RAW_DATA_DIR)
+    raw_data_path = DAGConfig.RAW_EXCHANGE_DIR
     raw_data_path.mkdir(parents=True, exist_ok=True)
 
     # Extract exchange rate data using the refactored fetcher
@@ -124,26 +129,31 @@ def monitor_etl_process() -> None:
 
     Checks the status of data files and logs process information.
     """
-    raw_data_path = Path(DAGConfig.RAW_DATA_DIR)
-
-    if not raw_data_path.exists():
-        print("Warning: Raw data directory does not exist")
-        return
-
-    # Count files in raw data directory
-    json_files = list(raw_data_path.glob("*.json"))
-    stock_files = [f for f in json_files if f.name.startswith("stock_prices_")]
-    exchange_files = [f for f in json_files if f.name.startswith("exchange_rates_")]
+    stocks_path = DAGConfig.RAW_STOCKS_DIR
+    exchange_path = DAGConfig.RAW_EXCHANGE_DIR
 
     print("ETL Process Monitor:")
-    print(f"- Total JSON files: {len(json_files)}")
-    print(f"- Stock price files: {len(stock_files)}")
-    print(f"- Exchange rate files: {len(exchange_files)}")
-    print(f"- Raw data directory: {raw_data_path}")
+    
+    # Check stocks directory
+    if stocks_path.exists():
+        stock_files = list(stocks_path.glob("*.json"))
+        print(f"- Stock price files: {len(stock_files)} in {stocks_path}")
+    else:
+        print(f"- Warning: Stocks directory does not exist: {stocks_path}")
+        stock_files = []
+    
+    # Check exchange directory  
+    if exchange_path.exists():
+        exchange_files = list(exchange_path.glob("*.json"))
+        print(f"- Exchange rate files: {len(exchange_files)} in {exchange_path}")
+    else:
+        print(f"- Warning: Exchange directory does not exist: {exchange_path}")
+        exchange_files = []
 
-    # Log recent files
-    if json_files:
-        recent_files = sorted(json_files, key=lambda x: x.stat().st_mtime, reverse=True)[:5]
+    # Log recent files from both directories
+    all_files = stock_files + exchange_files
+    if all_files:
+        recent_files = sorted(all_files, key=lambda x: x.stat().st_mtime, reverse=True)[:5]
         print("Recent files:")
         for file in recent_files:
             mtime = datetime.fromtimestamp(file.stat().st_mtime)
