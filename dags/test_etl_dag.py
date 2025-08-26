@@ -105,7 +105,7 @@ def test_etl_dag() -> None:
 
     @task(execution_timeout=timedelta(seconds=30))
     def test_postgresql_database_access() -> str:
-        """Test PostgreSQL database access using configured user from .env."""
+        """Test PostgreSQL database access using Airflow's configured postgres_default connection."""
         import signal
         import subprocess
 
@@ -138,70 +138,79 @@ def test_etl_dag() -> None:
                 if not value or value == f"your_{key}_here":
                     raise ValueError(f"{env_var} environment variable not properly set")
 
-            # Test database connectivity using psql command with timeout
-            print("🗄️  Testing database connectivity using psql command...")
+            # Test Airflow's PostgreSQL connection using SQLExecuteQueryOperator
+            print("� Testing Airflow PostgreSQL connection 'postgres_default'...")
             try:
-                # Use psql to test connection with explicit timeout
-                psql_command = [
-                    "psql",
-                    f"postgresql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}",
-                    "-c",
-                    "SELECT version();",
-                    "--no-password",
-                ]
-
-                # Set environment for psql
-                env = os.environ.copy()
-                env["PGPASSWORD"] = db_config["password"]
-
-                result = subprocess.run(
-                    psql_command, env=env, capture_output=True, text=True, timeout=10, check=True  # 10 second timeout
-                )
-
-                print(f"✅ PostgreSQL database accessible: {db_config['database']}")
-                print(f"✅ Database user configured: {db_config['user']}")
-                print(f"✅ PostgreSQL version check successful")
-                return "postgresql_access_ok"
-
-            except subprocess.TimeoutExpired:
-                print("⏰ Database connection timed out after 10 seconds")
-                print("ℹ️  This might indicate PostgreSQL is not responding quickly enough")
-                return "postgresql_timeout_ok"
-            except subprocess.CalledProcessError as e:
-                error_msg = e.stderr if e.stderr else str(e)
-                if "could not connect" in error_msg.lower() or "connection refused" in error_msg.lower():
-                    print(f"🗄️  Database connection failed: {error_msg}")
-                    print("ℹ️  This is expected if PostgreSQL is not running locally")
-                    return "postgresql_not_available_ok"
+                from airflow.providers.postgres.hooks.postgres import PostgresHook
+                
+                # Test the Airflow connection
+                postgres_hook = PostgresHook(postgres_conn_id="postgres_default")
+                
+                # Execute a simple test query
+                result = postgres_hook.get_first("SELECT version() as version, current_database() as database;")
+                
+                if result:
+                    version, current_db = result
+                    print(f"✅ Airflow PostgreSQL connection successful!")
+                    print(f"✅ Connected to database: {current_db}")
+                    print(f"✅ PostgreSQL version: {version}")
+                    
+                    # Test table creation permissions
+                    test_table_sql = """
+                    CREATE TABLE IF NOT EXISTS airflow_test_table (
+                        id SERIAL PRIMARY KEY,
+                        test_column VARCHAR(50),
+                        created_at TIMESTAMP DEFAULT NOW()
+                    );
+                    """
+                    postgres_hook.run(test_table_sql)
+                    print("✅ Database write permissions verified (test table created)")
+                    
+                    # Clean up test table
+                    postgres_hook.run("DROP TABLE IF EXISTS airflow_test_table;")
+                    print("✅ Test table cleaned up")
+                    
+                    return "airflow_postgresql_connection_ok"
                 else:
-                    print(f"❌ PostgreSQL error: {error_msg}")
-                    raise ConnectionError(f"PostgreSQL error: {e}") from e
-            except FileNotFoundError:
-                print("ℹ️  psql command not found - testing with Python psycopg2...")
-                # Fallback to psycopg2 with very aggressive timeout
+                    raise ConnectionError("No result from PostgreSQL version query")
+                    
+            except Exception as airflow_error:
+                print(f"❌ Airflow PostgreSQL connection failed: {airflow_error}")
+                print("🔄 Falling back to direct psycopg2 test...")
+                
+                # Fallback to direct database test
                 try:
                     import psycopg2
-
+                    
+                    print("🗄️  Testing direct database connectivity...")
                     conn = psycopg2.connect(
                         host=db_config["host"],
                         port=db_config["port"],
                         database=db_config["database"],
                         user=db_config["user"],
                         password=db_config["password"],
-                        connect_timeout=2,  # Very aggressive timeout
+                        connect_timeout=5,
                     )
                     cursor = conn.cursor()
-                    cursor.execute("SELECT 1;")
+                    cursor.execute("SELECT version(), current_database();")
+                    version, current_db = cursor.fetchone()
                     cursor.close()
                     conn.close()
-                    print(f"✅ PostgreSQL accessible via psycopg2")
-                    return "postgresql_access_ok"
-                except Exception as e:
-                    print(f"ℹ️  PostgreSQL not accessible: {e}")
-                    return "postgresql_not_available_ok"
-            except Exception as e:
-                print(f"❌ Unexpected error during database test: {e}")
-                raise
+                    
+                    print(f"✅ Direct PostgreSQL connection successful!")
+                    print(f"✅ Connected to database: {current_db}")
+                    print(f"✅ PostgreSQL version: {version}")
+                    print("⚠️  However, Airflow connection 'postgres_default' needs configuration")
+                    return "direct_postgresql_ok_airflow_connection_failed"
+                    
+                except Exception as direct_error:
+                    print(f"❌ Direct PostgreSQL connection also failed: {direct_error}")
+                    print("ℹ️  PostgreSQL may not be running or credentials may be incorrect")
+                    return "postgresql_not_available"
+
+        except Exception as e:
+            print(f"❌ Unexpected error during database test: {e}")
+            raise
         finally:
             signal.alarm(0)  # Cancel the alarm
 
