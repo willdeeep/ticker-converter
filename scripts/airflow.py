@@ -219,12 +219,8 @@ class AirflowCommandRunner:
             env[var] = value
 
         # Verify critical environment variables are correctly set
-        critical_vars = [
-            "AIRFLOW_HOME",
-            "AIRFLOW__CORE__DAGS_FOLDER", 
-            "AIRFLOW__DATABASE__SQL_ALCHEMY_CONN"
-        ]
-        
+        critical_vars = ["AIRFLOW_HOME", "AIRFLOW__CORE__DAGS_FOLDER", "AIRFLOW__DATABASE__SQL_ALCHEMY_CONN"]
+
         for var in critical_vars:
             if not env.get(var):
                 raise RuntimeError(f"Critical environment variable {var} not set")
