@@ -38,6 +38,7 @@ class AirflowConfig:
     admin_firstname: str
     admin_lastname: str
     jwt_secret: str
+    postgres_conn_url: str
     project_dags: List[str]
 
 
@@ -84,7 +85,7 @@ class EnvironmentLoader:
         self.env_file = Path(env_file)
         self.project_root = Path.cwd()
 
-    def load_config(self) -> AirflowConfig:
+    def load_config(self, command: str = "") -> AirflowConfig:
         """Load and validate Airflow configuration from environment"""
         if not self.env_file.exists():
             raise FileNotFoundError(f"Environment file {self.env_file} not found. Run 'make setup' first.")
@@ -94,8 +95,8 @@ class EnvironmentLoader:
         # Load environment variables
         env_vars = self._load_env_variables()
 
-        # Validate required variables
-        self._validate_required_variables(env_vars)
+        # Validate required variables (context-aware)
+        self._validate_required_variables(env_vars, command)
 
         # Create configuration object
         config = self._create_config(env_vars)
@@ -131,8 +132,9 @@ class EnvironmentLoader:
 
         return env_vars
 
-    def _validate_required_variables(self, env_vars: Dict[str, str]) -> None:
+    def _validate_required_variables(self, env_vars: Dict[str, str], command: str = "") -> None:
         """Validate required Airflow environment variables"""
+        # Base required variables for all commands
         required_vars = [
             "AIRFLOW_HOME",
             "AIRFLOW__CORE__DAGS_FOLDER",
@@ -144,6 +146,10 @@ class EnvironmentLoader:
             "AIRFLOW_ADMIN_LASTNAME",
             "AIRFLOW__API_AUTH__JWT_SECRET",
         ]
+        
+        # Add PostgreSQL connection only for commands that need database connectivity
+        if command in ["setup", "start"] or not command:
+            required_vars.append("AIRFLOW_CONN_POSTGRES_DEFAULT")
 
         missing_vars = [var for var in required_vars if var not in env_vars or not env_vars[var]]
 
@@ -157,6 +163,9 @@ class EnvironmentLoader:
 
     def _create_config(self, env_vars: Dict[str, str]) -> AirflowConfig:
         """Create AirflowConfig from environment variables"""
+        # Use empty string as default for postgres_conn_url if not available
+        postgres_conn_url = env_vars.get("AIRFLOW_CONN_POSTGRES_DEFAULT", "")
+        
         return AirflowConfig(
             home=Path(env_vars["AIRFLOW_HOME"]),
             dags_folder=Path(env_vars["AIRFLOW__CORE__DAGS_FOLDER"]),
@@ -167,7 +176,8 @@ class EnvironmentLoader:
             admin_firstname=env_vars["AIRFLOW_ADMIN_FIRSTNAME"],
             admin_lastname=env_vars["AIRFLOW_ADMIN_LASTNAME"],
             jwt_secret=env_vars["AIRFLOW__API_AUTH__JWT_SECRET"],
-            project_dags=["ticker_converter_daily_etl", "ticker_converter_manual_backfill", "test_etl_dag"],
+            postgres_conn_url=postgres_conn_url,
+            project_dags=["daily_etl_pipeline", "test_etl_dag"],
         )
 
 
@@ -213,6 +223,10 @@ class AirflowCommandRunner:
             "AIRFLOW_ADMIN_LASTNAME": self.config.admin_lastname,
             "AIRFLOW__API_AUTH__JWT_SECRET": self.config.jwt_secret,
         }
+        
+        # Add PostgreSQL connection if it's configured
+        if self.config.postgres_conn_url:
+            airflow_env_vars["AIRFLOW_CONN_POSTGRES_DEFAULT"] = self.config.postgres_conn_url
 
         # Ensure all environment variables are properly set
         for var, value in airflow_env_vars.items():
@@ -505,10 +519,10 @@ class AirflowManager:
             print_info("No Airflow services are running")
 
 
-def create_airflow_manager() -> AirflowManager:
+def create_airflow_manager(command: str = "") -> AirflowManager:
     """Factory function to create configured AirflowManager"""
     env_loader = EnvironmentLoader()
-    config = env_loader.load_config()
+    config = env_loader.load_config(command)
     return AirflowManager(config)
 
 
@@ -520,7 +534,7 @@ def main():
     args = parser.parse_args()
 
     try:
-        airflow_manager = create_airflow_manager()
+        airflow_manager = create_airflow_manager(args.command)
 
         # Execute command with early return pattern
         if args.command == "setup":

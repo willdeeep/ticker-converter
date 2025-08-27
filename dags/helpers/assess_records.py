@@ -14,6 +14,7 @@ _dag_file_path = Path(__file__).resolve()
 _project_root = _dag_file_path.parent.parent.parent
 sys.path.append(str(_project_root / "src"))
 
+
 # Configuration
 PROJECT_ROOT = _project_root
 RAW_STOCKS_DIR = PROJECT_ROOT / "dags" / "raw_data" / "stocks"
@@ -40,7 +41,7 @@ def assess_latest_records() -> dict:
     print("🔧 Ensuring database schema exists...")
     ddl_file = SQL_DDL_DIR / "001_create_dimensions.sql"
     if ddl_file.exists():
-        with open(ddl_file, "r") as f:
+        with open(ddl_file, "r", encoding="utf-8") as f:
             postgres_hook.run(f.read())
 
     # Count existing records in proper schema tables
