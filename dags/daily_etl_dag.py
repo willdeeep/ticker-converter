@@ -1,15 +1,65 @@
 """
-Airflow DAG for daily stock data ETL pipeline.
+Simple daily ETL DAG for stock data pipeline.
 
-This DAG orchestrates the complete ETL process using SQL operators:
-1. Extract stock prices from Alpha Vantage API using the refactored data ingestion modules
-2. Extract and load exchange rates from exchangerate-api.io
-3. Use SQL operators to clean, transform and load data all data into PostgreSQL database
-4. Run data quality checks
-5. Monitor and log ETL process
-6. Clean up old data based on retention policies
+Three clear steps:
+1. Assess latest records in DB and JSON
+2. Collect API records - write to JSON raw_data
+3. Collect raw_data and write to DB
 """
 
+from datetime import datetime, timedelta
+
+from airflow.decorators import dag
+from airflow.providers.standard.operators.python import PythonOperator
+
+# Import task functions
+from py.assess_records import assess_latest_records
+from py.collect_api_data import collect_api_data
+from py.load_json_to_db import load_json_to_db
+
+
+@dag(
+    dag_id="daily_etl_dag",
+    description="Simple daily stock data ETL pipeline",
+    schedule="0 9 * * 1-5",  # 9 AM on weekdays
+    start_date=datetime(2024, 1, 1),
+    catchup=False,
+    tags=["ticker-converter", "etl"],
+    default_args={
+        "owner": "ticker-converter",
+        "retries": 1,
+        "retry_delay": timedelta(minutes=5),
+    },
+)
+def daily_etl_dag():
+    """Simple daily ETL DAG."""
+
+    # Step 1: Assess latest records
+    step1 = PythonOperator(
+        task_id="assess_latest_records",
+        python_callable=assess_latest_records,
+    )
+
+    # Step 2: Collect API data
+    step2 = PythonOperator(
+        task_id="collect_api_data",
+        python_callable=collect_api_data,
+    )
+
+    # Step 3: Load to database
+    step3 = PythonOperator(
+        task_id="load_json_to_db",
+        python_callable=load_json_to_db,
+    )
+
+    # Simple linear workflow
+    step1 >> step2 >> step3
+
+
+# Instantiate the DAG
+etl_dag = daily_etl_dag()
+
+import glob
 import json
 import sys
 from datetime import datetime, timedelta
@@ -17,6 +67,7 @@ from pathlib import Path
 
 from airflow.decorators import dag, task
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.standard.operators.empty import EmptyOperator
 
 # Add the src directory to the Python path (must be before ticker_converter imports)
@@ -35,7 +86,7 @@ class DAGConfig:
     """Configuration for the ETL DAG."""
 
     # DAG metadata
-    DAG_ID = "ticker_converter_daily_etl"
+    DAG_ID = "daily_etl_dag"
     DESCRIPTION = "Daily ETL pipeline for stock data and currency conversion"
     SCHEDULE = "0 6 * * *"  # Run daily at 6 AM UTC
     TAGS = ["ticker-converter", "etl", "stocks", "currencies"]
@@ -62,13 +113,13 @@ class DAGConfig:
     RAW_STOCKS_DIR = PROJECT_ROOT / "dags" / "raw_data" / "stocks"
     SQL_DIR = PROJECT_ROOT / "dags" / "sql"
 
-    # SQL files for data processing (using string paths for Airflow compatibility)
+    # SQL files for data processing (using relative paths for Airflow template compatibility)
     SQL_FILES = {
-        "load_raw_stock_data": str(PROJECT_ROOT / "dags" / "sql" / "etl" / "load_raw_stock_data_to_postgres.sql"),
-        "load_raw_exchange_data": str(PROJECT_ROOT / "dags" / "sql" / "etl" / "load_raw_exchange_data_to_postgres.sql"),
-        "clean_transform_data": str(PROJECT_ROOT / "dags" / "sql" / "etl" / "clean_transform_data.sql"),
-        "data_quality_checks": str(PROJECT_ROOT / "dags" / "sql" / "etl" / "data_quality_checks.sql"),
-        "cleanup_old_data": str(PROJECT_ROOT / "dags" / "sql" / "etl" / "cleanup_old_data.sql"),
+        "load_raw_stock_data": "sql/etl/load_raw_stock_data_to_postgres.sql",
+        "load_raw_exchange_data": "sql/etl/load_raw_exchange_data_to_postgres.sql",
+        "clean_transform_data": "sql/etl/clean_transform_data.sql",
+        "data_quality_checks": "sql/etl/data_quality_checks.sql",
+        "cleanup_old_data": "sql/etl/cleanup_old_data.sql",
     }
 
 
@@ -133,7 +184,7 @@ def monitor_etl_process() -> None:
     exchange_path = DAGConfig.RAW_EXCHANGE_DIR
 
     print("ETL Process Monitor:")
-    
+
     # Check stocks directory
     if stocks_path.exists():
         stock_files = list(stocks_path.glob("*.json"))
@@ -141,8 +192,8 @@ def monitor_etl_process() -> None:
     else:
         print(f"- Warning: Stocks directory does not exist: {stocks_path}")
         stock_files = []
-    
-    # Check exchange directory  
+
+    # Check exchange directory
     if exchange_path.exists():
         exchange_files = list(exchange_path.glob("*.json"))
         print(f"- Exchange rate files: {len(exchange_files)} in {exchange_path}")
@@ -199,6 +250,148 @@ def ticker_converter_daily_etl() -> None:
         monitor_etl_process()
 
     @task
+    def load_stock_json_to_postgres() -> str:
+        """Load stock data from JSON files to PostgreSQL - simple test version."""
+        print("🔍 Testing stock JSON loading to PostgreSQL...")
+
+        # Get PostgreSQL connection
+        postgres_hook = PostgresHook(postgres_conn_id=DAGConfig.POSTGRES_CONN_ID)
+
+        # Test basic connectivity first
+        result = postgres_hook.get_first("SELECT 'Connection successful' as status, current_database() as db;")
+        print(f"✅ Database connection test: {result}")
+
+        # Find all stock JSON files
+        stock_files = list(DAGConfig.RAW_STOCKS_DIR.glob("*.json"))
+        print(f"📁 Found {len(stock_files)} stock JSON files in {DAGConfig.RAW_STOCKS_DIR}")
+
+        if not stock_files:
+            print("⚠️  No stock JSON files found")
+            return "no_stock_files_found"
+
+        # Just count records without processing for now
+        total_records = 0
+        for json_file in stock_files[:1]:  # Only process first file for testing
+            print(f"📖 Examining {json_file.name}...")
+
+            try:
+                with open(json_file, "r") as f:
+                    stock_data = json.load(f)
+
+                if isinstance(stock_data, dict):
+                    # Handle different JSON structures
+                    if "Time Series (Daily)" in stock_data:
+                        records = len(stock_data["Time Series (Daily)"])
+                    elif "data" in stock_data:
+                        records = len(stock_data["data"])
+                    else:
+                        records = len(stock_data)
+                else:
+                    records = len(stock_data)
+
+                print(f"📊 Found {records} records in {json_file.name}")
+                total_records += records
+
+                # Simple test - create a basic table if it doesn't exist
+                postgres_hook.run(
+                    """
+                    CREATE TABLE IF NOT EXISTS test_stock_load (
+                        id SERIAL PRIMARY KEY,
+                        filename VARCHAR(255),
+                        record_count INTEGER,
+                        loaded_at TIMESTAMP DEFAULT NOW()
+                    );
+                """
+                )
+
+                # Insert test record
+                postgres_hook.run(
+                    "INSERT INTO test_stock_load (filename, record_count) VALUES (%s, %s)",
+                    parameters=[json_file.name, records],
+                )
+
+                print(f"✅ Successfully tested {json_file.name}")
+                break  # Only test one file
+
+            except Exception as e:
+                print(f"❌ Error processing {json_file.name}: {e}")
+                raise
+
+        print(f"🎉 Test completed - found {total_records} stock records")
+        return f"test_completed_{total_records}_records"
+
+    @task
+    def load_exchange_json_to_postgres() -> str:
+        """Load exchange rate data from JSON files to PostgreSQL - simple test version."""
+        print("🔍 Testing exchange rate JSON loading to PostgreSQL...")
+
+        # Get PostgreSQL connection
+        postgres_hook = PostgresHook(postgres_conn_id=DAGConfig.POSTGRES_CONN_ID)
+
+        # Test basic connectivity first
+        result = postgres_hook.get_first("SELECT 'Connection successful' as status, current_database() as db;")
+        print(f"✅ Database connection test: {result}")
+
+        # Find all exchange rate JSON files
+        exchange_files = list(DAGConfig.RAW_EXCHANGE_DIR.glob("*.json"))
+        print(f"📁 Found {len(exchange_files)} exchange rate JSON files in {DAGConfig.RAW_EXCHANGE_DIR}")
+
+        if not exchange_files:
+            print("⚠️  No exchange rate JSON files found")
+            return "no_exchange_files_found"
+
+        # Just count records without processing for now
+        total_records = 0
+        for json_file in exchange_files[:1]:  # Only process first file for testing
+            print(f"📖 Examining {json_file.name}...")
+
+            try:
+                with open(json_file, "r") as f:
+                    exchange_data = json.load(f)
+
+                if isinstance(exchange_data, dict):
+                    # Handle different JSON structures
+                    if "rates" in exchange_data:
+                        records = len(exchange_data["rates"])
+                    elif "data" in exchange_data:
+                        records = len(exchange_data["data"])
+                    else:
+                        records = len(exchange_data)
+                else:
+                    records = len(exchange_data)
+
+                print(f"📊 Found {records} records in {json_file.name}")
+                total_records += records
+
+                # Simple test - create a basic table if it doesn't exist
+                postgres_hook.run(
+                    """
+                    CREATE TABLE IF NOT EXISTS test_exchange_load (
+                        id SERIAL PRIMARY KEY,
+                        filename VARCHAR(255),
+                        record_count INTEGER,
+                        loaded_at TIMESTAMP DEFAULT NOW()
+                    );
+                """
+                )
+
+                # Insert test record
+                postgres_hook.run(
+                    "INSERT INTO test_exchange_load (filename, record_count) VALUES (%s, %s)",
+                    parameters=[json_file.name, records],
+                )
+
+                print(f"✅ Successfully tested {json_file.name}")
+                break  # Only test one file
+
+            except Exception as e:
+                print(f"❌ Error processing {json_file.name}: {e}")
+                raise
+
+        print(f"🎉 Test completed - found {total_records} exchange rate records")
+        return f"test_completed_{total_records}_records"
+
+    @task
     def cleanup_old_data() -> str:
         """Clean up old data."""
         print("Cleaning up old data...")
@@ -209,24 +402,18 @@ def ticker_converter_daily_etl() -> None:
     start_task = EmptyOperator(task_id="start_etl")
     end_task = EmptyOperator(task_id="end_etl")
 
-    # SQL processing tasks using traditional operators
-    load_raw_stock_data_to_postgres = SQLExecuteQueryOperator(
-        task_id="load_raw_stock_data_to_postgres",
-        sql=DAGConfig.SQL_FILES["load_raw_stock_data"],
-    )
-
-    load_raw_exchange_data_to_postgres = SQLExecuteQueryOperator(
-        task_id="load_raw_exchange_data_to_postgres",
-        sql=DAGConfig.SQL_FILES["load_raw_exchange_data"],
-    )
-
+    # SQL processing tasks for cleanup and transformation
     clean_transform_data = SQLExecuteQueryOperator(
-        task_id="clean_transform_data", sql=DAGConfig.SQL_FILES["clean_transform_data"]
+        task_id="clean_transform_data",
+        sql=DAGConfig.SQL_FILES["clean_transform_data"],
+        conn_id=DAGConfig.POSTGRES_CONN_ID,
     )
 
     # Create task instances
     extract_stock_task = extract_stock_data_to_json()
     extract_exchange_task = extract_exchange_rates_to_json_task()
+    load_stock_task = load_stock_json_to_postgres()
+    load_exchange_task = load_exchange_json_to_postgres()
     quality_checks_task = run_data_quality_checks()
     monitor_task = monitor_etl_process_task()
     cleanup_task = cleanup_old_data()
@@ -236,14 +423,11 @@ def ticker_converter_daily_etl() -> None:
     start_task >> [extract_stock_task, extract_exchange_task]
 
     # Step 3: After JSON files are created, load them into PostgreSQL in parallel
-    extract_stock_task >> load_raw_stock_data_to_postgres
-    extract_exchange_task >> load_raw_exchange_data_to_postgres
+    extract_stock_task >> load_stock_task
+    extract_exchange_task >> load_exchange_task
 
     # After both raw data loads complete, run the clean and transform step
-    [
-        load_raw_stock_data_to_postgres,
-        load_raw_exchange_data_to_postgres,
-    ] >> clean_transform_data
+    [load_stock_task, load_exchange_task] >> clean_transform_data
 
     # Step 4: Run data quality checks after transformation
     clean_transform_data >> quality_checks_task

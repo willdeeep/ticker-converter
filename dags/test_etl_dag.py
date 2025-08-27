@@ -142,19 +142,19 @@ def test_etl_dag() -> None:
             print("� Testing Airflow PostgreSQL connection 'postgres_default'...")
             try:
                 from airflow.providers.postgres.hooks.postgres import PostgresHook
-                
+
                 # Test the Airflow connection
                 postgres_hook = PostgresHook(postgres_conn_id="postgres_default")
-                
+
                 # Execute a simple test query
                 result = postgres_hook.get_first("SELECT version() as version, current_database() as database;")
-                
+
                 if result:
                     version, current_db = result
                     print(f"✅ Airflow PostgreSQL connection successful!")
                     print(f"✅ Connected to database: {current_db}")
                     print(f"✅ PostgreSQL version: {version}")
-                    
+
                     # Test table creation permissions
                     test_table_sql = """
                     CREATE TABLE IF NOT EXISTS airflow_test_table (
@@ -165,23 +165,23 @@ def test_etl_dag() -> None:
                     """
                     postgres_hook.run(test_table_sql)
                     print("✅ Database write permissions verified (test table created)")
-                    
+
                     # Clean up test table
                     postgres_hook.run("DROP TABLE IF EXISTS airflow_test_table;")
                     print("✅ Test table cleaned up")
-                    
+
                     return "airflow_postgresql_connection_ok"
                 else:
                     raise ConnectionError("No result from PostgreSQL version query")
-                    
+
             except Exception as airflow_error:
                 print(f"❌ Airflow PostgreSQL connection failed: {airflow_error}")
                 print("🔄 Falling back to direct psycopg2 test...")
-                
+
                 # Fallback to direct database test
                 try:
                     import psycopg2
-                    
+
                     print("🗄️  Testing direct database connectivity...")
                     conn = psycopg2.connect(
                         host=db_config["host"],
@@ -196,13 +196,13 @@ def test_etl_dag() -> None:
                     version, current_db = cursor.fetchone()
                     cursor.close()
                     conn.close()
-                    
+
                     print(f"✅ Direct PostgreSQL connection successful!")
                     print(f"✅ Connected to database: {current_db}")
                     print(f"✅ PostgreSQL version: {version}")
                     print("⚠️  However, Airflow connection 'postgres_default' needs configuration")
                     return "direct_postgresql_ok_airflow_connection_failed"
-                    
+
                 except Exception as direct_error:
                     print(f"❌ Direct PostgreSQL connection also failed: {direct_error}")
                     print("ℹ️  PostgreSQL may not be running or credentials may be incorrect")
