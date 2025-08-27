@@ -30,14 +30,14 @@ install_tool() {
     local desc=$2
     local pip_name=$3
     local brew_name=$4
-    
+
     echo -e "${YELLOW}Installing ${tool} (${desc})...${NC}"
-    
+
     if command_exists "$tool"; then
         echo -e "${GREEN}✓ ${tool} already installed${NC}"
         return 0
     fi
-    
+
     # Try pip first
     if command_exists pip; then
         echo "Attempting pip install..."
@@ -46,7 +46,7 @@ install_tool() {
             return 0
         fi
     fi
-    
+
     # Try homebrew on macOS
     if [[ "$OSTYPE" == "darwin"* ]] && command_exists brew; then
         echo "Attempting homebrew install..."
@@ -55,7 +55,7 @@ install_tool() {
             return 0
         fi
     fi
-    
+
     echo -e "${RED}❌ Failed to install ${tool}${NC}"
     echo -e "${YELLOW}Manual installation required:${NC}"
     echo "  - pip install ${pip_name}"

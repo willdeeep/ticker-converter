@@ -1,252 +1,106 @@
-"""
-Airflow DAG for daily stock data ETL pipeline.
+"""Airflow DAG: daily ETL pipeline.
 
-This DAG orchestrates the complete ETL process using SQL operators:
-1. Extract stock prices from Alpha Vantage API using the refactored data ingestion modules
-2. Extract and load exchange rates from exchangerate-api.io
-3. Use SQL operators to clean, transform and load data all data into PostgreSQL database
-4. Run data quality checks
-5. Monitor and log ETL process
-6. Clean up old data based on retention policies
+TaskFlow Task-based DAG using helpers in `dags/py` and core logic in `src/`.
+
+This module follows the project's guidance: use `@task`, keep business logic
+in helper modules, and keep the DAG thin and declarative.
 """
 
-import json
+from __future__ import annotations
+
 import sys
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
+from typing import Any
 
-from airflow.decorators import dag, task
-from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
-from airflow.providers.standard.operators.empty import EmptyOperator
+from pendulum import datetime as pdatetime
 
-# Add the src directory to the Python path (must be before ticker_converter imports)
-sys.path.append("/Users/willhuntleyclarke/repos/interests/ticker-converter/src")
+# Add the project root to the Python path
+_dag_file_path = Path(__file__).resolve()
+_project_root = _dag_file_path.parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.append(str(_project_root))
 
-# These imports depend on the path modification above
-# pylint: disable=wrong-import-position
-from ticker_converter.data_ingestion.currency_fetcher import CurrencyDataFetcher
-from ticker_converter.data_ingestion.nyse_fetcher import NYSEDataFetcher
+from dags.helpers.assess_records import assess_latest_records
+from dags.helpers.collect_api_data import collect_api_data
+from dags.helpers.load_raw_to_db import load_raw_to_db
 
-
-class DAGConfig:
-    """Configuration for the ETL DAG."""
-
-    # DAG metadata
-    DAG_ID = "ticker_converter_daily_etl"
-    DESCRIPTION = "Daily ETL pipeline for stock data and currency conversion"
-    SCHEDULE = "0 6 * * *"  # Run daily at 6 AM UTC
-    TAGS = ["ticker-converter", "etl", "stocks", "currencies"]
-
-    # DAG timing
-    START_DATE = datetime(2024, 1, 1)
-
-    # Default arguments
-    DEFAULT_ARGS = {
-        "owner": "ticker-converter",
-        "depends_on_past": False,
-        "email_on_failure": False,
-        "email_on_retry": False,
-        "retries": 1,
-        "retry_delay": timedelta(minutes=5),
-    }
-
-    # Database connection
-    POSTGRES_CONN_ID = "postgres_default"
-
-    # File paths
-    RAW_DATA_DIR = "raw_data/exchange"
-    SQL_DIR = "dags/sql"
-
-    # SQL files for data processing
-    SQL_FILES = {
-        "load_raw_stock_data": "sql/etl/load_raw_stock_data_to_postgres.sql",
-        "load_raw_exchange_data": "sql/etl/load_raw_exchange_data_to_postgres.sql",
-        "clean_transform_data": "sql/etl/clean_transform_data.sql",
-        "data_quality_checks": "sql/etl/data_quality_checks.sql",
-        "cleanup_old_data": "sql/etl/cleanup_old_data.sql",
-    }
+from airflow.decorators import task
+from airflow.models import DAG
 
 
-def extract_stock_prices_to_json() -> None:
-    """Extract stock prices using the refactored data ingestion modules.
+DEFAULT_ARGS = {
+    "owner": "data-team",
+    "depends_on_past": False,
+    "retries": 1,
+    "retry_delay": timedelta(minutes=5),
+}
 
-    Utilizes NYSEDataFetcher to get stock data and saves to JSON files
-    for later processing by SQL operators.
-    """
-    # Initialize the NYSE data fetcher with proper configuration
-    nyse_fetcher = NYSEDataFetcher()
-
-    # Ensure raw data directory exists
-    raw_data_path = Path(DAGConfig.RAW_DATA_DIR)
-    raw_data_path.mkdir(parents=True, exist_ok=True)
-
-    # Extract stock data using the refactored fetcher
-    stock_data = nyse_fetcher.fetch_and_prepare_all_data()
-
-    # Save to JSON file with timestamp
-    filename = f"stock_prices_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    filepath = raw_data_path / filename
-
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(stock_data, f, indent=2, default=str)
-
-    print(f"Stock prices extracted and saved to {filepath}")
-
-
-def extract_exchange_rates_to_json() -> None:
-    """Extract exchange rates using the refactored data ingestion modules.
-
-    Utilizes CurrencyDataFetcher to get exchange rate data and saves to JSON files
-    for later processing by SQL operators.
-    """
-    # Initialize the currency data fetcher with proper configuration
-    currency_fetcher = CurrencyDataFetcher()
-
-    # Ensure raw data directory exists
-    raw_data_path = Path(DAGConfig.RAW_DATA_DIR)
-    raw_data_path.mkdir(parents=True, exist_ok=True)
-
-    # Extract exchange rate data using the refactored fetcher
-    exchange_data = currency_fetcher.fetch_and_prepare_fx_data()
-
-    # Save to JSON file with timestamp
-    filename = f"exchange_rates_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    filepath = raw_data_path / filename
-
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(exchange_data, f, indent=2, default=str)
-
-    print(f"Exchange rates extracted and saved to {filepath}")
-
-
-def monitor_etl_process() -> None:
-    """Monitor and log ETL process status.
-
-    Checks the status of data files and logs process information.
-    """
-    raw_data_path = Path(DAGConfig.RAW_DATA_DIR)
-
-    if not raw_data_path.exists():
-        print("Warning: Raw data directory does not exist")
-        return
-
-    # Count files in raw data directory
-    json_files = list(raw_data_path.glob("*.json"))
-    stock_files = [f for f in json_files if f.name.startswith("stock_prices_")]
-    exchange_files = [f for f in json_files if f.name.startswith("exchange_rates_")]
-
-    print("ETL Process Monitor:")
-    print(f"- Total JSON files: {len(json_files)}")
-    print(f"- Stock price files: {len(stock_files)}")
-    print(f"- Exchange rate files: {len(exchange_files)}")
-    print(f"- Raw data directory: {raw_data_path}")
-
-    # Log recent files
-    if json_files:
-        recent_files = sorted(json_files, key=lambda x: x.stat().st_mtime, reverse=True)[:5]
-        print("Recent files:")
-        for file in recent_files:
-            mtime = datetime.fromtimestamp(file.stat().st_mtime)
-            print(f"  - {file.name} (modified: {mtime})")
-    else:
-        print("No data files found")
-
-
-@dag(
-    dag_id=DAGConfig.DAG_ID,
-    description=DAGConfig.DESCRIPTION,
-    schedule=DAGConfig.SCHEDULE,
-    start_date=DAGConfig.START_DATE,
+# If you can't (yet) install stubs, add a local ignore for the DAG signature
+with DAG(  # type: ignore[arg-type]
+    dag_id="daily_etl_pipeline",
+    default_args=DEFAULT_ARGS,
+    start_date=pdatetime(2025, 1, 1, tz="UTC"),
+    schedule="@daily",
     catchup=False,
     max_active_runs=1,
-    tags=DAGConfig.TAGS,
-    default_args=DAGConfig.DEFAULT_ARGS,
-)
-def ticker_converter_daily_etl() -> None:
-    """Ticker converter daily ETL DAG using Airflow 3.0 syntax."""
-    # pylint: disable=pointless-statement
+) as dag:
 
-    @task
-    def extract_stock_data_to_json() -> None:
-        """Extract stock prices to JSON files."""
-        extract_stock_prices_to_json()
+    @task(task_id="assess_latest")
+    def assess_latest_task() -> dict[str, Any]:
+        return assess_latest_records()
 
-    @task
-    def extract_exchange_rates_to_json_task() -> None:
-        """Extract exchange rates to JSON files."""
-        extract_exchange_rates_to_json()
+    @task.branch(task_id="decide_collect")
+    def decide_collect(assess: dict[str, Any]) -> str:
+        """
+        Decides whether to collect new data from the API.
 
-    @task
-    def run_data_quality_checks() -> str:
-        """Run data quality checks."""
-        print("Running data quality checks...")
-        # Placeholder for quality checks
-        return "quality_checks_passed"
+        If there are no raw JSON files and no data in the fact table,
+        it's an initial run, so we must collect data. Otherwise, we can
+        skip the collection step and proceed to load any existing files.
+        """
+        is_initial_run = (
+            assess.get("json_stock_files", 0) == 0
+            and assess.get("json_exchange_files", 0) == 0
+            and assess.get("db_fact_stock_count", 0) == 0
+        )
+        if is_initial_run:
+            return "collect_api"
+        return "skip_collection"
 
-    @task
-    def monitor_etl_process_task() -> None:
-        """Monitor ETL process."""
-        monitor_etl_process()
+    @task(task_id="collect_api")
+    def collect_api_task() -> dict:
+        """Task to collect data from the API."""
+        return collect_api_data()
 
-    @task
-    def cleanup_old_data() -> str:
-        """Clean up old data."""
-        print("Cleaning up old data...")
-        # Placeholder for cleanup logic
-        return "cleanup_completed"
+    @task(task_id="skip_collection")
+    def skip_collection_task():
+        """Dummy task to allow skipping the API collection step."""
+        pass
 
-    # Create control tasks using traditional operators
-    start_task = EmptyOperator(task_id="start_etl")
-    end_task = EmptyOperator(task_id="end_etl")
+    @task(task_id="load_raw", trigger_rule="none_failed_min_one_success")
+    def load_raw_task() -> dict:
+        """
+        Task to load raw data from JSON files into the database.
+        This task acts as a join point after the branching logic.
+        """
+        return load_raw_to_db()
 
-    # SQL processing tasks using traditional operators
-    load_raw_stock_data_to_postgres = SQLExecuteQueryOperator(
-        task_id="load_raw_stock_data_to_postgres",
-        sql=DAGConfig.SQL_FILES["load_raw_stock_data"],
-    )
+    @task(task_id="end", trigger_rule="none_failed")
+    def end_task():
+        """Final task in the pipeline."""
+        pass
 
-    load_raw_exchange_data_to_postgres = SQLExecuteQueryOperator(
-        task_id="load_raw_exchange_data_to_postgres",
-        sql=DAGConfig.SQL_FILES["load_raw_exchange_data"],
-    )
+    # Define task instances
+    assess = assess_latest_task()
+    branch = decide_collect(assess)
+    collect = collect_api_task()
+    skip = skip_collection_task()
+    load = load_raw_task()
+    end = end_task()
 
-    clean_transform_data = SQLExecuteQueryOperator(
-        task_id="clean_transform_data", sql=DAGConfig.SQL_FILES["clean_transform_data"]
-    )
-
-    # Create task instances
-    extract_stock_task = extract_stock_data_to_json()
-    extract_exchange_task = extract_exchange_rates_to_json_task()
-    quality_checks_task = run_data_quality_checks()
-    monitor_task = monitor_etl_process_task()
-    cleanup_task = cleanup_old_data()
-
-    # Define task dependencies following the 6-step ETL process:
-    # Step 1 & 2: Start with parallel data extraction to JSON files
-    start_task >> [extract_stock_task, extract_exchange_task]
-
-    # Step 3: After JSON files are created, load them into PostgreSQL in parallel
-    extract_stock_task >> load_raw_stock_data_to_postgres
-    extract_exchange_task >> load_raw_exchange_data_to_postgres
-
-    # After both raw data loads complete, run the clean and transform step
-    [
-        load_raw_stock_data_to_postgres,
-        load_raw_exchange_data_to_postgres,
-    ] >> clean_transform_data
-
-    # Step 4: Run data quality checks after transformation
-    clean_transform_data >> quality_checks_task
-
-    # Step 5: Monitor ETL process after quality checks
-    quality_checks_task >> monitor_task
-
-    # Step 6: Clean up old data after monitoring
-    monitor_task >> cleanup_task
-
-    # End the DAG
-    cleanup_task >> end_task
-
-
-# Instantiate the DAG
-daily_etl_dag = ticker_converter_daily_etl()
+    # Define the DAG structure with branching
+    assess >> branch
+    branch >> collect >> load
+    branch >> skip >> load
+    load >> end
