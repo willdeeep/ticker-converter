@@ -30,6 +30,7 @@ if str(_dags_dir) not in sys.path:
 from helpers.assess_records import assess_latest_records
 from helpers.collect_api_data import collect_api_data
 from helpers.load_raw_to_db import load_raw_to_db
+
 # pylint: enable=wrong-import-position,import-error
 
 DEFAULT_ARGS = {

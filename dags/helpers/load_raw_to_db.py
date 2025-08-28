@@ -23,14 +23,14 @@ def _get_database_connection() -> str:
     database_url = os.getenv("DATABASE_URL")
     if database_url:
         return database_url
-    
+
     # Build PostgreSQL URL from components
     host = os.getenv("POSTGRES_HOST", "localhost")
     port = os.getenv("POSTGRES_PORT", "5432")
     database = os.getenv("POSTGRES_DB", "local_db")
     user = os.getenv("POSTGRES_USER", "dbuser123")
     password = os.getenv("POSTGRES_PASSWORD", "password123")
-    
+
     return f"postgresql://{user}:{password}@{host}:{port}/{database}"
 
 
