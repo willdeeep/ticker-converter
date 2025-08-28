@@ -1,6 +1,6 @@
 # Variables
 SHELL := /bin/bash
-PYTHON := python3
+PYTHON := .venv/bin/python
 PACKAGE_NAME := ticker_converter
 VENV_NAME := .venv
 
@@ -12,17 +12,34 @@ RED := \033[0;31m
 CYAN := \033[0;36m
 NC := \033[0m
 
-.PHONY: help setup install install-test init-db run airflow airflow-fix-config test test-ci act-pr lint lint-makefile lint-sql lint-black lint-isort lint-pylint lint-mypy lint-fix airflow-close db-close clean teardown-cache teardown-env teardown-airflow teardown-db _load_env _validate_env _setup_python_environment _install_quality_tools
+.PHONY: all help setup install install-test init-db run airflow airflow-fix-config test test-ci act-pr lint lint-makefile lint-sql lint-black lint-isort lint-pylint lint-mypy lint-fix airflow-close db-close clean teardown-cache teardown-env teardown-airflow teardown-db _load_env _validate_env _setup_python_environment _install_quality_tools _help_header _help_sections _setup_header _setup_steps _setup_footer _install_header _install_deps _run_pipeline _run_dag _lint_pipeline _quality_pipeline _quality_steps _clean_artifacts
+
+# ============================================================================
+# DEFAULT TARGET
+# ============================================================================
+
+all: ## Run the most common development workflow (setup, install-test, quality)
+	@echo -e "$(BLUE)Running complete development workflow...$(NC)"
+	@$(MAKE) setup
+	@$(MAKE) install-test
+	@$(MAKE) quality
+	@echo -e "$(GREEN)✓ Development environment ready!$(NC)"
 
 # ============================================================================
 # HELP
 # ============================================================================
 
 help: ## Show this help message
+	@$(MAKE) _help_header
+	@$(MAKE) _help_sections
+
+_help_header: ## Internal: Display help header
 	@echo -e "$(CYAN)Ticker Converter - Available Commands:$(NC)"
 	@echo ""
+
+_help_sections: ## Internal: Display all help sections
 	@echo -e "$(YELLOW)Help:$(NC)"
-	@grep -E '^(help):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^(all|help):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo -e "$(YELLOW)Setup and install:$(NC)"
 	@grep -E '^(setup|install|install-test|init-db):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -45,8 +62,15 @@ help: ## Show this help message
 # ============================================================================
 
 setup: ## Initialize project and basic environment (environment variables)
+	@$(MAKE) _setup_header
+	@$(MAKE) _setup_steps
+	@$(MAKE) _setup_footer
+
+_setup_header: ## Internal: Display setup header
 	@echo -e "$(BLUE)Setting up ticker-converter project environment...$(NC)"
 	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+
+_setup_steps: ## Internal: Execute setup configuration steps
 	@echo -e "$(CYAN)STEP 1: Customize Environment Configuration$(NC)"
 	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@if [ ! -f .env ]; then \
@@ -67,6 +91,8 @@ setup: ## Initialize project and basic environment (environment variables)
 	@$(MAKE) _validate_env
 	@echo -e "$(CYAN)STEP 3: Setup Python Environment$(NC)"
 	@$(MAKE) _setup_python_environment
+
+_setup_footer: ## Internal: Display setup completion message
 	@echo -e "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo -e "$(GREEN)✓ Environment setup completed!$(NC)"
 	@echo -e "$(CYAN)Next steps:$(NC)"
@@ -148,8 +174,14 @@ endef
 # ============================================================================
 
 install: ## Install all runtime dependencies (Airflow, FastAPI, database, etc.)
-	@echo -e "$(BLUE)Installing all runtime dependencies...$(NC)"
+	@$(MAKE) _install_header
 	@$(MAKE) _setup_python_environment
+	@$(MAKE) _install_deps
+
+_install_header: ## Internal: Display install header
+	@echo -e "$(BLUE)Installing all runtime dependencies...$(NC)"
+
+_install_deps: ## Internal: Install runtime dependencies
 	@echo -e "$(YELLOW)Installing all runtime dependencies (FastAPI, database, HTTP, Airflow)...$(NC)"
 	@.venv/bin/python -m pip install --upgrade pip
 	@.venv/bin/python -m pip install -e .
@@ -169,13 +201,13 @@ install-test: ## Install everything needed for testing/validation (pytest, black
 
 _install_quality_tools: ## Helper: Install system-level quality tools (checkmake, etc.)
 	@echo "Installing optional system-level quality tools..."
-	@# Install checkmake if not available
+	@# Install checkmake if not available (with error handling)
 	@if ! command -v checkmake >/dev/null 2>&1; then \
 		echo "Installing checkmake..."; \
 		if command -v brew >/dev/null 2>&1; then \
 			brew install checkmake || echo "⚠️  Failed to install checkmake via brew"; \
 		elif command -v go >/dev/null 2>&1; then \
-			go install github.com/checkmake/checkmake/cmd/checkmake@latest || echo "⚠️  Failed to install checkmake via go"; \
+			go install github.com/checkmake/checkmake/cmd/checkmake@latest || echo "⚠️  Failed to install checkmake via go (upstream repository issues)"; \
 		else \
 			echo "ℹ️  checkmake installation skipped - requires brew or go"; \
 		fi; \
@@ -233,19 +265,25 @@ airflow: ## Start Apache Airflow instance with default user
 
 run: _validate_env ## Execute data pipeline (run or run DAG_NAME=manual_backfill)
 	@if [ -n "$(DAG_NAME)" ]; then \
-		echo -e "$(BLUE)Triggering Airflow DAG: $(DAG_NAME)$(NC)"; \
-		cd $(PWD) && \
-		AIRFLOW_HOME="$${PWD}/airflow" \
-		AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
-		AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" \
-		airflow dags trigger $(DAG_NAME); \
-		echo -e "$(GREEN)✅ DAG $(DAG_NAME) triggered successfully$(NC)"; \
+		$(MAKE) _run_dag; \
 	else \
-		echo -e "$(BLUE)Running data ingestion pipeline...$(NC)"; \
-		echo -e "$(YELLOW)📊 Fetching latest market data and currency rates$(NC)"; \
-		$(PYTHON) -c "from src.ticker_converter.integrations.orchestrator import DataIngestionOrchestrator; orchestrator = DataIngestionOrchestrator(); results = orchestrator.run_full_ingestion(); print('✅ Pipeline completed:', results)"; \
-		echo -e "$(GREEN)✅ Data pipeline completed successfully$(NC)"; \
+		$(MAKE) _run_pipeline; \
 	fi
+
+_run_dag: ## Internal: Execute specific Airflow DAG
+	@echo -e "$(BLUE)Triggering Airflow DAG: $(DAG_NAME)$(NC)"
+	@cd $(PWD) && \
+	AIRFLOW_HOME="$${PWD}/airflow" \
+	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
+	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" \
+	airflow dags trigger $(DAG_NAME)
+	@echo -e "$(GREEN)✅ DAG $(DAG_NAME) triggered successfully$(NC)"
+
+_run_pipeline: ## Internal: Execute data ingestion pipeline
+	@echo -e "$(BLUE)Running data ingestion pipeline...$(NC)"
+	@echo -e "$(YELLOW)📊 Fetching latest market data and currency rates$(NC)"
+	@$(PYTHON) -c "from src.ticker_converter.integrations.orchestrator import DataIngestionOrchestrator; orchestrator = DataIngestionOrchestrator(); results = orchestrator.run_full_ingestion(); print('✅ Pipeline completed:', results)"
+	@echo -e "$(GREEN)✅ Data pipeline completed successfully$(NC)"
 
 airflow-config: ## Fix Airflow 3.0.4 configuration deprecation warnings
 	@echo -e "$(BLUE)Setting Airflow configuration for 3.0.4...$(NC)"
@@ -299,7 +337,8 @@ lint-makefile: _validate_env ## Lint and validate Makefile structure
 		echo "Running checkmake linting..."; \
 		checkmake Makefile || echo "⚠️  Checkmake warnings detected - review recommended"; \
 	else \
-		echo "ℹ️  checkmake not installed - install with: brew install checkmake (optional)"; \
+		echo "ℹ️  checkmake not installed - skipping checkmake linting (graceful degradation)"; \
+		echo "ℹ️  To install: brew install checkmake OR go install github.com/checkmake/checkmake/cmd/checkmake@latest"; \
 	fi
 	@echo "✓ Makefile structure validation completed"
 
@@ -334,6 +373,9 @@ lint-sql: _validate_env ## Lint and validate SQL files
 
 lint: _validate_env ## Run comprehensive linting (black, isort, pylint, mypy)
 	@echo "Running full linting pipeline..."
+	@$(MAKE) _lint_pipeline
+
+_lint_pipeline: ## Internal: Execute all linting steps
 	@$(MAKE) lint-black
 	@$(MAKE) lint-isort  
 	@$(MAKE) lint-pylint
@@ -365,6 +407,9 @@ lint-fix: ## Auto-fix code quality issues
 quality: ## Run comprehensive quality gate validation
 	@echo "Running comprehensive quality gate validation..."
 	@echo "Quality Gate Pipeline: Makefile → SQL → Black → isort → Pylint → MyPy → Tests with Coverage"
+	@$(MAKE) _quality_steps
+
+_quality_steps: ## Internal: Execute all quality validation steps
 	@echo ""
 	@echo "Step 1/7: Makefile Linting..."
 	@$(MAKE) lint-makefile
@@ -393,6 +438,9 @@ quality: ## Run comprehensive quality gate validation
 	@echo "Step 7/7: Test Suite with Coverage..."
 	@$(MAKE) test
 	@echo "✓ Tests and coverage: PASSED"
+	@$(MAKE) _quality_summary
+
+_quality_summary: ## Internal: Display quality validation summary
 	@echo ""
 	@echo "All Quality Gates PASSED!"
 	@echo "✓ Makefile structure: Valid and compliant"
@@ -430,12 +478,15 @@ db-close: ## Shuts down local PostgreSQL instance
 
 clean: ## Clean build artifacts and cache files
 	@echo -e "$(BLUE)Cleaning build artifacts...$(NC)"
+	@$(MAKE) _clean_artifacts
+	@echo -e "$(GREEN)Cleanup completed$(NC)"
+
+_clean_artifacts: ## Internal: Remove build artifacts and cache files
 	@find . -type d -name "__pycache__" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name "*.egg-info" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".pytest_cache" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".mypy_cache" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
 	@rm -rf htmlcov/ .coverage
-	@echo -e "$(GREEN)Cleanup completed$(NC)"
 
 # ============================================================================
 # TEARDOWN

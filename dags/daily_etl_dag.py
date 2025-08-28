@@ -13,6 +13,8 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
+from airflow.decorators import task
+from airflow.models import DAG
 from pendulum import datetime as pdatetime
 
 # Add the project root to the Python path
@@ -24,10 +26,6 @@ if str(_project_root) not in sys.path:
 from dags.helpers.assess_records import assess_latest_records
 from dags.helpers.collect_api_data import collect_api_data
 from dags.helpers.load_raw_to_db import load_raw_to_db
-
-from airflow.decorators import task
-from airflow.models import DAG
-
 
 DEFAULT_ARGS = {
     "owner": "data-team",

@@ -34,19 +34,15 @@ jobs:
         python -m venv .venv
         source .venv/bin/activate
         python -m pip install --upgrade pip
-        pip install -e .[database,api,dev,test,quality]
+        pip install -e .[test]
 
     - name: Install system-level quality tools (optional)
       run: |
         # Install sqlfluff for enhanced SQL linting
         source .venv/bin/activate
         pip install sqlfluff
-        # checkmake installation (optional - will gracefully degrade if not available)
-        if command -v go >/dev/null 2>&1; then
-          go install github.com/mrtazz/checkmake/cmd/checkmake@latest
-        else
-          echo "ℹ️  go not available - checkmake will be skipped (graceful degradation)"
-        fi
+        # Skip checkmake for now due to upstream repository issues
+        echo "ℹ️  checkmake skipped due to upstream repository path conflicts (graceful degradation)"
 
     - name: Run enhanced quality gate pipeline
       run: |

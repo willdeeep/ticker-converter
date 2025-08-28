@@ -3,7 +3,6 @@ Step 1: Assess latest records in DB and JSON files.
 Uses existing DDL structure from dags/sql/ddl/
 """
 
-import json
 import sys
 from pathlib import Path
 

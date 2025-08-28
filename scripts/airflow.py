@@ -146,7 +146,7 @@ class EnvironmentLoader:
             "AIRFLOW_ADMIN_LASTNAME",
             "AIRFLOW__API_AUTH__JWT_SECRET",
         ]
-        
+
         # Add PostgreSQL connection only for commands that need database connectivity
         if command in ["setup", "start"] or not command:
             required_vars.append("AIRFLOW_CONN_POSTGRES_DEFAULT")
@@ -165,7 +165,7 @@ class EnvironmentLoader:
         """Create AirflowConfig from environment variables"""
         # Use empty string as default for postgres_conn_url if not available
         postgres_conn_url = env_vars.get("AIRFLOW_CONN_POSTGRES_DEFAULT", "")
-        
+
         return AirflowConfig(
             home=Path(env_vars["AIRFLOW_HOME"]),
             dags_folder=Path(env_vars["AIRFLOW__CORE__DAGS_FOLDER"]),
@@ -223,7 +223,7 @@ class AirflowCommandRunner:
             "AIRFLOW_ADMIN_LASTNAME": self.config.admin_lastname,
             "AIRFLOW__API_AUTH__JWT_SECRET": self.config.jwt_secret,
         }
-        
+
         # Add PostgreSQL connection if it's configured
         if self.config.postgres_conn_url:
             airflow_env_vars["AIRFLOW_CONN_POSTGRES_DEFAULT"] = self.config.postgres_conn_url
