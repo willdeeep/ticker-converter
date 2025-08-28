@@ -274,7 +274,7 @@ curl http://localhost:8000/health  # Check FastAPI health endpoint
 # Execute full test suite with coverage
 make test
 
-# Expected output: All tests pass with >40% coverage
+# Expected output: All tests pass with >69% coverage
 # Coverage report generated in htmlcov/index.html
 ```
 

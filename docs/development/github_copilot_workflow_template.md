@@ -90,7 +90,7 @@ Create `my_docs/TEMP_[PROJECT_NAME]_ROADMAP.md` containing:
 
 **Phase Completion Milestones**:
 - [ ] Development environment fully configured
-- [ ] All tests passing with >50% coverage
+- [ ] All tests passing with >69% coverage
 - [ ] CI/CD pipeline operational
 - [ ] Core data models validated
 
@@ -289,7 +289,7 @@ Every development cycle must pass these quality gates:
 black src/                    # Code formatting
 pylint src/ --fail-under=10   # Must maintain 10.00/10 score
 mypy src/ --strict           # Type checking with strict mode
-pytest --cov=src --cov-fail-under=50  # Coverage threshold
+pytest --cov=src --cov-fail-under=69  # Coverage threshold
 ```
 
 #### Security Validation
@@ -372,7 +372,7 @@ pylint src/ --fail-under=10 || exit 1
 mypy src/ || exit 1
 
 # Test execution
-pytest --cov=src --cov-fail-under=50 || exit 1
+pytest --cov=src --cov-fail-under=69 || exit 1
 
 echo "All quality checks passed!"
 ```
@@ -591,7 +591,7 @@ jobs:
       run: mypy src/
 
     - name: Run tests
-      run: pytest --cov=src --cov-fail-under=50 tests/
+      run: pytest --cov=src --cov-fail-under=69 tests/
 ```
 
 ### Makefile Integration
@@ -617,7 +617,7 @@ typecheck:
 
 .PHONY: test
 test:
-	pytest --cov=src --cov-fail-under=50 tests/
+	pytest --cov=src --cov-fail-under=69 tests/
 
 # Workflow automation targets
 .PHONY: validate-ci

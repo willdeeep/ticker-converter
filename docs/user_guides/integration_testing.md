@@ -113,35 +113,39 @@ export AIRFLOW_HOME="./airflow"
 
 ### Alpha Vantage API Integration
 
-- **Connection Testing**: Verify API endpoint accessibility
-- **Authentication**: Validate API key configuration
-- **Response Format**: Check data structure compliance
-- **Rate Limiting**: Respect API usage constraints
-- **Error Handling**: Test invalid symbols and API errors
+- **Connection Testing**: Verify API endpoint accessibility with timeout handling
+- **Authentication**: Validate API key configuration and rotation
+- **Response Format**: Check data structure compliance with Pydantic models
+- **Rate Limiting**: Respect API usage constraints (5 calls/minute for free tier)
+- **Error Handling**: Test invalid symbols, API errors, and network failures
+- **Data Quality**: Validate OHLCV data completeness and accuracy
 
 ### PostgreSQL Database Integration
 
-- **Connection Establishment**: Test database connectivity
-- **Permission Validation**: Verify read/write permissions
-- **Schema Verification**: Check table structure and relationships
-- **Data Quality**: Validate data integrity and constraints
-- **Performance**: Basic query performance validation
+- **Connection Establishment**: Test async database connectivity with connection pooling
+- **Permission Validation**: Verify read/write permissions for dimensional model
+- **Schema Verification**: Check star schema structure (dimensions + facts + views)
+- **Data Quality**: Validate referential integrity and constraint compliance
+- **Performance**: Query performance validation for analytical views
+- **Transaction Management**: Test ACID properties for financial data integrity
 
-### Apache Airflow Integration
+### Apache Airflow 3.0.4 Integration
 
-- **Configuration Validation**: Check airflow.cfg settings
-- **DAG Parsing**: Verify DAG syntax and structure
-- **Environment Variables**: Test required variable availability
-- **Service Status**: Check Airflow daemon status
-- **Task Execution**: Validate basic task functionality
+- **Configuration Validation**: Check airflow.cfg settings and @dag decorator usage
+- **DAG Parsing**: Verify modern @dag/@task syntax and TaskFlow API
+- **Environment Variables**: Test required variable availability and validation
+- **Service Status**: Check Airflow daemon status and scheduler health
+- **Task Execution**: Validate SQL operators and Python task integration
+- **Error Recovery**: Test retry logic and failure handling mechanisms
 
 ### FastAPI Endpoint Integration
 
-- **Application Startup**: Test FastAPI app initialization
-- **Endpoint Accessibility**: Verify route functionality
-- **Data Serialization**: Check JSON response format
-- **Error Handling**: Test invalid request handling
-- **Production Features**: Validate CORS, security headers
+- **Application Startup**: Test async FastAPI app initialization
+- **Endpoint Accessibility**: Verify direct SQL query execution via routes
+- **Data Serialization**: Check JSON response format with Pydantic validation
+- **Error Handling**: Test invalid request handling and HTTP status codes
+- **Performance Features**: Validate async operations and response times (<200ms)
+- **API Documentation**: Verify automatic OpenAPI/Swagger documentation generation
 
 ## CI/CD Integration
 
