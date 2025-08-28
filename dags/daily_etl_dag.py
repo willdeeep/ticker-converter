@@ -17,15 +17,20 @@ from airflow.decorators import task
 from airflow.models import DAG
 from pendulum import datetime as pdatetime
 
-# Add the project root to the Python path
+# Add the project root and dags directory to the Python path
 _dag_file_path = Path(__file__).resolve()
 _project_root = _dag_file_path.parent.parent
+_dags_dir = _dag_file_path.parent
 if str(_project_root) not in sys.path:
     sys.path.append(str(_project_root))
+if str(_dags_dir) not in sys.path:
+    sys.path.append(str(_dags_dir))
 
-from dags.helpers.assess_records import assess_latest_records
-from dags.helpers.collect_api_data import collect_api_data
-from dags.helpers.load_raw_to_db import load_raw_to_db
+# pylint: disable=wrong-import-position,import-error
+from helpers.assess_records import assess_latest_records
+from helpers.collect_api_data import collect_api_data
+from helpers.load_raw_to_db import load_raw_to_db
+# pylint: enable=wrong-import-position,import-error
 
 DEFAULT_ARGS = {
     "owner": "data-team",

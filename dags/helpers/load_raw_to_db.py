@@ -6,6 +6,7 @@ delegates to the DatabaseManager for insertion, returning summary counts.
 """
 
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -14,6 +15,23 @@ from ticker_converter.data_ingestion.database_manager import DatabaseManager
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_STOCKS_DIR = PROJECT_ROOT / "dags" / "raw_data" / "stocks"
 RAW_EXCHANGE_DIR = PROJECT_ROOT / "dags" / "raw_data" / "exchange"
+
+
+def _get_database_connection() -> str:
+    """Get database connection string from environment variables."""
+    # Check for full DATABASE_URL first
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        return database_url
+    
+    # Build PostgreSQL URL from components
+    host = os.getenv("POSTGRES_HOST", "localhost")
+    port = os.getenv("POSTGRES_PORT", "5432")
+    database = os.getenv("POSTGRES_DB", "local_db")
+    user = os.getenv("POSTGRES_USER", "dbuser123")
+    password = os.getenv("POSTGRES_PASSWORD", "password123")
+    
+    return f"postgresql://{user}:{password}@{host}:{port}/{database}"
 
 
 def _read_json_files(directory: Path) -> List[Dict[str, Any]]:
@@ -38,7 +56,9 @@ def load_raw_to_db() -> Dict[str, int]:
 
     Returns a summary dict with inserted counts.
     """
-    db = DatabaseManager()
+    # Use explicit database connection to avoid file system issues
+    connection_string = _get_database_connection()
+    db = DatabaseManager(connection_string=connection_string)
 
     # Read stock records
     stock_records = _read_json_files(RAW_STOCKS_DIR)
