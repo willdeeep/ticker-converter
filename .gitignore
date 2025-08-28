@@ -38,6 +38,7 @@ MANIFEST
 .coverage
 htmlcov/
 .tox/
+sqlfluff_errors.json
 
 # Airflow - exclude entire runtime directory
 airflow/

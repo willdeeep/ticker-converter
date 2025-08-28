@@ -163,13 +163,13 @@ Each deliverable becomes a GitHub issue with:
 # - security-scan job
 ```
 
-### Quality Gates
+### Success Metrics
 
 Every development cycle must pass:
 - **100% test pass rate**
 - **Pylint score 10.00/10**
 - **MyPy validation clean**
-- **Test coverage above 50%**
+- **Test coverage above 69%** (current maintained level)
 - **GitHub Actions CI/CD success**
 
 ## Integration with Existing Tools
@@ -219,7 +219,7 @@ jobs:
     - name: Type checking
       run: mypy src/
     - name: Run tests
-      run: pytest --cov=src --cov-fail-under=50 tests/
+      run: pytest --cov=src --cov-fail-under=69 tests/
 ```
 
 ### Makefile Integration

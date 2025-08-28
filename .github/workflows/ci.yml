@@ -34,39 +34,36 @@ jobs:
         python -m venv .venv
         source .venv/bin/activate
         python -m pip install --upgrade pip
-        pip install -e .[database,api,dev,test]
+        pip install -e .[test]
 
-    - name: Run linting and quality checks
+    - name: Install system-level quality tools (optional)
+      run: |
+        # Install sqlfluff for enhanced SQL linting
+        source .venv/bin/activate
+        pip install sqlfluff
+        # Skip checkmake for now due to upstream repository issues
+        echo "ℹ️  checkmake skipped due to upstream repository path conflicts (graceful degradation)"
+
+    - name: Run enhanced quality gate pipeline
       run: |
         source .venv/bin/activate
-        echo "🔍 Step 1/4: Code Formatting (Black)..."
-        black --check src/ tests/
-        echo "✅ Black formatting: PASSED"
-        echo ""
-        echo "🔍 Step 2/4: Import Sorting (isort)..."
-        isort --check-only src/ tests/
-        echo "✅ Import sorting: PASSED" 
-        echo ""
-        echo "🔍 Step 3/4: Code Quality (Pylint)..."
-        pylint_output=$(pylint src/ticker_converter dags/ --score=yes)
-        echo "$pylint_output"
-        if echo "$pylint_output" | grep -q "10.00/10"; then
-          echo "✅ Pylint score: 10.00/10 PASSED"
-        else
-          echo "❌ Pylint score: FAILED (must be 10.00/10)"
-          exit 1
-        fi
-        echo ""
-        echo "🔍 Step 4/4: Type Checking (MyPy)..."
-        mypy src/ticker_converter
-        echo "✅ MyPy type checking: PASSED"
-
-    - name: Run tests with coverage reporting
-      run: |
-        source .venv/bin/activate
-        echo "🧪 Running test suite with coverage validation..."
-        python -m pytest tests/ -v --cov=src/ticker_converter --cov-report=xml --cov-report=term-missing --cov-fail-under=67 --ignore=tests/integration
-        echo "✅ Tests and coverage: PASSED"
+        # Create minimal .env for validation (CI environment)
+        echo "POSTGRES_HOST=localhost" > .env
+        echo "POSTGRES_PORT=5432" >> .env
+        echo "POSTGRES_DB=ticker_converter" >> .env
+        echo "POSTGRES_USER=ticker_user" >> .env
+        echo "POSTGRES_PASSWORD=ticker_password" >> .env
+        echo "AIRFLOW_ADMIN_USERNAME=admin" >> .env
+        echo "AIRFLOW_ADMIN_PASSWORD=admin_password" >> .env
+        echo "AIRFLOW_ADMIN_EMAIL=admin@example.com" >> .env
+        echo "AIRFLOW_ADMIN_FIRSTNAME=Admin" >> .env
+        echo "AIRFLOW_ADMIN_LASTNAME=User" >> .env
+        echo "AIRFLOW__API_AUTH__JWT_SECRET=test-jwt-secret" >> .env
+        echo "ALPHA_VANTAGE_API_KEY=test_api_key" >> .env
+        echo "AIRFLOW__CORE__DAGS_FOLDER=${{ github.workspace }}/dags" >> .env
+        
+        # Run the comprehensive 7-stage quality pipeline
+        make quality
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3

@@ -8,9 +8,24 @@ Also tests DAG validation and connectivity to external services.
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+
+# Add scripts directory to path for environment loading
+scripts_dir = Path(__file__).parent.parent.parent / "scripts"
+sys.path.insert(0, str(scripts_dir))
+
+try:
+    import airflow as airflow_script
+
+    # Load environment variables properly with ${PWD} expansion
+    env_loader = airflow_script.EnvironmentLoader()
+    airflow_config = env_loader.load_config()
+except ImportError:
+    # Fallback if airflow script is not available
+    airflow_config = None
 
 
 class TestAirflowConfiguration:
@@ -18,13 +33,18 @@ class TestAirflowConfiguration:
 
     def test_airflow_core_dags_folder_from_env(self) -> None:
         """Test that AIRFLOW__CORE__DAGS_FOLDER is set from environment, not hardcoded."""
-        dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
+        # Use properly loaded config if available, fallback to raw env vars
+        if airflow_config:
+            dags_folder = str(airflow_config.dags_folder)
+            dags_path = airflow_config.dags_folder
+        else:
+            dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
+            assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER must be set in environment"
+            dags_path = Path(dags_folder)
 
-        assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER must be set in environment"
         assert dags_folder != "", "AIRFLOW__CORE__DAGS_FOLDER cannot be empty"
 
         # Verify it points to a valid directory
-        dags_path = Path(dags_folder)
         assert dags_path.exists(), f"DAGs folder does not exist: {dags_folder}"
         assert dags_path.is_dir(), f"DAGs folder is not a directory: {dags_folder}"
 
@@ -38,11 +58,16 @@ class TestAirflowConfiguration:
 
     def test_airflow_home_configuration(self) -> None:
         """Test that AIRFLOW_HOME is properly configured."""
-        airflow_home = os.getenv("AIRFLOW_HOME")
+        # Use properly loaded config if available, fallback to raw env vars
+        if airflow_config:
+            airflow_home = str(airflow_config.home)
+            airflow_path = airflow_config.home
+        else:
+            airflow_home = os.getenv("AIRFLOW_HOME")
+            airflow_path = Path(airflow_home) if airflow_home else None
 
         # AIRFLOW_HOME should be set for integration tests
-        if airflow_home:
-            airflow_path = Path(airflow_home)
+        if airflow_home and airflow_path:
             assert airflow_path.exists(), f"Airflow home directory does not exist: {airflow_home}"
             assert airflow_path.is_dir(), f"Airflow home is not a directory: {airflow_home}"
 
@@ -69,10 +94,14 @@ class TestAirflowDAGValidation:
 
     def test_dag_folder_accessible(self) -> None:
         """Test that DAG folder is accessible and contains DAGs."""
-        dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
-        assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER not set"
-
-        dags_path = Path(dags_folder)
+        # Use properly loaded config if available, fallback to raw env vars
+        if airflow_config:
+            dags_folder = str(airflow_config.dags_folder)
+            dags_path = airflow_config.dags_folder
+        else:
+            dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
+            assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER not set"
+            dags_path = Path(dags_folder)
 
         # Count Python files (potential DAGs)
         python_files = list(dags_path.glob("*.py"))
@@ -85,9 +114,15 @@ class TestAirflowDAGValidation:
 
     def test_test_etl_dag_syntax(self) -> None:
         """Test that test_etl_dag.py has valid Python syntax."""
-        dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
-        assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER not set"
-        test_dag_path = Path(dags_folder) / "test_etl_dag.py"
+        # Use properly loaded config if available, fallback to raw env vars
+        if airflow_config:
+            dags_path = airflow_config.dags_folder
+        else:
+            dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
+            assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER not set"
+            dags_path = Path(dags_folder)
+
+        test_dag_path = dags_path / "test_etl_dag.py"
 
         assert test_dag_path.exists(), "test_etl_dag.py should exist"
 
@@ -101,9 +136,15 @@ class TestAirflowDAGValidation:
 
     def test_dag_contains_required_components(self) -> None:
         """Test that test_etl_dag contains required components for integration testing."""
-        dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
-        assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER not set"
-        test_dag_path = Path(dags_folder) / "test_etl_dag.py"
+        # Use properly loaded config if available, fallback to raw env vars
+        if airflow_config:
+            dags_path = airflow_config.dags_folder
+        else:
+            dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
+            assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER not set"
+            dags_path = Path(dags_folder)
+
+        test_dag_path = dags_path / "test_etl_dag.py"
 
         with open(test_dag_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -155,9 +196,15 @@ class TestAirflowServiceConnectivity:
 
     def test_environment_variables_not_hardcoded(self) -> None:
         """Test that environment variables are used, not hardcoded values."""
-        dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
-        assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER not set"
-        test_dag_path = Path(dags_folder) / "test_etl_dag.py"
+        # Use properly loaded config if available, fallback to raw env vars
+        if airflow_config:
+            dags_path = airflow_config.dags_folder
+        else:
+            dags_folder = os.getenv("AIRFLOW__CORE__DAGS_FOLDER")
+            assert dags_folder is not None, "AIRFLOW__CORE__DAGS_FOLDER not set"
+            dags_path = Path(dags_folder)
+
+        test_dag_path = dags_path / "test_etl_dag.py"
 
         with open(test_dag_path, "r", encoding="utf-8") as f:
             content = f.read()

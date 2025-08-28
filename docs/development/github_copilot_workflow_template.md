@@ -90,7 +90,7 @@ Create `my_docs/TEMP_[PROJECT_NAME]_ROADMAP.md` containing:
 
 **Phase Completion Milestones**:
 - [ ] Development environment fully configured
-- [ ] All tests passing with >50% coverage
+- [ ] All tests passing with >69% coverage
 - [ ] CI/CD pipeline operational
 - [ ] Core data models validated
 
@@ -264,7 +264,7 @@ For each GitHub issue, follow this systematic development cycle:
     # Validate with act CLI
     act --job pytest
     act --job lint-check
-    
+
     # Create pull request
     gh pr create \
       --title "Implement currency validation logic" \
@@ -289,7 +289,7 @@ Every development cycle must pass these quality gates:
 black src/                    # Code formatting
 pylint src/ --fail-under=10   # Must maintain 10.00/10 score
 mypy src/ --strict           # Type checking with strict mode
-pytest --cov=src --cov-fail-under=50  # Coverage threshold
+pytest --cov=src --cov-fail-under=69  # Coverage threshold
 ```
 
 #### Security Validation
@@ -347,7 +347,7 @@ grep -A 10 "Phase ${PHASE_NUMBER}" "$ROADMAP_FILE" | \
   grep "^[0-9]\." | \
   while IFS= read -r deliverable; do
     title=$(echo "$deliverable" | sed 's/^[0-9]*\. \*\*\(.*\)\*\*/\1/')
-    
+
     gh issue create \
       --title "$title" \
       --label "phase-${PHASE_NUMBER},type:feature" \
@@ -372,7 +372,7 @@ pylint src/ --fail-under=10 || exit 1
 mypy src/ || exit 1
 
 # Test execution
-pytest --cov=src --cov-fail-under=50 || exit 1
+pytest --cov=src --cov-fail-under=69 || exit 1
 
 echo "All quality checks passed!"
 ```
@@ -571,27 +571,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11.12'
-    
+
     - name: Install dependencies
       run: |
         pip install -e .[dev]
-    
+
     - name: Code formatting check
       run: black --check src/
-    
+
     - name: Linting
       run: pylint src/ --fail-under=10
-    
+
     - name: Type checking
       run: mypy src/
-    
+
     - name: Run tests
-      run: pytest --cov=src --cov-fail-under=50 tests/
+      run: pytest --cov=src --cov-fail-under=69 tests/
 ```
 
 ### Makefile Integration
@@ -617,7 +617,7 @@ typecheck:
 
 .PHONY: test
 test:
-	pytest --cov=src --cov-fail-under=50 tests/
+	pytest --cov=src --cov-fail-under=69 tests/
 
 # Workflow automation targets
 .PHONY: validate-ci

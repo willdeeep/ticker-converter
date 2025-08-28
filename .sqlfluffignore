@@ -1,0 +1,6 @@
+# Ignore template-heavy files that can't be properly parsed
+dags/sql/backfill/validate_backfill_period.sql
+dags/sql/backfill/validate_historical_data.sql
+
+# Ignore ETL files with complex templating
+dags/sql/etl/*_template.sql

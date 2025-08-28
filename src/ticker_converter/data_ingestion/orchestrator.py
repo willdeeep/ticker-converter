@@ -317,3 +317,29 @@ class DataIngestionOrchestrator:
                 "error": str(e),
                 "success": False,
             }
+
+    def extract_exchange_rates(self, days_back: int = 1) -> list[dict[str, Any]]:
+        """Extract exchange rates for the given number of days.
+
+        Args:
+            days_back: Number of days to fetch exchange rates for
+
+        Returns:
+            List of dictionaries containing exchange rate data
+        """
+        self.logger.info("Extracting exchange rates for the past %d days", days_back)
+
+        try:
+            # Fetch exchange rate data using the currency fetcher
+            exchange_rate_data = self.currency_fetcher.fetch_and_prepare_fx_data(days_back)
+
+            if not exchange_rate_data:
+                self.logger.warning("No exchange rate data found for the past %d days", days_back)
+                return []
+
+            self.logger.info("Successfully extracted %d exchange rate records", len(exchange_rate_data))
+            return exchange_rate_data
+
+        except Exception as e:
+            self.logger.error("Failed to extract exchange rates: %s", str(e))
+            raise
