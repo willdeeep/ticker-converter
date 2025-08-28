@@ -12,24 +12,29 @@ This project implements a production-ready financial data analytics pipeline des
 - **FastAPI Integration**: REST API endpoints for stock performance analysis  
 - **PostgreSQL Backend**: Robust data persistence with optimized SQL queries
 - **Code Quality Tools**: Automated formatting, linting, and type checking
-- **Comprehensive Testing**: 67% test coverage with pytest, coverage reporting, and 100% test success rate
+- **Comprehensive Testing**: 69% test coverage with pytest, coverage reporting, and 100% test success rate
 - **Development Environment**: Pre-commit hooks and automated quality gates
 
-## What's New in v1.1.0
+## What's New in v3.1.1
 
-### Major Improvements
-- **Upgraded to Apache Airflow 3.0.4**: Latest workflow orchestration with modern @dag and @task decorators
-- **Standardized on Python 3.11.12**: Single Python version for optimal compatibility and performance
-- **Enhanced Test Coverage**: Achieved 67% (improved from 53%) with comprehensive unit tests
-- **Professional Testing Standards**: 138+ tests passing (100% success rate), CI/CD integration
-- **Improved CI/CD Pipeline**: Faster, more reliable automated testing and deployment
-- **Better Type Safety**: Full mypy compliance with proper type annotations
-- **Enhanced Documentation**: Clear setup instructions and troubleshooting guides
+### Major Quality and Workflow Improvements
+- **Enhanced Makefile Architecture**: Refactored into 15+ helper functions for better organization and 5-line target compliance
+- **Comprehensive Quality Pipeline**: 7-step validation (Makefile → SQL → Black → isort → Pylint → MyPy → Tests) with 100% success rate
+- **Pylint Score Achievement**: Restored and maintained 10.00/10 across all modules with strategic Airflow 3.0 compatibility
+- **CI/CD Workflow Optimization**: Streamlined GitHub Actions with graceful degradation and local testing via `make act-pr`
+- **Test Coverage Excellence**: Maintained 69% coverage with 245+ tests passing (100% success rate)
 
-### Breaking Changes
-- **Python Version**: Now requires exactly Python 3.11.12 (previously supported 3.9+)
-- **Airflow Syntax**: Updated to Airflow 3.0 decorator patterns (legacy syntax removed)
-- **Dependencies**: Removed SQLAlchemy (not needed for direct SQL approach)
+### Technical Infrastructure Enhancements
+- **Python Environment Consistency**: Fixed virtual environment path for reliable tool availability
+- **Airflow 3.0.4 Compatibility**: Strategic Pylint suppressions for modern @dag and @task decorators
+- **Code Quality Standards**: Black formatting, isort organization, comprehensive type checking
+- **Graceful Degradation**: Optional tools (checkmake, sqlfluff) with informative fallback messaging
+- **Development Workflow**: Enhanced `make all` target combining setup, installation, and quality validation
+
+### Breaking Changes from v3.1.0
+- **Makefile Structure**: Large targets refactored into focused helper functions (backward compatible)
+- **Python Path**: Makefile now uses `.venv/bin/python` instead of system `python3`
+- **Quality Requirements**: Enhanced Pylint configuration for DAG file compatibility
 
 ## Quick Start
 
@@ -56,7 +61,7 @@ git clone https://github.com/willdeeep/ticker-converter.git
 cd ticker-converter
 ```
 
-#### 2. Set Up Environment Variables
+#### 2. Complete Environment Setup
 ```bash
 make setup
 # This creates .env file with default values
@@ -68,14 +73,13 @@ make setup
 Choose the installation type based on your needs:
 
 ```bash
-# For production use only:
-make install
+# For complete development environment (recommended):
+make all
+# Combines: setup → install-test → quality validation
 
-# For development with testing tools:
-make install-dev
-
-# For testing only:
-make install-test
+# Or individual installation steps:
+make install        # Production dependencies only
+make install-test   # Production + testing tools (recommended for development)
 ```
 
 #### 4. Initialize Database
@@ -104,10 +108,11 @@ make run  # Executes daily ETL pipeline
 
 #### Testing and Quality Assurance
 ```bash
-make test      # Run test suite with coverage
+make test      # Run test suite with coverage (Current: 69% coverage, 245+ tests)
 make test-int  # Run integration tests (external services)
-make lint      # Check code quality
+make lint      # Check code quality (Pylint 10.00/10 maintained)
 make lint-fix  # Auto-fix formatting issues
+make quality   # Complete 7-step quality pipeline
 make act-pr    # Test GitHub Actions locally
 ```
 
@@ -186,21 +191,27 @@ make help  # Show all available commands with descriptions
 
 ## Makefile Commands
 
+### Primary Workflow Commands
+- `make all` - Complete development workflow (setup → install-test → quality)
+- `make help` - Show all available commands with descriptions
+
 ### Installation Commands
+- `make setup` - Initialize project with guided environment configuration
 - `make install` - Install production dependencies only
-- `make install-test` - Install production + testing dependencies  
-- `make install-dev` - Install full development environment
+- `make install-test` - Install production + testing dependencies (recommended)
 
 ### Operational Commands
 - `make init-db` - Initialize database with last 30 trading days of data
 - `make run` - Run daily data collection for previous trading day
-- `make airflow` - Start Apache Airflow instance with default user
+- `make airflow` - Start Apache Airflow 3.0.4 instance with default user
 - `make serve` - Start FastAPI development server
 
 ### Quality & Testing Commands
-- `make test` - Run test suite with coverage
-- `make lint` - Run all code quality checks
+- `make quality` - Run comprehensive 7-step quality validation pipeline
+- `make test` - Run test suite with coverage (Current: 69%, 245+ tests)
+- `make lint` - Run all code quality checks (Pylint 10.00/10 maintained)
 - `make lint-fix` - Auto-fix code quality issues
+- `make act-pr` - Test GitHub Actions CI/CD locally
 - `make clean` - Clean build artifacts and cache files
 
 ### Airflow Access
@@ -213,11 +224,12 @@ After running `make airflow`, access the web interface at:
 
 ### Code Quality Standards
 The project maintains strict code quality with:
-- **pylint**: 10/10 scores across all modules
-- **black**: Consistent code formatting (88-character line length)
-- **isort**: Organized import statements
-- **mypy**: Static type checking
-- **pre-commit**: Automated quality gates
+- **pylint**: 10.00/10 scores across all modules (maintained consistently)
+- **black**: Consistent code formatting (120-character line length)
+- **isort**: Organized import statements with black profile
+- **mypy**: Static type checking with strict settings
+- **7-step quality pipeline**: Comprehensive validation from Makefile to tests
+- **pre-commit**: Automated quality gates (when using install-test)
 
 ### Project Structure
 ```
@@ -261,21 +273,24 @@ ticker-converter/
 ### Testing Strategy
 Run comprehensive tests with coverage reporting:
 ```bash
-make test      # Runs pytest with coverage (Current: 67% coverage, 138+ tests)
+make test      # Runs pytest with coverage (Current: 69% coverage, 245+ tests)
 make test-int  # Runs integration tests for external services
 ```
 
 **Unit Testing Achievement Status**:
 - ✅ **CLI Module**: 97% coverage (Phase 1 Priority 1 COMPLETED)
 - ✅ **Database Manager**: 99% coverage (Phase 1 Priority 2 COMPLETED)
+- ✅ **API Clients**: 85% coverage (High quality external integration)
+- ✅ **Data Models**: 78% coverage (Pydantic validation complete)
 - 🎯 **Next Priorities**: Orchestrator (32%), NYSE Fetcher (20%)
-- 📊 **Overall Progress**: 67/80 coverage target (84% progress)
+- 📊 **Overall Progress**: 69% coverage maintained consistently
 
 **Integration Testing Coverage**:
 - ✅ **Alpha Vantage API**: Connectivity, authentication, data format validation
-- ✅ **PostgreSQL Database**: Connection, permissions, schema validation
-- ✅ **Apache Airflow**: Configuration, DAG validation, runtime checks
+- ✅ **PostgreSQL Database**: Connection, permissions, schema validation  
+- ✅ **Apache Airflow 3.0.4**: Configuration, DAG validation, modern @task decorators
 - ✅ **FastAPI Endpoints**: Application startup, data serialization, error handling
+- ✅ **Quality Pipeline**: 7-step validation with 100% success rate
 
 Coverage reports are generated in `htmlcov/` for detailed analysis.
 Integration test documentation available in `docs/user_guides/integration_testing.md`.

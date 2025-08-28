@@ -1,17 +1,31 @@
-# Makefile Target Reference
+# Makefile Target Reference (v3.1.1)
 
-This document provides comprehensive reference for all available Makefile targets in the ticker-converter project.
+This document provides comprehensive reference for all available Makefile targets in the ticker-converter project, updated for the latest refactoring with helper functions and enhanced quality pipeline.
 
 ## Command Categories
 
 - [Help](#help)
 - [Setup and Install](#setup-and-install)
 - [Run and Inspect](#run-and-inspect)
-- [Testing](#testing)
+- [Testing and Quality](#testing-and-quality)
 - [Shutdown and Clean](#shutdown-and-clean)
 - [Teardown](#teardown)
 
 ## Help
+
+### `make all` (Default Target)
+Complete development workflow combining setup, testing dependencies, and quality validation.
+
+```bash
+make all    # or just 'make'
+```
+
+**Process**:
+1. Run `make setup` - Environment configuration
+2. Run `make install-test` - Install testing dependencies
+3. Run `make quality` - Full 7-step quality pipeline
+
+**Use Case**: New developer onboarding or complete environment validation.
 
 ### `make help`
 Display comprehensive help with all available commands organized by category.
@@ -20,65 +34,72 @@ Display comprehensive help with all available commands organized by category.
 make help
 ```
 
-**Output**: Formatted help text with color-coded categories and descriptions.
+**Output**: Color-coded help with organized categories and descriptions.
 
 ---
 
 ## Setup and Install
 
 ### `make setup`
-Complete project setup with guided environment customization.
+Complete project setup with guided environment customization and helper function architecture.
 
 ```bash
 make setup
 ```
 
-**Process**:
-1. Prompts for environment customization
-2. Copies `.env.example` to `.env` (if needed)
-3. Validates environment variables
-4. Sets up Python virtual environment
-5. Installs all dependencies
+**Helper Functions Used**:
+- `_setup_header`: Display setup introduction
+- `_setup_steps`: Execute configuration steps  
+- `_setup_footer`: Display completion summary
 
-**Environment Variables Used**:
-- All variables from `.env` file
-- Validates required variables before proceeding
+**Process**:
+1. Display setup header and progress information
+2. Create `.env` from `.env.example` (if needed)
+3. Validate all required environment variables
+4. Setup Python 3.11.12 virtual environment
+5. Display next steps and completion summary
+
+**Environment Variables Validated**:
+- `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`
+- `POSTGRES_USER`, `POSTGRES_PASSWORD`
+- `AIRFLOW_ADMIN_*` variables for admin user
+- `AIRFLOW__API_AUTH__JWT_SECRET`
+- `ALPHA_VANTAGE_API_KEY`
 
 ### `make install`
-Install core project dependencies.
+Install core project dependencies for production runtime.
 
 ```bash
 make install
 ```
 
-**Dependencies Installed**:
-- Core application dependencies
-- API framework (FastAPI, SQLAlchemy)
-- Data processing tools (pandas, requests)
+**Helper Functions Used**:
+- `_install_header`: Display installation intro
+- `_install_deps`: Execute dependency installation
 
-### `make install-dev`
-Install development dependencies including quality tools.
+**Dependencies Installed**:
+- FastAPI, uvicorn (web framework)
+- PostgreSQL drivers (psycopg2-binary, asyncpg)
+- Data processing (pandas, requests, aiohttp)
+- Apache Airflow 3.0.4 (workflow orchestration)
+
+### `make install-test`
+Install everything needed for testing and validation (recommended for development).
 
 ```bash
-make install-dev
+make install-test
 ```
 
 **Additional Dependencies**:
-- Testing framework (pytest, pytest-cov)
-- Code quality tools (Black, isort, Pylint, MyPy)
-- Development utilities
+- Testing framework (pytest, pytest-cov, pytest-asyncio)
+- Code quality tools (Black >=23.0.0, isort, Pylint >=3.0.0, MyPy)
+- Development utilities (ipython, jupyter, pre-commit)
+- Optional quality tools installed via `_install_quality_tools`
 
-### `make install-quality`
-Install quality assurance tools only.
-
-```bash
-make install-quality
-```
-
-**Quality Tools**:
-- `sqlfluff` - SQL linting
-- `checkmake` - Makefile validation
-- Python quality tools
+**Quality Tools Configuration**:
+- Graceful degradation for optional tools (checkmake)
+- Error handling for upstream repository issues
+- Cross-platform compatibility (brew, go, manual installation)
 
 ### `make init-db`
 Initialize PostgreSQL database using environment configuration.
@@ -105,23 +126,37 @@ make init-db
 ## Run and Inspect
 
 ### `make run`
-Execute the data pipeline or trigger specific Airflow DAGs.
+Execute the data pipeline or trigger specific Airflow DAGs using helper functions.
 
 ```bash
 # Run default data pipeline
 make run
 
 # Trigger specific DAG
-make run DAG_NAME=manual_backfill
-
-# Run with custom parameters
-make run DAG_NAME=daily_etl_dag RUN_DATE=2024-01-15
+make run DAG_NAME=daily_etl_pipeline
 ```
 
-**Environment Variables Used**:
-- `AIRFLOW_HOME`
-- `AIRFLOW__CORE__DAGS_FOLDER`
-- Airflow configuration variables
+**Helper Functions Used**:
+- `_run_pipeline`: Execute main data ingestion pipeline
+- `_run_dag`: Trigger specific Airflow DAG
+
+**Environment Variables Required**:
+- `AIRFLOW_HOME`, `AIRFLOW__CORE__DAGS_FOLDER`
+- Complete Airflow configuration from `.env`
+
+### `make airflow`
+Start Apache Airflow 3.0.4 instance with project configuration.
+
+```bash
+make airflow
+```
+
+**Features**:
+- Modern Airflow 3.0.4 with @dag and @task decorators
+- Project-local configuration (airflow/ directory)
+- Default admin user from environment variables
+- PostgreSQL metadata backend
+- DAG validation and error checking
 
 ### `make inspect`
 Perform system diagnostics and health checks.
@@ -133,152 +168,92 @@ make inspect
 # Detailed system information
 make inspect DETAILED=1
 
-# Export to JSON file
+# Export to JSON
 make inspect JSON=1
-
-# Both detailed and JSON output
-make inspect DETAILED=1 JSON=1
 ```
 
-**Diagnostic Information**:
-- Python environment status
-- Database connectivity
-- Service health checks
-- Configuration validation
-- Available disk space and memory
-
-### `make airflow`
-Start Apache Airflow web server and scheduler.
-
-```bash
-make airflow
-```
-
-**Environment Variables Required**:
-- `AIRFLOW_HOME`
-- `AIRFLOW__CORE__DAGS_FOLDER`
-- `AIRFLOW__DATABASE__SQL_ALCHEMY_CONN`
-- `AIRFLOW_ADMIN_USERNAME`
-- `AIRFLOW_ADMIN_PASSWORD`
-
-**Services Started**:
-- Airflow web server (port 8080)
-- Airflow scheduler
-- Database initialization (if needed)
-
-### `make api`
-Start the FastAPI development server.
-
-```bash
-make api
-```
-
-**Features**:
-- Automatic reload on code changes
-- Interactive API documentation at `/docs`
-- Health check endpoints
-- Database connection pooling
+**Diagnostic Coverage**:
+- Python virtual environment status (.venv/bin/python)
+- PostgreSQL connectivity and permissions
+- Airflow service health and DAG validation
+- API endpoint availability and responses
+- File system permissions and disk space
 
 ---
 
-## Testing
+## Testing and Quality
 
-### `make test`
-Run the complete test suite with coverage reporting.
-
-```bash
-make test
-```
-
-**Environment Variables Used**:
-- `TEST_DATABASE_URL`
-- `PYTEST_COVERAGE_THRESHOLD`
-- `PYTEST_EXTRA_ARGS`
-
-**Process**:
-1. Sets API key to mock value for testing
-2. Runs all unit tests
-3. Generates coverage report
-4. Validates coverage threshold
-5. Creates HTML coverage report
-
-### `make test-int`
-Run integration tests (requires external services).
-
-```bash
-make test-int
-```
-
-**Requirements**:
-- PostgreSQL service running
-- Airflow configured
-- API services accessible
-- Valid environment configuration
-
-**Note**: Integration tests are excluded from coverage calculation.
-
-### `make test-ci`
-Run CI/CD optimized test suite.
-
-```bash
-make test-ci
-```
-
-**Optimizations**:
-- Minimal output for CI environments
-- Fast execution mode
-- Environment-specific configurations
-
-### `make quality`
-Run comprehensive 7-stage quality validation pipeline.
+### `make quality` 
+Run the comprehensive 7-stage quality validation pipeline using helper functions.
 
 ```bash
 make quality
 ```
 
-**Stages**:
-1. **Makefile Linting** - Structure validation
-2. **SQL Quality** - Database query standards
-3. **Black Formatting** - Code formatting
-4. **Import Sorting** - isort validation
-5. **Code Quality** - Pylint analysis
-6. **Type Checking** - MyPy validation
-7. **Test Suite** - Coverage validation
+**Helper Functions Used**:
+- `_quality_steps`: Execute all validation stages
+- `_quality_summary`: Display final results
+
+**Complete 7-Stage Pipeline**:
+1. **Makefile Linting** - checkmake validation with graceful degradation
+2. **SQL Quality** - sqlfluff with PostgreSQL dialect standards
+3. **Black Formatting** - Code formatting verification (120-char line length)
+4. **Import Sorting** - isort validation with black profile
+5. **Code Quality** - Pylint analysis (10.00/10 requirement)
+6. **Type Checking** - MyPy validation with strict settings
+7. **Test Suite** - Full test execution with 69% coverage validation
+
+### `make test`
+Run complete test suite with coverage reporting.
+
+```bash
+make test
+```
+
+**Current Status (v3.1.1)**:
+- **245+ tests passing** (100% success rate)
+- **69% test coverage** (above 50% requirement)
+- HTML coverage report in `htmlcov/index.html`
+- XML coverage for CI/CD integration
+- Comprehensive module coverage analysis
 
 ### `make lint`
-Run Python code quality checks.
+Run comprehensive Python code quality checks using helper functions.
 
 ```bash
 make lint
 ```
 
-**Tools Used**:
-- Black (formatting)
-- isort (import sorting)
-- Pylint (code quality)
-- MyPy (type checking)
+**Helper Functions Used**:
+- `_lint_pipeline`: Execute all linting steps sequentially
+
+**Quality Tools Executed**:
+- Black formatting verification
+- isort import sorting validation  
+- Pylint static analysis (10.00/10 target)
+- MyPy type checking with strict mode
 
 ### `make lint-fix`
-Automatically fix formatting and import issues.
+Automatically fix code formatting and import issues.
 
 ```bash
 make lint-fix
 ```
 
-**Auto-fixes**:
-- Code formatting with Black
-- Import sorting with isort
-- Basic Pylint auto-fixes
+**Auto-fixes Applied**:
+- Black code formatting (120-character line length)
+- isort import sorting (black profile)
+- Safe, non-destructive formatting only
 
-### Individual Lint Targets
+### Individual Quality Targets
 
 ```bash
-make lint-black      # Black formatting only
-make lint-isort      # Import sorting only
-make lint-pylint     # Pylint analysis only
-make lint-mypy       # MyPy type checking only
-make lint-sql        # SQL quality validation
-make lint-makefile   # Makefile structure validation
+make lint-makefile  # Makefile structure validation with checkmake
+make lint-sql       # SQL quality with sqlfluff (PostgreSQL dialect)
+make lint-black     # Black formatting check only
+make lint-isort     # Import sorting check only  
+make lint-pylint    # Pylint analysis only (10.00/10 target)
+make lint-mypy      # MyPy type checking only
 ```
 
 ### `make act-pr`
@@ -289,17 +264,38 @@ make act-pr
 ```
 
 **Requirements**:
-- Docker running
-- `act` CLI installed
+- Docker running for act environment
+- `act` CLI tool installed
+- Simulates complete GitHub Actions workflow
 
 **Process**:
-- Simulates GitHub Actions environment
-- Runs complete CI/CD pipeline
-- Validates all quality gates
+- Pull request workflow simulation
+- Full quality pipeline execution
+- CI/CD environment validation
+- Docker-based isolation
 
 ---
 
 ## Shutdown and Clean
+
+### `make clean`
+Clean temporary files and caches using helper functions.
+
+```bash
+make clean
+```
+
+**Helper Functions Used**:
+- `_clean_artifacts`: Remove build artifacts and cache files
+
+**Files Removed**:
+- Python cache files (`__pycache__`, `*.pyc`)
+- Test artifacts (`.pytest_cache`, `.coverage`)  
+- Build artifacts (`*.egg-info`, `dist/`)
+- MyPy cache (`.mypy_cache`)
+- HTML coverage reports (`htmlcov/`)
+
+**Safe Operation**: Preserves source code, configuration, and virtual environment.
 
 ### `make airflow-close`
 Stop Airflow services gracefully.
@@ -309,41 +305,22 @@ make airflow-close
 ```
 
 **Process**:
-1. Stops web server
-2. Stops scheduler
-3. Cleans up process files
+1. Terminate Airflow webserver process
+2. Stop Airflow scheduler process
+3. Clean up PID files and locks
+4. Graceful shutdown with process cleanup
 
-### `make api-close`
-Stop FastAPI development server.
-
-```bash
-make api-close
-```
-
-### `make clean`
-Clean temporary files and caches.
+### `make db-close`
+Stop PostgreSQL service.
 
 ```bash
-make clean
+make db-close
 ```
 
-**Removes**:
-- Python cache files (`__pycache__`, `*.pyc`)
-- Test artifacts (`.pytest_cache`, `.coverage`)
-- Build artifacts (`*.egg-info`, `dist/`)
-- Temporary files
-
-### `make clean-db`
-Clean database-related temporary files.
-
-```bash
-make clean-db
-```
-
-**Removes**:
-- SQLite database files (development)
-- Database migration logs
-- Connection cache files
+**Platform Support**:
+- macOS: `brew services stop postgresql`
+- Linux: `systemctl stop postgresql` 
+- Manual process termination as fallback
 
 ---
 

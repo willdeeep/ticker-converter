@@ -1,53 +1,58 @@
-# SQL-Centric Pipeline Architecture
+# Modern Financial Data Pipeline Architecture (v3.1.1)
 
 ## Executive Summary
 
-The ticker-converter implements a modern, production-ready ETL pipeline for financial market data analytics, designed around a **SQL-first philosophy** that maximizes database performance while minimizing Python complexity. This system processes NYSE stock data and currency exchange rates through a dimensional data warehouse, serving real-time analytics via FastAPI endpoints.
+The ticker-converter implements a production-ready ETL pipeline for financial market data analytics, built on **SQL-first architecture** with comprehensive quality standards and modern Python tooling. This system processes NYSE stock data and currency exchange rates through a dimensional data warehouse, serving real-time analytics via FastAPI endpoints with 69% test coverage and 10.00/10 code quality scores.
 
-**Key Value Proposition**: By leveraging PostgreSQL's analytical capabilities and Airflow's orchestration, the system delivers high-performance financial analytics with minimal operational overhead and maximum maintainability.
+**Key Value Proposition**: By combining PostgreSQL's analytical capabilities, Apache Airflow 3.0.4's modern orchestration, and comprehensive quality pipeline (7-step validation), the system delivers high-performance financial analytics with enterprise-grade reliability and maintainability.
 
 ## Strategic Architecture Overview
 
-The ticker-converter represents a strategic shift from traditional Python-heavy ETL approaches to a **database-centric architecture** that recognizes SQL as the optimal language for data transformations. This approach delivers superior performance, easier maintenance, and better scalability for analytical workloads.
+The ticker-converter represents a modern approach to financial data processing that emphasizes **quality-first development** with comprehensive testing, linting, and validation at every stage. This approach delivers superior reliability, maintainability, and operational confidence.
 
 ### Core Business Problem
-Financial institutions and individual investors need **real-time access to processed market data** with complex analytics (daily returns, currency conversions, performance rankings) delivered through modern REST APIs. Traditional approaches often suffer from:
-- Complex Python transformation pipelines that are difficult to optimize
-- Mixed processing languages that create maintenance overhead  
-- Scalability bottlenecks in application-layer data processing
-- Operational complexity from managing multiple data processing systems
+Financial institutions and individual investors need **reliable, high-quality market data** with complex analytics (daily returns, currency conversions, performance rankings) delivered through modern REST APIs. Traditional approaches often suffer from:
+- Inconsistent code quality leading to production issues
+- Limited test coverage creating deployment risks
+- Complex Python transformation pipelines without proper validation
+- Operational complexity from unreliable quality gates
 
 ### Solution Approach
-Our SQL-centric architecture addresses these challenges by:
-1. **Centralizing all data transformations in PostgreSQL** for optimal performance
-2. **Using Apache Airflow 3.0.4** for reliable workflow orchestration with modern @dag decorators
-3. **Serving analytics through FastAPI** with direct SQL execution for minimal latency
-4. **Maintaining a focused scope** (Magnificent Seven stocks, USD/GBP conversion) for production readiness
+Our quality-first architecture addresses these challenges by:
+1. **Comprehensive Quality Pipeline**: 7-step validation (Makefile → SQL → Black → isort → Pylint → MyPy → Tests)
+2. **High Test Coverage**: 69% coverage with 245+ tests maintaining 100% success rate
+3. **Modern Airflow 3.0.4**: @dag and @task decorators with strategic compatibility handling
+4. **SQL-centric Processing**: PostgreSQL-based transformations for optimal performance
+5. **Development Workflow**: Enhanced Makefile with helper functions and graceful degradation
 
 ## Technology Decision Matrix
 
-### Database Technology: PostgreSQL
-**What**: Single PostgreSQL database for all data storage and processing
+### Development Workflow: Enhanced Makefile Architecture
+**What**: Comprehensive Makefile with 15+ helper functions and quality pipeline integration
+**Why Chosen**:
+- **Quality First**: 7-step validation pipeline ensuring 10.00/10 Pylint scores
+- **Developer Experience**: Single `make all` command for complete environment setup
+- **Graceful Degradation**: Optional tools (checkmake, sqlfluff) with informative fallbacks
+- **Helper Function Pattern**: Modular 5-line targets with focused helper functions
+- **CI/CD Integration**: Local testing with `make act-pr` and GitHub Actions compatibility
+
+### Database Technology: PostgreSQL with Quality Validation
+**What**: Single PostgreSQL database with comprehensive test coverage (99% for database manager)
 **Why Chosen**:
 - **Analytical Performance**: Superior window functions, aggregations, and indexing for financial calculations
-- **ACID Compliance**: Critical for financial data integrity and consistency
-- **Scalability**: Proven performance with terabyte-scale analytical workloads
+- **ACID Compliance**: Critical for financial data integrity and consistency  
+- **Quality Validation**: Comprehensive integration testing with connection validation
 - **SQL Feature Set**: Advanced SQL capabilities reduce need for Python transformations
-- **Operational Simplicity**: Single database technology reduces infrastructure complexity
+- **Test Coverage**: 99% coverage for database manager ensuring production reliability
 
-**Alternatives Considered**:
-- MySQL: Limited analytical SQL features, inferior window function performance
-- SQLite: Inadequate for concurrent access and production scalability
-- NoSQL (MongoDB/Cassandra): Poor fit for relational financial data and complex analytics
-
-### Orchestration: Apache Airflow 3.0.4
-**What**: Workflow orchestration with modern @dag decorator syntax
+### Orchestration: Apache Airflow 3.0.4 with Modern Patterns
+**What**: Workflow orchestration with @dag decorators and strategic compatibility handling
 **Why Chosen**:
-- **Industry Standard**: De facto standard for ETL orchestration in financial services
-- **SQL Integration**: Native PostgreSQL operators for database-centric workflows
-- **Modern Syntax**: Airflow 3.0.4 @dag decorators improve code readability and maintainability
-- **Monitoring**: Built-in web UI for operational monitoring and debugging
-- **Reliability**: Proven retry logic, error handling, and workflow management
+- **Modern Syntax**: Airflow 3.0.4 @dag and @task decorators for improved maintainability
+- **Quality Integration**: Strategic Pylint suppressions for DAG compatibility
+- **TaskFlow API**: Clean dependency management with trigger rules
+- **Helper Module Pattern**: Business logic separated into `dags/helpers/` modules
+- **Production Ready**: Comprehensive error handling and monitoring capabilities
 
 **Alternatives Considered**:
 - Prefect: Newer but less mature ecosystem, smaller community
