@@ -10,7 +10,7 @@ from typing import Any, ClassVar
 import pandas as pd
 
 from ..api_clients.constants import OutputSize
-from ..api_clients.exceptions import AlphaVantageAPIError
+from ..api_clients.exceptions import AlphaVantageAPIError, AlphaVantageRateLimitError
 from .base_fetcher import BaseDataFetcher
 
 
@@ -22,7 +22,7 @@ class CurrencyDataFetcher(BaseDataFetcher):
     TO_CURRENCY: ClassVar[str] = "GBP"
 
     # Required columns for currency data validation
-    REQUIRED_COLUMNS: ClassVar[list[str]] = ["Date"]
+    REQUIRED_COLUMNS: ClassVar[list[str]] = ["DateTime"]
 
     def fetch_current_exchange_rate(self) -> dict[str, Any] | None:
         """Fetch the current USD/GBP exchange rate.
@@ -70,6 +70,11 @@ class CurrencyDataFetcher(BaseDataFetcher):
             return result
 
         except AlphaVantageAPIError as e:
+            # Rate limit errors should immediately fail the pipeline
+            if isinstance(e, AlphaVantageRateLimitError):
+                self.logger.error("Rate limit exceeded - pipeline must fail: %s", e)
+                raise RuntimeError(f"Pipeline failed due to rate limit: {e}") from e
+            
             self._handle_api_error(e, "fetching current exchange rate")
             return None
         except (ValueError, KeyError, TypeError) as e:
@@ -108,6 +113,11 @@ class CurrencyDataFetcher(BaseDataFetcher):
             return df
 
         except AlphaVantageAPIError as e:
+            # Rate limit errors should immediately fail the pipeline
+            if isinstance(e, AlphaVantageRateLimitError):
+                self.logger.error("Rate limit exceeded - pipeline must fail: %s", e)
+                raise RuntimeError(f"Pipeline failed due to rate limit: {e}") from e
+            
             self.logger.error("API error fetching FX data: %s", e)
             return None
         except (ValueError, KeyError, TypeError, pd.errors.ParserError) as e:
@@ -142,7 +152,7 @@ class CurrencyDataFetcher(BaseDataFetcher):
                 record = {
                     "from_currency": self.FROM_CURRENCY,
                     "to_currency": self.TO_CURRENCY,
-                    "data_date": self._safe_date_conversion(row["Date"]),
+                    "data_date": self._safe_date_conversion(row.get("Date") or row.get("DateTime")),
                     "exchange_rate": exchange_rate,
                     **base_record,
                 }
@@ -174,8 +184,11 @@ class CurrencyDataFetcher(BaseDataFetcher):
         for col in columns:
             if col not in [
                 "Date",
+                "DateTime",
                 "From_Symbol",
                 "To_Symbol",
+                "FromCurrency",
+                "ToCurrency",
             ] and pd.api.types.is_numeric_dtype(row[col]):
                 return self._safe_float_conversion(row[col], "exchange_rate")
 

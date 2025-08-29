@@ -15,9 +15,10 @@ from ticker_converter.data_ingestion.orchestrator import DataIngestionOrchestrat
 def collect_api_data():
     """Collect API records and write to JSON raw_data."""
     print("🌐 Collecting data from APIs...")
-    
+
     # Debug: print current working directory
     import os
+
     print(f"🔍 Current working directory: {os.getcwd()}")
     print(f"🔍 Project root: {project_root}")
 

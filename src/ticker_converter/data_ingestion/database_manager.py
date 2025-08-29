@@ -60,13 +60,13 @@ class DatabaseManager:
 
     def _get_default_connection(self) -> str:
         """Get database connection from config.
-        
+
         Raises:
             RuntimeError: If no DATABASE_URL is configured.
         """
         if hasattr(config, "DATABASE_URL") and config.DATABASE_URL:
             return config.DATABASE_URL
-        
+
         # No fallback - PostgreSQL is required per project specifications
         raise RuntimeError(
             "DATABASE_URL is required but not configured. "

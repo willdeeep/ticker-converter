@@ -24,7 +24,7 @@ class AlphaVantageResponseKey(str, Enum):
     """Alpha Vantage API response keys."""
 
     TIME_SERIES_DAILY = "Time Series (Daily)"
-    TIME_SERIES_FX_DAILY = "Time Series (FX Daily)"
+    TIME_SERIES_FX_DAILY = "Time Series FX (Daily)"
     REALTIME_CURRENCY_EXCHANGE_RATE = "Realtime Currency Exchange Rate"
     ERROR_MESSAGE = "Error Message"
     NOTE = "Note"
