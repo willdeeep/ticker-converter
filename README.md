@@ -15,9 +15,15 @@ This project implements a production-ready financial data analytics pipeline des
 - **Comprehensive Testing**: 69% test coverage with pytest, coverage reporting, and 100% test success rate
 - **Development Environment**: Pre-commit hooks and automated quality gates
 
-## What's New in v3.1.1
+## What's New in v3.1.3
 
-### Major Quality and Workflow Improvements
+### Pipeline Reliability and API Integration Improvements
+- **Fail-Fast Rate Limit Handling**: Enhanced error handling with immediate pipeline failure on daily rate limits instead of silent incomplete data collection
+- **FX Daily API Integration Fixed**: Corrected Alpha Vantage TIME_SERIES_FX_DAILY response key format for successful USD/GBP data fetching
+- **Enhanced Error Propagation**: AlphaVantageRateLimitError → RuntimeError → Airflow task failure with clear visibility in UI
+- **Daily vs Per-Minute Rate Limit Differentiation**: Smart detection of rate limit types with appropriate retry strategies
+
+### Previous Major Improvements (v3.1.1)
 - **Enhanced Makefile Architecture**: Refactored into 15+ helper functions for better organization and 5-line target compliance
 - **Comprehensive Quality Pipeline**: 7-step validation (Makefile → SQL → Black → isort → Pylint → MyPy → Tests) with 100% success rate
 - **Pylint Score Achievement**: Restored and maintained 10.00/10 across all modules with strategic Airflow 3.0 compatibility

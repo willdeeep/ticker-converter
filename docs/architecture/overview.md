@@ -1,8 +1,10 @@
-# Modern Financial Data Pipeline Architecture (v3.1.1)
+# Modern Financial Data Pipeline Architecture (v3.1.3)
 
 ## Executive Summary
 
 The ticker-converter implements a production-ready ETL pipeline for financial market data analytics, built on **SQL-first architecture** with comprehensive quality standards and modern Python tooling. This system processes NYSE stock data and currency exchange rates through a dimensional data warehouse, serving real-time analytics via FastAPI endpoints with 69% test coverage and 10.00/10 code quality scores.
+
+**Recent Enhancements (v3.1.3)**: Implemented fail-fast rate limit handling, fixed FX Daily API integration, and enhanced pipeline reliability with immediate failure on unrecoverable errors instead of silent incomplete data collection.
 
 **Key Value Proposition**: By combining PostgreSQL's analytical capabilities, Apache Airflow 3.0.4's modern orchestration, and comprehensive quality pipeline (7-step validation), the system delivers high-performance financial analytics with enterprise-grade reliability and maintainability.
 

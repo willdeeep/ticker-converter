@@ -193,8 +193,15 @@ LIMIT 1;
 - `422`: Unprocessable Entity (validation error)
 - `500`: Internal Server Error (database/system error)
 
-## Rate Limiting
+## Rate Limiting and Data Pipeline Reliability (v3.1.3)
 
+### External API Rate Limiting
+- **Alpha Vantage**: 25 requests per day (free tier), 5 requests per minute
+- **Enhanced Handling**: Immediate pipeline failure on daily rate limits
+- **Differentiation**: Daily vs per-minute rate limit detection
+- **Fail-Fast**: Prevents incomplete data collection
+
+### API Endpoint Rate Limiting
 - **Limit**: 100 requests per minute per API key
 - **Headers**: `X-RateLimit-Remaining`, `X-RateLimit-Reset`
 - **Exceeded Response**: HTTP 429 with retry information

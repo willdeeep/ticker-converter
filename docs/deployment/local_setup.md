@@ -409,6 +409,24 @@ DEVELOPMENT_MODE=true
    make _validate_env
    ```
 
+### Environment Updates and Service Restart (v3.1.3)
+
+When updating environment variables (especially API keys), services need to be restarted to reload the new configuration:
+
+```bash
+# Update API key or other environment variables
+vim .env
+
+# Restart Airflow to reload environment
+make airflow-close
+make airflow
+
+# Verify environment is loaded
+make _validate_env
+```
+
+**Important**: Changes to `.env` file require Airflow restart to take effect. The pipeline will use the old values until services are restarted.
+
 ## Development Tools and IDE Setup
 
 ### VS Code Configuration (Recommended)

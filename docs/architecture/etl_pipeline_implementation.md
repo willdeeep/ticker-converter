@@ -94,15 +94,22 @@ class NYSEFetcher:
 
     def fetch_daily_data(self, symbol: str, days: int = 30) -> List[MarketDataPoint]:
         """
-        Fetch historical daily data with intelligent error handling.
+        Fetch historical daily data with enhanced error handling.
 
         Features:
-        - Rate limiting compliance (5 calls/minute for free tier)
-        - Exponential backoff for transient errors
+        - Fail-fast rate limit handling (v3.1.3)
+        - Daily vs per-minute rate limit differentiation
+        - Immediate pipeline failure on unrecoverable errors
         - Data validation using Pydantic models
-        - Caching to minimize API usage during development
+        - Exponential backoff for retryable errors only
         """
 ```
+
+**Enhanced Error Handling (v3.1.3)**:
+- **Rate Limit Detection**: Immediate failure on daily rate limits to prevent incomplete data
+- **Error Propagation**: `AlphaVantageRateLimitError` → `RuntimeError` → Airflow task failure
+- **Visibility**: Clear failure status in Airflow UI instead of silent degradation
+- **Reliability**: Pipeline fails fast rather than continuing with incomplete data
 
 **Data Quality Measures**:
 - **Validation**: Pydantic models ensure data type correctness and business rule compliance
@@ -110,23 +117,23 @@ class NYSEFetcher:
 - **Freshness**: Timestamp validation to ensure recent data
 - **Consistency**: Symbol verification against expected Magnificent Seven list
 
-### Currency Exchange Integration  
+### Currency Exchange Integration (Enhanced v3.1.3)
 **Purpose**: USD/GBP conversion rates for international analytics
 **Implementation**: `src/ticker_converter/data_ingestion/currency_fetcher.py`
 
 ```python
 class CurrencyFetcher:
-    """Fetches USD/GBP exchange rates from financial APIs."""
+    """Fetches USD/GBP exchange rates with enhanced reliability."""
 
-    def fetch_exchange_rates(self, days: int = 30) -> List[CurrencyRate]:
+    def fetch_daily_fx_data(self, days: int = 10) -> pd.DataFrame:
         """
-        Retrieve historical exchange rates with failover support.
+        Retrieve FX Daily data with corrected API integration.
 
-        Features:
-        - Multiple API provider support (primary/secondary)
-        - Automatic failover for service reliability
-        - Rate validation and anomaly detection
-        - Historical rate backfill capabilities
+        Recent Fixes (v3.1.3):
+        - Fixed TIME_SERIES_FX_DAILY response key format
+        - Enhanced rate limit failure handling
+        - Immediate pipeline termination on rate limits
+        - Improved data validation for DateTime columns
         """
 ```
 

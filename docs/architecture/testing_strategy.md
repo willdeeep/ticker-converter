@@ -19,6 +19,12 @@ This document outlines the comprehensive testing strategy for the ticker-convert
 - **CI/CD Integration**: Full GitHub Actions pipeline with 7-stage quality validation
 - **Execution Time**: <3 minutes (optimized for CI/CD workflows)
 
+### Recent Testing Enhancements (v3.1.3)
+- **Rate Limit Testing**: Added comprehensive rate limit failure handling tests
+- **FX API Integration**: Enhanced currency fetcher testing with corrected API response format
+- **Error Propagation**: Validated AlphaVantageRateLimitError → RuntimeError flow
+- **Pipeline Reliability**: Confirmed fail-fast behavior on unrecoverable errors
+
 ### Module Coverage Breakdown
 
 #### Excellent Coverage (90%+) ✅
