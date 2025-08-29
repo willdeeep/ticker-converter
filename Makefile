@@ -263,27 +263,23 @@ airflow: ## Start Apache Airflow instance with default user
 	@echo -e "$(BLUE)Starting Apache Airflow...$(NC)"
 	@source .venv/bin/activate && $(PYTHON) scripts/airflow.py start
 
-run: _validate_env ## Execute data pipeline (run or run DAG_NAME=manual_backfill)
+run: _validate_env ## Execute data pipeline via Airflow (run or run DAG_NAME=custom_dag)
 	@if [ -n "$(DAG_NAME)" ]; then \
 		$(MAKE) _run_dag; \
 	else \
-		$(MAKE) _run_pipeline; \
+		$(MAKE) _run_dag DAG_NAME=daily_etl_pipeline; \
 	fi
 
 _run_dag: ## Internal: Execute specific Airflow DAG
 	@echo -e "$(BLUE)Triggering Airflow DAG: $(DAG_NAME)$(NC)"
-	@cd $(PWD) && \
-	AIRFLOW_HOME="$${PWD}/airflow" \
-	AIRFLOW__CORE__DAGS_FOLDER="$${PWD}/dags" \
-	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:////$${PWD}/airflow/airflow.db" \
+	@source .env && \
+	cd $(PWD) && \
+	source .venv/bin/activate && \
+	AIRFLOW_HOME="$${AIRFLOW_HOME:-$${PWD}/airflow}" \
+	AIRFLOW__CORE__DAGS_FOLDER="$${AIRFLOW__CORE__DAGS_FOLDER:-$${PWD}/dags}" \
+	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}" \
 	airflow dags trigger $(DAG_NAME)
 	@echo -e "$(GREEN)✅ DAG $(DAG_NAME) triggered successfully$(NC)"
-
-_run_pipeline: ## Internal: Execute data ingestion pipeline
-	@echo -e "$(BLUE)Running data ingestion pipeline...$(NC)"
-	@echo -e "$(YELLOW)📊 Fetching latest market data and currency rates$(NC)"
-	@$(PYTHON) -c "from src.ticker_converter.integrations.orchestrator import DataIngestionOrchestrator; orchestrator = DataIngestionOrchestrator(); results = orchestrator.run_full_ingestion(); print('✅ Pipeline completed:', results)"
-	@echo -e "$(GREEN)✅ Data pipeline completed successfully$(NC)"
 
 airflow-config: ## Fix Airflow 3.0.4 configuration deprecation warnings
 	@echo -e "$(BLUE)Setting Airflow configuration for 3.0.4...$(NC)"
