@@ -47,14 +47,20 @@ class DatabaseManager:
         self.logger = logging.getLogger(__name__)
 
     def _get_default_connection(self) -> str:
-        """Get default database connection from config."""
+        """Get database connection from config.
+        
+        Raises:
+            RuntimeError: If no DATABASE_URL is configured.
+        """
         if hasattr(config, "DATABASE_URL") and config.DATABASE_URL:
             return config.DATABASE_URL
-
-        # Fall back to SQLite for development
-        db_path = Path("data/ticker_converter.db")
-        db_path.parent.mkdir(exist_ok=True)
-        return f"sqlite:///{db_path}"
+        
+        # No fallback - PostgreSQL is required per project specifications
+        raise RuntimeError(
+            "DATABASE_URL is required but not configured. "
+            "Please set DATABASE_URL in your .env file to point to PostgreSQL. "
+            "This project requires PostgreSQL for all structured data storage."
+        )
 
     def get_connection(self) -> sqlite3.Connection | psycopg2.extensions.connection:
         """Get database connection based on connection string."""
