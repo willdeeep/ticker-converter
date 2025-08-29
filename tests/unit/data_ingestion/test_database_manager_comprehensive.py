@@ -39,23 +39,14 @@ class TestDatabaseManagerInitialization:
         assert manager.is_sqlite is False
 
     @patch("src.ticker_converter.data_ingestion.database_manager.config")
-    @patch("src.ticker_converter.data_ingestion.database_manager.Path")
-    def test_get_default_connection_fallback_to_sqlite(self, mock_path: Mock, mock_config: Mock) -> None:
-        """Test fallback to SQLite when no config DATABASE_URL."""
+    def test_get_default_connection_no_database_url(self, mock_config: Mock) -> None:
+        """Test error when no config DATABASE_URL is provided."""
         # Mock config without DATABASE_URL
         mock_config.DATABASE_URL = None
 
-        # Mock Path operations
-        mock_path_instance = MagicMock()
-        mock_path.return_value = mock_path_instance
-        mock_path_instance.parent.mkdir = MagicMock()
-
-        manager = DatabaseManager()
-
-        # Should create the path and return SQLite connection
-        mock_path_instance.parent.mkdir.assert_called_once_with(exist_ok=True)
-        assert "sqlite:///" in manager.connection_string
-        assert manager.is_sqlite is True
+        # Should raise RuntimeError when no DATABASE_URL is configured
+        with pytest.raises(RuntimeError, match="DATABASE_URL is required but not configured"):
+            DatabaseManager()
 
     def test_init_with_none_connection_uses_default(self) -> None:
         """Test initialization with None connection string uses default."""
@@ -732,15 +723,9 @@ class TestDatabaseManagerErrorScenarios:
         # Mock config without DATABASE_URL attribute
         delattr(mock_config, "DATABASE_URL")
 
-        with patch("src.ticker_converter.data_ingestion.database_manager.Path") as mock_path:
-            mock_path_instance = MagicMock()
-            mock_path.return_value = mock_path_instance
-
-            manager = DatabaseManager()
-
-            # Should fall back to SQLite
-            assert "sqlite:///" in manager.connection_string
-            assert manager.is_sqlite is True
+        # Should raise RuntimeError when no DATABASE_URL is configured
+        with pytest.raises(RuntimeError, match="DATABASE_URL is required but not configured"):
+            DatabaseManager()
 
     @patch.object(DatabaseManager, "execute_query")
     def test_get_latest_stock_date_value_error(self, mock_execute_query: Mock) -> None:

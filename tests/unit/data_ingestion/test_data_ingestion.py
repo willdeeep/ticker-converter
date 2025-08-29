@@ -242,7 +242,7 @@ def sample_currency_data() -> pd.DataFrame:
     """Sample currency data for testing."""
     return pd.DataFrame(
         {
-            "Date": [datetime(2025, 8, 10), datetime(2025, 8, 11)],
+            "DateTime": [datetime(2025, 8, 10), datetime(2025, 8, 11)],
             "Open": [0.7840, 0.7850],
             "High": [0.7860, 0.7870],
             "Low": [0.7830, 0.7840],

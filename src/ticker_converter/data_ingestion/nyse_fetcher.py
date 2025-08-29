@@ -68,7 +68,7 @@ class NYSEDataFetcher(BaseDataFetcher):
             if isinstance(e, AlphaVantageRateLimitError):
                 self.logger.error("Rate limit exceeded - pipeline must fail: %s", e)
                 raise RuntimeError(f"Pipeline failed due to rate limit: {e}") from e
-            
+
             self._handle_api_error(e, f"fetching data for {symbol}")
             return None
         except (ValueError, KeyError, TypeError, pd.errors.ParserError) as e:

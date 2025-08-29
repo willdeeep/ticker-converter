@@ -215,16 +215,15 @@ class AlphaVantageClient:
                     error_lower = error_msg.lower()
                     if "rate limit" in error_lower or "requests per minute" in error_lower:
                         # Check if this is a daily rate limit (should not retry)
-                        is_daily_limit = any(keyword in error_lower for keyword in [
-                            "25 requests per day",
-                            "daily rate limit",
-                            "requests per day"
-                        ])
-                        
+                        is_daily_limit = any(
+                            keyword in error_lower
+                            for keyword in ["25 requests per day", "daily rate limit", "requests per day"]
+                        )
+
                         if is_daily_limit:
                             # Daily rate limits should fail immediately
                             raise AlphaVantageRateLimitError(f"Daily rate limit exceeded: {error_msg}")
-                        
+
                         # For other rate limits, attempt retries
                         if attempt < self.max_retries - 1:
                             wait_time = calculate_backoff_delay_with_jitter(attempt)
@@ -243,12 +242,11 @@ class AlphaVantageClient:
 
                     # Check if this is a daily rate limit (should not retry)
                     rate_limit_lower = rate_limit_msg.lower()
-                    is_daily_limit = any(keyword in rate_limit_lower for keyword in [
-                        "25 requests per day",
-                        "daily rate limit", 
-                        "requests per day"
-                    ])
-                    
+                    is_daily_limit = any(
+                        keyword in rate_limit_lower
+                        for keyword in ["25 requests per day", "daily rate limit", "requests per day"]
+                    )
+
                     if is_daily_limit:
                         # Daily rate limits should fail immediately - no retrying will help
                         raise AlphaVantageRateLimitError(f"Daily rate limit exceeded: {rate_limit_msg}")

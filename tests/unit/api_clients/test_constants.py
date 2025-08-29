@@ -44,7 +44,7 @@ class TestConstants:
     def test_alpha_vantage_response_key_enum(self) -> None:
         """Test AlphaVantageResponseKey enumeration values."""
         assert AlphaVantageResponseKey.TIME_SERIES_DAILY == "Time Series (Daily)"
-        assert AlphaVantageResponseKey.TIME_SERIES_FX_DAILY == "Time Series (FX Daily)"
+        assert AlphaVantageResponseKey.TIME_SERIES_FX_DAILY == "Time Series FX (Daily)"
         assert AlphaVantageResponseKey.REALTIME_CURRENCY_EXCHANGE_RATE == "Realtime Currency Exchange Rate"
         assert AlphaVantageResponseKey.ERROR_MESSAGE == "Error Message"
         assert AlphaVantageResponseKey.NOTE == "Note"

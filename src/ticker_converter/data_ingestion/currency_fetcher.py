@@ -74,7 +74,7 @@ class CurrencyDataFetcher(BaseDataFetcher):
             if isinstance(e, AlphaVantageRateLimitError):
                 self.logger.error("Rate limit exceeded - pipeline must fail: %s", e)
                 raise RuntimeError(f"Pipeline failed due to rate limit: {e}") from e
-            
+
             self._handle_api_error(e, "fetching current exchange rate")
             return None
         except (ValueError, KeyError, TypeError) as e:
@@ -117,7 +117,7 @@ class CurrencyDataFetcher(BaseDataFetcher):
             if isinstance(e, AlphaVantageRateLimitError):
                 self.logger.error("Rate limit exceeded - pipeline must fail: %s", e)
                 raise RuntimeError(f"Pipeline failed due to rate limit: {e}") from e
-            
+
             self.logger.error("API error fetching FX data: %s", e)
             return None
         except (ValueError, KeyError, TypeError, pd.errors.ParserError) as e:
