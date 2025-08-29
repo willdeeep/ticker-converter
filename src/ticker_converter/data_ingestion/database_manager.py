@@ -18,8 +18,20 @@ import psycopg2.extensions
 from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from project root
+# Find project root by looking for pyproject.toml
+_current_file = Path(__file__).resolve()
+_project_root = None
+for parent in _current_file.parents:
+    if (parent / "pyproject.toml").exists():
+        _project_root = parent
+        break
+
+if _project_root:
+    load_dotenv(_project_root / ".env")
+else:
+    # Fallback to default behavior
+    load_dotenv()
 
 
 # Simple config class for database operations
