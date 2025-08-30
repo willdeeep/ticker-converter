@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 
 from ticker_converter.data_ingestion.database_manager import DatabaseManager
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent  # helpers -> dags -> project_root
 RAW_STOCKS_DIR = PROJECT_ROOT / "dags" / "raw_data" / "stocks"
 RAW_EXCHANGE_DIR = PROJECT_ROOT / "dags" / "raw_data" / "exchange"
 
