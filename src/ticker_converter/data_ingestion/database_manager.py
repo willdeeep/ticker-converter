@@ -367,26 +367,52 @@ class DatabaseManager:
                 CURRENT_TIMESTAMP
             FROM (VALUES %s) AS vals(opening_price, high_price, low_price, closing_price, volume, symbol, data_date)
             JOIN dim_stocks ds ON ds.symbol = vals.symbol
-            JOIN dim_date dd ON dd.date_value = vals.data_date
+            JOIN dim_date dd ON dd.date_value = vals.data_date::date
             ON CONFLICT (stock_id, date_id) DO NOTHING
             """
 
         try:
-            # Prepare records for fact table insert - reorder fields for the VALUES clause
-            fact_records = []
-            for record in records:
-                fact_record = [
-                    record.get('open_price'),
-                    record.get('high_price'), 
-                    record.get('low_price'),
-                    record.get('close_price'),
-                    record.get('volume'),
-                    record.get('symbol'),
-                    record.get('data_date')
-                ]
-                fact_records.append(fact_record)
+            if not self.is_sqlite:
+                # PostgreSQL bulk insert using execute_values
+                from psycopg2.extras import execute_values
 
-            inserted = self.execute_insert(insert_query, fact_records)
+                # Prepare records for fact table insert - reorder fields for the VALUES clause
+                fact_records = []
+                for record in records:
+                    fact_record = (
+                        record.get('open_price'),
+                        record.get('high_price'), 
+                        record.get('low_price'),
+                        record.get('close_price'),
+                        record.get('volume'),
+                        record.get('symbol'),
+                        record.get('data_date')
+                    )
+                    fact_records.append(fact_record)
+
+                with self.connection() as conn:
+                    cursor = conn.cursor()
+                    execute_values(cursor, insert_query, fact_records)
+                    inserted = cursor.rowcount
+                    conn.commit()
+            else:
+                # SQLite individual inserts
+                inserted = 0
+                with self.connection() as conn:
+                    cursor = conn.cursor()
+                    for record in records:
+                        cursor.execute(insert_query, (
+                            record.get('open_price'),
+                            record.get('high_price'),
+                            record.get('low_price'), 
+                            record.get('close_price'),
+                            record.get('volume'),
+                            record.get('symbol'),
+                            record.get('data_date')
+                        ))
+                        inserted += cursor.rowcount
+                    conn.commit()
+
             self.logger.info("Inserted %d stock data records into fact_stock_prices", inserted)
             return inserted
         except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
@@ -443,23 +469,46 @@ class DatabaseManager:
             FROM (VALUES %s) AS vals(exchange_rate, from_currency, to_currency, data_date)
             JOIN dim_currency dc_from ON dc_from.currency_code = vals.from_currency
             JOIN dim_currency dc_to ON dc_to.currency_code = vals.to_currency
-            JOIN dim_date dd ON dd.date_value = vals.data_date
+            JOIN dim_date dd ON dd.date_value = vals.data_date::date
             ON CONFLICT (from_currency_id, to_currency_id, date_id) DO NOTHING
             """
 
         try:
-            # Prepare records for fact table insert - reorder fields for the VALUES clause
-            fact_records = []
-            for record in records:
-                fact_record = [
-                    record.get('exchange_rate'),
-                    record.get('from_currency'),
-                    record.get('to_currency'),
-                    record.get('data_date')
-                ]
-                fact_records.append(fact_record)
+            if not self.is_sqlite:
+                # PostgreSQL bulk insert using execute_values
+                from psycopg2.extras import execute_values
 
-            inserted = self.execute_insert(insert_query, fact_records)
+                # Prepare records for fact table insert - reorder fields for the VALUES clause
+                fact_records = []
+                for record in records:
+                    fact_record = (
+                        record.get('exchange_rate'),
+                        record.get('from_currency'),
+                        record.get('to_currency'),
+                        record.get('data_date')
+                    )
+                    fact_records.append(fact_record)
+
+                with self.connection() as conn:
+                    cursor = conn.cursor()
+                    execute_values(cursor, insert_query, fact_records)
+                    inserted = cursor.rowcount
+                    conn.commit()
+            else:
+                # SQLite individual inserts
+                inserted = 0
+                with self.connection() as conn:
+                    cursor = conn.cursor()
+                    for record in records:
+                        cursor.execute(insert_query, (
+                            record.get('exchange_rate'),
+                            record.get('from_currency'),
+                            record.get('to_currency'),
+                            record.get('data_date')
+                        ))
+                        inserted += cursor.rowcount
+                    conn.commit()
+
             self.logger.info("Inserted %d currency data records into fact_currency_rates", inserted)
             return inserted
         except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:

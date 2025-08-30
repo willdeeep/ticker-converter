@@ -105,11 +105,12 @@ with DAG(  # type: ignore[arg-type]
         """Dummy task to allow skipping the API collection step."""
         pass
 
-    @task(task_id="load_raw", trigger_rule="none_failed_min_one_success")
-    def load_raw_task() -> dict:
+    @task(task_id="load_to_facts", trigger_rule="none_failed_min_one_success")
+    def load_to_facts_task() -> dict:
         """
-        Task to load raw data from JSON files into the database.
-        This task acts as a join point after the branching logic.
+        Task to load data from JSON files directly into fact tables.
+        This task acts as a join point after the branching logic and
+        bypasses the removed raw table intermediary layer.
         """
         return load_raw_to_db()
 
@@ -124,7 +125,7 @@ with DAG(  # type: ignore[arg-type]
     branch = decide_collect(assess)
     collect = collect_api_task()
     skip = skip_collection_task()
-    load = load_raw_task()
+    load = load_to_facts_task()
     end = end_task()
 
     # Define the DAG structure with branching
