@@ -39,11 +39,14 @@ def _import_module_from_path(module_name: str, file_path: Path):
 _assess_module = _import_module_from_path("assess_records", _dags_dir / "helpers" / "assess_records.py")
 _collect_module = _import_module_from_path("collect_api_data", _dags_dir / "helpers" / "collect_api_data.py")
 _load_module = _import_module_from_path("load_raw_to_db", _dags_dir / "helpers" / "load_raw_to_db.py")
+_connection_validator_module = _import_module_from_path("connection_validator", _dags_dir / "helpers" / "connection_validator.py")
 
 # Extract the functions we need
 assess_latest_records = _assess_module.assess_latest_records
 collect_api_data = _collect_module.collect_api_data
 load_raw_to_db = _load_module.load_raw_to_db
+validate_dag_connections = _connection_validator_module.validate_dag_connections
+STANDARD_PIPELINE_CONNECTIONS = _connection_validator_module.STANDARD_PIPELINE_CONNECTIONS
 
 DEFAULT_ARGS = {
     "owner": "data-team",
@@ -61,6 +64,14 @@ with DAG(  # type: ignore[arg-type]
     catchup=False,
     max_active_runs=1,
 ) as dag:
+
+    @task(task_id="validate_connections")
+    def validate_connections_task() -> dict[str, Any]:
+        """Validate that all required connections are available before starting the pipeline."""
+        return validate_dag_connections(
+            required_connections=STANDARD_PIPELINE_CONNECTIONS,
+            task_name="validate_connections"
+        )
 
     @task(task_id="assess_latest")
     def assess_latest_task() -> dict[str, Any]:
@@ -108,6 +119,7 @@ with DAG(  # type: ignore[arg-type]
         pass
 
     # Define task instances
+    validate_connections = validate_connections_task()
     assess = assess_latest_task()
     branch = decide_collect(assess)
     collect = collect_api_task()
@@ -116,7 +128,7 @@ with DAG(  # type: ignore[arg-type]
     end = end_task()
 
     # Define the DAG structure with branching
-    assess >> branch
+    validate_connections >> assess >> branch
     branch >> collect >> load
     branch >> skip >> load
     load >> end

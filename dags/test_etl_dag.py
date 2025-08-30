@@ -7,11 +7,33 @@ connectivity to Alpha Vantage API and PostgreSQL database.
 """
 
 import os
+import importlib.util
+import sys
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import psycopg2
 import requests
 from airflow.decorators import dag, task
+
+
+# Import connection validator
+_dag_file_path = Path(__file__).resolve()
+_dags_dir = _dag_file_path.parent
+
+def _import_module_from_path(module_name: str, file_path: Path):
+    """Import a module from an absolute file path."""
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    if spec and spec.loader:
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+        return module
+    raise ImportError(f"Could not import {module_name} from {file_path}")
+
+_connection_validator_module = _import_module_from_path("connection_validator", _dags_dir / "helpers" / "connection_validator.py")
+validate_dag_connections = _connection_validator_module.validate_dag_connections
+TEST_CONNECTIONS = _connection_validator_module.TEST_CONNECTIONS
 
 
 @dag(
@@ -31,6 +53,15 @@ from airflow.decorators import dag, task
 )
 def test_etl_dag() -> None:
     """Test DAG definition using Airflow 3.0 syntax with service connectivity tests."""
+
+    @task
+    def test_validate_connections() -> str:
+        """Validate that all required connections are available for testing."""
+        result = validate_dag_connections(
+            required_connections=TEST_CONNECTIONS,
+            task_name="test_validate_connections"
+        )
+        return f"connection_validation_complete_{len(result['validation_results'])}_connections"
 
     @task
     def test_airflow_configuration() -> str:
@@ -215,11 +246,13 @@ def test_etl_dag() -> None:
             signal.alarm(0)  # Cancel the alarm
 
     # Define task dependencies
-    test_airflow_configuration()
-    test_alpha_vantage_api_access()
-    test_postgresql_database_access()
-
-    # All tests can run in parallel - no return needed here
+    connection_validation = test_validate_connections()
+    airflow_config = test_airflow_configuration()
+    api_test = test_alpha_vantage_api_access()
+    db_test = test_postgresql_database_access()
+    
+    # Connection validation should run first, then other tests can run in parallel
+    connection_validation >> [airflow_config, api_test, db_test]
 
 
 # Instantiate the DAG
