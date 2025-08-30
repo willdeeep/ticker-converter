@@ -31,28 +31,4 @@ CREATE TABLE IF NOT EXISTS fact_currency_rates (
     UNIQUE (from_currency_id, to_currency_id, date_id)
 );
 
--- Raw staging tables for API data
-CREATE TABLE IF NOT EXISTS raw_stock_data (
-    id SERIAL PRIMARY KEY,
-    symbol VARCHAR(10) NOT NULL,
-    data_date DATE NOT NULL,
-    open_price DECIMAL(10, 4),
-    high_price DECIMAL(10, 4),
-    low_price DECIMAL(10, 4),
-    close_price DECIMAL(10, 4),
-    volume BIGINT,
-    source VARCHAR(50) DEFAULT 'alpha_vantage',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (symbol, data_date, source)
-);
 
-CREATE TABLE IF NOT EXISTS raw_currency_data (
-    id SERIAL PRIMARY KEY,
-    from_currency VARCHAR(3) NOT NULL,
-    to_currency VARCHAR(3) NOT NULL,
-    data_date DATE NOT NULL,
-    exchange_rate DECIMAL(10, 6) NOT NULL,
-    source VARCHAR(50) DEFAULT 'alpha_vantage',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (from_currency, to_currency, data_date, source)
-);

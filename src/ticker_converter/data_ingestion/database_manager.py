@@ -171,12 +171,12 @@ class DatabaseManager:
             True if database is empty (needs initial setup)
         """
         try:
-            # Check for stock data
-            stock_result = self.execute_query("SELECT COUNT(*) as count FROM raw_stock_data")
+            # Check for stock data in fact table
+            stock_result = self.execute_query("SELECT COUNT(*) as count FROM fact_stock_prices")
             stock_count = int(stock_result[0]["count"])
 
-            # Check for currency data
-            currency_result = self.execute_query("SELECT COUNT(*) as count FROM raw_currency_data")
+            # Check for currency data in fact table
+            currency_result = self.execute_query("SELECT COUNT(*) as count FROM fact_currency_rates")
             currency_count = int(currency_result[0]["count"])
 
             is_empty = stock_count == 0 and currency_count == 0
@@ -194,7 +194,7 @@ class DatabaseManager:
             return True
 
     def get_latest_stock_date(self, symbol: str | None = None) -> datetime | None:
-        """Get the latest date for stock data.
+        """Get the latest date for stock data from fact table.
 
         Args:
             symbol: Specific symbol to check, or None for any symbol
@@ -204,10 +204,20 @@ class DatabaseManager:
         """
         try:
             if symbol:
-                query = "SELECT MAX(data_date) as latest_date FROM raw_stock_data WHERE symbol = ?"
+                query = """
+                SELECT MAX(dd.date_value) as latest_date 
+                FROM fact_stock_prices fsp
+                JOIN dim_stocks ds ON fsp.stock_id = ds.stock_id
+                JOIN dim_date dd ON fsp.date_id = dd.date_id
+                WHERE ds.symbol = ?
+                """
                 params = (symbol,)
             else:
-                query = "SELECT MAX(data_date) as latest_date FROM raw_stock_data"
+                query = """
+                SELECT MAX(dd.date_value) as latest_date 
+                FROM fact_stock_prices fsp
+                JOIN dim_date dd ON fsp.date_id = dd.date_id
+                """
                 params = None
 
             result = self.execute_query(query, params)
@@ -224,13 +234,18 @@ class DatabaseManager:
         return None
 
     def get_latest_currency_date(self) -> datetime | None:
-        """Get the latest date for currency data.
+        """Get the latest date for currency data from fact table.
 
         Returns:
             Latest date or None if no data
         """
         try:
-            result = self.execute_query("SELECT MAX(data_date) as latest_date FROM raw_currency_data")
+            query = """
+            SELECT MAX(dd.date_value) as latest_date 
+            FROM fact_currency_rates fcr
+            JOIN dim_date dd ON fcr.date_id = dd.date_id
+            """
+            result = self.execute_query(query)
             latest_date = result[0]["latest_date"] if result else None
 
             if isinstance(latest_date, str):
@@ -243,11 +258,69 @@ class DatabaseManager:
 
         return None
 
+    def ensure_date_dimension(self, date_value: str | datetime) -> None:
+        """Ensure date exists in dim_date table.
+        
+        Args:
+            date_value: Date to ensure exists in dimension table
+        """
+        if isinstance(date_value, str):
+            date_obj = datetime.strptime(date_value, "%Y-%m-%d").date()
+        elif isinstance(date_value, datetime):
+            date_obj = date_value.date()
+        else:
+            date_obj = date_value
+
+        insert_query = """
+        INSERT INTO dim_date (
+            date_value, year, quarter, month, day, day_of_week, 
+            day_of_year, week_of_year, is_weekend
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (date_value) DO NOTHING
+        """
+
+        if not self.is_sqlite:
+            insert_query = """
+            INSERT INTO dim_date (
+                date_value, year, quarter, month, day, day_of_week, 
+                day_of_year, week_of_year, is_weekend
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (date_value) DO NOTHING
+            """
+
+        # Calculate date components
+        quarter = (date_obj.month - 1) // 3 + 1
+        day_of_week = date_obj.weekday() + 1  # 1=Monday, 7=Sunday
+        day_of_year = date_obj.timetuple().tm_yday
+        week_of_year = date_obj.isocalendar()[1]
+        is_weekend = date_obj.weekday() >= 5  # Saturday=5, Sunday=6
+
+        date_record = [
+            date_obj,
+            date_obj.year,
+            quarter,
+            date_obj.month,
+            date_obj.day,
+            day_of_week,
+            day_of_year,
+            week_of_year,
+            is_weekend
+        ]
+
+        try:
+            with self.connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(insert_query, date_record)
+                conn.commit()
+        except (sqlite3.Error, psycopg2.Error) as e:
+            self.logger.warning("Error ensuring date dimension for %s: %s", date_obj, e)
+
     def insert_stock_data(self, records: list[dict[str, Any]]) -> int:
-        """Insert stock data records.
+        """Insert stock data records directly into fact_stock_prices table.
 
         Args:
-            records: List of stock data records
+            records: List of stock data records with keys: symbol, data_date, 
+                    open_price, high_price, low_price, close_price, volume
 
         Returns:
             Number of records inserted
@@ -255,36 +328,77 @@ class DatabaseManager:
         if not records:
             return 0
 
-        # Prepare insert query for raw_stock_data table
+        # Ensure all dates exist in dim_date table
+        for record in records:
+            self.ensure_date_dimension(record.get('data_date'))
+
+        # Insert directly into fact_stock_prices table with dimensional lookups
         insert_query = """
-        INSERT INTO raw_stock_data
-        (symbol, data_date, open_price, high_price, low_price, close_price, volume, source, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT (symbol, data_date, source) DO NOTHING
+        INSERT INTO fact_stock_prices 
+        (stock_id, date_id, opening_price, high_price, low_price, closing_price, volume, created_at)
+        SELECT 
+            ds.stock_id,
+            dd.date_id,
+            ?,  -- opening_price
+            ?,  -- high_price
+            ?,  -- low_price
+            ?,  -- closing_price
+            ?,  -- volume
+            CURRENT_TIMESTAMP
+        FROM dim_stocks ds
+        CROSS JOIN dim_date dd
+        WHERE ds.symbol = ? AND dd.date_value = ?
+        ON CONFLICT (stock_id, date_id) DO NOTHING
         """
 
         if not self.is_sqlite:
-            # PostgreSQL syntax
+            # PostgreSQL syntax - need to handle bulk inserts differently
             insert_query = """
-            INSERT INTO raw_stock_data
-            (symbol, data_date, open_price, high_price, low_price, close_price, volume, source, created_at)
-            VALUES %s
-            ON CONFLICT (symbol, data_date, source) DO NOTHING
+            INSERT INTO fact_stock_prices 
+            (stock_id, date_id, opening_price, high_price, low_price, closing_price, volume, created_at)
+            SELECT 
+                ds.stock_id,
+                dd.date_id,
+                vals.opening_price,
+                vals.high_price,
+                vals.low_price,
+                vals.closing_price,
+                vals.volume,
+                CURRENT_TIMESTAMP
+            FROM (VALUES %s) AS vals(opening_price, high_price, low_price, closing_price, volume, symbol, data_date)
+            JOIN dim_stocks ds ON ds.symbol = vals.symbol
+            JOIN dim_date dd ON dd.date_value = vals.data_date
+            ON CONFLICT (stock_id, date_id) DO NOTHING
             """
 
         try:
-            inserted = self.execute_insert(insert_query, records)
-            self.logger.info("Inserted %d stock data records", inserted)
+            # Prepare records for fact table insert - reorder fields for the VALUES clause
+            fact_records = []
+            for record in records:
+                fact_record = [
+                    record.get('open_price'),
+                    record.get('high_price'), 
+                    record.get('low_price'),
+                    record.get('close_price'),
+                    record.get('volume'),
+                    record.get('symbol'),
+                    record.get('data_date')
+                ]
+                fact_records.append(fact_record)
+
+            inserted = self.execute_insert(insert_query, fact_records)
+            self.logger.info("Inserted %d stock data records into fact_stock_prices", inserted)
             return inserted
         except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
-            self.logger.error("Error inserting stock data: %s", e)
+            self.logger.error("Error inserting stock data into fact_stock_prices: %s", e)
             return 0
 
     def insert_currency_data(self, records: list[dict[str, Any]]) -> int:
-        """Insert currency data records.
+        """Insert currency data records directly into fact_currency_rates table.
 
         Args:
-            records: List of currency data records
+            records: List of currency data records with keys: from_currency, to_currency,
+                    data_date, exchange_rate
 
         Returns:
             Number of records inserted
@@ -292,29 +406,64 @@ class DatabaseManager:
         if not records:
             return 0
 
-        # Prepare insert query for raw_currency_data table
+        # Ensure all dates exist in dim_date table
+        for record in records:
+            self.ensure_date_dimension(record.get('data_date'))
+
+        # Insert directly into fact_currency_rates table with dimensional lookups
         insert_query = """
-        INSERT INTO raw_currency_data
-        (from_currency, to_currency, data_date, exchange_rate, source, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-        ON CONFLICT (from_currency, to_currency, data_date, source) DO NOTHING
+        INSERT INTO fact_currency_rates 
+        (from_currency_id, to_currency_id, date_id, exchange_rate, created_at)
+        SELECT 
+            dc_from.currency_id,
+            dc_to.currency_id,
+            dd.date_id,
+            ?,  -- exchange_rate
+            CURRENT_TIMESTAMP
+        FROM dim_currency dc_from
+        CROSS JOIN dim_currency dc_to
+        CROSS JOIN dim_date dd
+        WHERE dc_from.currency_code = ? 
+          AND dc_to.currency_code = ?
+          AND dd.date_value = ?
+        ON CONFLICT (from_currency_id, to_currency_id, date_id) DO NOTHING
         """
 
         if not self.is_sqlite:
-            # PostgreSQL syntax
+            # PostgreSQL syntax - need to handle bulk inserts differently
             insert_query = """
-            INSERT INTO raw_currency_data
-            (from_currency, to_currency, data_date, exchange_rate, source, created_at)
-            VALUES %s
-            ON CONFLICT (from_currency, to_currency, data_date, source) DO NOTHING
+            INSERT INTO fact_currency_rates 
+            (from_currency_id, to_currency_id, date_id, exchange_rate, created_at)
+            SELECT 
+                dc_from.currency_id,
+                dc_to.currency_id,
+                dd.date_id,
+                vals.exchange_rate,
+                CURRENT_TIMESTAMP
+            FROM (VALUES %s) AS vals(exchange_rate, from_currency, to_currency, data_date)
+            JOIN dim_currency dc_from ON dc_from.currency_code = vals.from_currency
+            JOIN dim_currency dc_to ON dc_to.currency_code = vals.to_currency
+            JOIN dim_date dd ON dd.date_value = vals.data_date
+            ON CONFLICT (from_currency_id, to_currency_id, date_id) DO NOTHING
             """
 
         try:
-            inserted = self.execute_insert(insert_query, records)
-            self.logger.info("Inserted %d currency data records", inserted)
+            # Prepare records for fact table insert - reorder fields for the VALUES clause
+            fact_records = []
+            for record in records:
+                fact_record = [
+                    record.get('exchange_rate'),
+                    record.get('from_currency'),
+                    record.get('to_currency'),
+                    record.get('data_date')
+                ]
+                fact_records.append(fact_record)
+
+            inserted = self.execute_insert(insert_query, fact_records)
+            self.logger.info("Inserted %d currency data records into fact_currency_rates", inserted)
             return inserted
         except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
-            self.logger.error("Error inserting currency data: %s", e)
+            self.logger.error("Error inserting currency data into fact_currency_rates: %s", e)
             return 0
 
     def get_missing_dates_for_symbol(self, symbol: str, days_back: int = 10) -> list[datetime]:
@@ -331,11 +480,13 @@ class DatabaseManager:
             end_date = datetime.now().date()
             start_date = end_date - timedelta(days=days_back)
 
-            # Get existing dates for this symbol
+            # Get existing dates for this symbol from fact table
             existing_query = """
-            SELECT DISTINCT data_date
-            FROM raw_stock_data
-            WHERE symbol = ? AND data_date >= ? AND data_date <= ?
+            SELECT DISTINCT dd.date_value as data_date
+            FROM fact_stock_prices fsp
+            JOIN dim_stocks ds ON fsp.stock_id = ds.stock_id
+            JOIN dim_date dd ON fsp.date_id = dd.date_id
+            WHERE ds.symbol = ? AND dd.date_value >= ? AND dd.date_value <= ?
             """
 
             existing_results = self.execute_query(existing_query, (symbol, start_date, end_date))
@@ -379,9 +530,9 @@ class DatabaseManager:
                 # Basic connectivity test
                 cursor.execute("SELECT 1")
 
-                # Get table counts
-                stock_count = self.execute_query("SELECT COUNT(*) as count FROM raw_stock_data")[0]["count"]
-                currency_count = self.execute_query("SELECT COUNT(*) as count FROM raw_currency_data")[0]["count"]
+                # Get table counts from fact tables
+                stock_count = self.execute_query("SELECT COUNT(*) as count FROM fact_stock_prices")[0]["count"]
+                currency_count = self.execute_query("SELECT COUNT(*) as count FROM fact_currency_rates")[0]["count"]
 
                 # Get date ranges
                 latest_stock = self.get_latest_stock_date()
