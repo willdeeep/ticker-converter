@@ -61,6 +61,7 @@ jobs:
         echo "AIRFLOW__API_AUTH__JWT_SECRET=test-jwt-secret" >> .env
         echo "ALPHA_VANTAGE_API_KEY=test_api_key" >> .env
         echo "AIRFLOW__CORE__DAGS_FOLDER=${{ github.workspace }}/dags" >> .env
+        echo "DATABASE_URL=postgresql://ticker_user:ticker_password@localhost:5432/ticker_converter" >> .env
         
         # Run the comprehensive 7-stage quality pipeline
         make quality
