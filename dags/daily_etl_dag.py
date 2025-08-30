@@ -8,6 +8,7 @@ in helper modules, and keep the DAG thin and declarative.
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 from datetime import timedelta
 from pathlib import Path
@@ -17,21 +18,32 @@ from airflow.decorators import task
 from airflow.models import DAG
 from pendulum import datetime as pdatetime
 
-# Add the project root and dags directory to the Python path
+# Get the current file's directory (dags directory)
 _dag_file_path = Path(__file__).resolve()
-_project_root = _dag_file_path.parent.parent
 _dags_dir = _dag_file_path.parent
-if str(_project_root) not in sys.path:
-    sys.path.append(str(_project_root))
-if str(_dags_dir) not in sys.path:
-    sys.path.append(str(_dags_dir))
 
-# pylint: disable=wrong-import-position,import-error
-from helpers.assess_records import assess_latest_records
-from helpers.collect_api_data import collect_api_data
-from helpers.load_raw_to_db import load_raw_to_db
 
-# pylint: enable=wrong-import-position,import-error
+# Import helper functions using absolute file paths
+def _import_module_from_path(module_name: str, file_path: Path):
+    """Import a module from an absolute file path."""
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    if spec and spec.loader:
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+        return module
+    raise ImportError(f"Could not import {module_name} from {file_path}")
+
+
+# Import helper modules
+_assess_module = _import_module_from_path("assess_records", _dags_dir / "helpers" / "assess_records.py")
+_collect_module = _import_module_from_path("collect_api_data", _dags_dir / "helpers" / "collect_api_data.py")
+_load_module = _import_module_from_path("load_raw_to_db", _dags_dir / "helpers" / "load_raw_to_db.py")
+
+# Extract the functions we need
+assess_latest_records = _assess_module.assess_latest_records
+collect_api_data = _collect_module.collect_api_data
+load_raw_to_db = _load_module.load_raw_to_db
 
 DEFAULT_ARGS = {
     "owner": "data-team",

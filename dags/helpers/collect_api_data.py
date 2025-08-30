@@ -16,6 +16,12 @@ def collect_api_data():
     """Collect API records and write to JSON raw_data."""
     print("🌐 Collecting data from APIs...")
 
+    # Debug: print current working directory
+    import os
+
+    print(f"🔍 Current working directory: {os.getcwd()}")
+    print(f"🔍 Project root: {project_root}")
+
     # Ensure directories exist
     raw_stocks_dir = project_root / "dags" / "raw_data" / "stocks"
     raw_exchange_dir = project_root / "dags" / "raw_data" / "exchange"
@@ -64,4 +70,5 @@ def collect_api_data():
 
     except Exception as e:
         print(f"❌ API collection failed: {e}")
-        return {"stock_extraction": f"failed: {e}", "exchange_extraction": f"failed: {e}"}
+        # Raise the exception so Airflow marks the task as failed
+        raise RuntimeError(f"API collection failed: {e}") from e

@@ -10,7 +10,7 @@ from typing import Any, ClassVar
 import pandas as pd
 
 from ..api_clients.constants import OutputSize
-from ..api_clients.exceptions import AlphaVantageAPIError
+from ..api_clients.exceptions import AlphaVantageAPIError, AlphaVantageRateLimitError
 from .base_fetcher import BaseDataFetcher
 
 
@@ -64,6 +64,11 @@ class NYSEDataFetcher(BaseDataFetcher):
             return df_filtered
 
         except AlphaVantageAPIError as e:
+            # Rate limit errors should immediately fail the pipeline
+            if isinstance(e, AlphaVantageRateLimitError):
+                self.logger.error("Rate limit exceeded - pipeline must fail: %s", e)
+                raise RuntimeError(f"Pipeline failed due to rate limit: {e}") from e
+
             self._handle_api_error(e, f"fetching data for {symbol}")
             return None
         except (ValueError, KeyError, TypeError, pd.errors.ParserError) as e:

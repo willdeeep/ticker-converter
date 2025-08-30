@@ -121,7 +121,7 @@ class TestForexAndCryptoEndpoints:
                 "2. From Symbol": "USD",
                 "3. To Symbol": "GBP",
             },
-            "Time Series (FX Daily)": {
+            "Time Series FX (Daily)": {
                 "2025-08-14": {
                     "1. open": "0.7340",
                     "2. high": "0.7360",

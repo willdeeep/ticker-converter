@@ -3,6 +3,8 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from ticker_converter.data_ingestion.database_manager import DatabaseManager
 
 
@@ -30,20 +32,11 @@ class TestDatabaseManagerInit:
         assert manager.connection_string == "postgresql://configured:url@localhost/db"
 
     @patch("ticker_converter.data_ingestion.database_manager.config")
-    @patch("ticker_converter.data_ingestion.database_manager.Path")
-    def test_get_default_connection_fallback_to_sqlite(self, mock_path: Any, mock_config: Any) -> None:
-        """Test fallback to SQLite when no config DATABASE_URL."""
+    def test_get_default_connection_no_database_url(self, mock_config: Any) -> None:
+        """Test error when no config DATABASE_URL is provided."""
         # Mock config without DATABASE_URL
         mock_config.DATABASE_URL = None
 
-        # Mock Path operations
-        mock_path_instance = MagicMock()
-        mock_path.return_value = mock_path_instance
-        mock_path_instance.parent.mkdir = MagicMock()
-
-        manager = DatabaseManager()
-
-        # Should create the path and return SQLite connection
-        mock_path_instance.parent.mkdir.assert_called_once_with(exist_ok=True)
-        assert "sqlite:///" in manager.connection_string
-        assert manager.is_sqlite is True
+        # Should raise RuntimeError when no DATABASE_URL is configured
+        with pytest.raises(RuntimeError, match="DATABASE_URL is required but not configured"):
+            DatabaseManager()

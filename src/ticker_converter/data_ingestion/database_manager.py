@@ -18,8 +18,20 @@ import psycopg2.extensions
 from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from project root
+# Find project root by looking for pyproject.toml
+_current_file = Path(__file__).resolve()
+_project_root = None
+for parent in _current_file.parents:
+    if (parent / "pyproject.toml").exists():
+        _project_root = parent
+        break
+
+if _project_root:
+    load_dotenv(_project_root / ".env")
+else:
+    # Fallback to default behavior
+    load_dotenv()
 
 
 # Simple config class for database operations
@@ -47,14 +59,20 @@ class DatabaseManager:
         self.logger = logging.getLogger(__name__)
 
     def _get_default_connection(self) -> str:
-        """Get default database connection from config."""
+        """Get database connection from config.
+
+        Raises:
+            RuntimeError: If no DATABASE_URL is configured.
+        """
         if hasattr(config, "DATABASE_URL") and config.DATABASE_URL:
             return config.DATABASE_URL
 
-        # Fall back to SQLite for development
-        db_path = Path("data/ticker_converter.db")
-        db_path.parent.mkdir(exist_ok=True)
-        return f"sqlite:///{db_path}"
+        # No fallback - PostgreSQL is required per project specifications
+        raise RuntimeError(
+            "DATABASE_URL is required but not configured. "
+            "Please set DATABASE_URL in your .env file to point to PostgreSQL. "
+            "This project requires PostgreSQL for all structured data storage."
+        )
 
     def get_connection(self) -> sqlite3.Connection | psycopg2.extensions.connection:
         """Get database connection based on connection string."""

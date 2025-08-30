@@ -24,13 +24,13 @@ class TestCurrencyDataFetcherInitialization:
         assert fetcher.api_client is not None
         assert fetcher.FROM_CURRENCY == "USD"
         assert fetcher.TO_CURRENCY == "GBP"
-        assert fetcher.REQUIRED_COLUMNS == ["Date"]
+        assert fetcher.REQUIRED_COLUMNS == ["DateTime"]
 
     def test_class_constants(self) -> None:
         """Test class-level constants are properly defined."""
         assert CurrencyDataFetcher.FROM_CURRENCY == "USD"
         assert CurrencyDataFetcher.TO_CURRENCY == "GBP"
-        assert CurrencyDataFetcher.REQUIRED_COLUMNS == ["Date"]
+        assert CurrencyDataFetcher.REQUIRED_COLUMNS == ["DateTime"]
 
     @patch("src.ticker_converter.data_ingestion.base_fetcher.AlphaVantageClient")
     def test_initialization_with_custom_api_client(self, mock_client_class: Mock) -> None:
@@ -240,8 +240,8 @@ class TestCurrencyDataFetcherSqlPreparation:
 
     def test_prepare_for_sql_insert_success(self) -> None:
         """Test successful SQL preparation from DataFrame."""
-        # Create DataFrame with Date column (not as index)
-        data = {"Date": ["2025-08-17", "2025-08-16"], "4. close": [0.7865, 0.7850]}
+        # Create DataFrame with DateTime column (not as index)
+        data = {"DateTime": ["2025-08-17", "2025-08-16"], "4. close": [0.7865, 0.7850]}
         df = pd.DataFrame(data)
 
         result = self.fetcher.prepare_for_sql_insert(df)
@@ -257,14 +257,14 @@ class TestCurrencyDataFetcherSqlPreparation:
     def test_prepare_for_sql_insert_missing_close_column(self) -> None:
         """Test SQL preparation with missing close column."""
         data = {
-            "Date": ["2025-08-17"],
+            "DateTime": ["2025-08-17"],
             "1. open": [0.7850],
             "2. high": [0.7890],
             "3. low": [0.7840],
             # Missing "4. close"
         }
         df = pd.DataFrame(data)
-        df.set_index("Date", inplace=True)
+        df.set_index("DateTime", inplace=True)
 
         with patch.object(self.fetcher, "_extract_exchange_rate", return_value=None):
             result = self.fetcher.prepare_for_sql_insert(df)
@@ -364,7 +364,7 @@ class TestCurrencyDataFetcherIntegration:
     def test_fetch_and_prepare_fx_data_success(self) -> None:
         """Test complete fetch and prepare workflow."""
         # Create a real DataFrame that would come from the API
-        mock_df = pd.DataFrame({"Date": ["2025-08-17"], "4. close": [0.7865]})
+        mock_df = pd.DataFrame({"DateTime": ["2025-08-17"], "4. close": [0.7865]})
 
         with patch.object(self.fetcher, "fetch_daily_fx_data", return_value=mock_df):
             result = self.fetcher.fetch_and_prepare_fx_data(days_back=5)
@@ -501,7 +501,7 @@ class TestCurrencyDataFetcherConfiguration:
 
         assert fetcher.FROM_CURRENCY == "USD"
         assert fetcher.TO_CURRENCY == "GBP"
-        assert "Date" in fetcher.REQUIRED_COLUMNS
+        assert "DateTime" in fetcher.REQUIRED_COLUMNS
 
     def test_inheritance_from_base_fetcher(self) -> None:
         """Test that CurrencyDataFetcher properly inherits from BaseDataFetcher."""
@@ -520,8 +520,8 @@ class TestCurrencyDataFetcherConfiguration:
         """Test that required columns are properly validated."""
         fetcher = CurrencyDataFetcher()
 
-        # Test DataFrame with required columns (Date column not as index)
-        valid_df = pd.DataFrame({"Date": ["2025-08-17"], "4. close": [0.7865]})
+        # Test DataFrame with required columns (DateTime column not as index)
+        valid_df = pd.DataFrame({"DateTime": ["2025-08-17"], "4. close": [0.7865]})
 
         result = fetcher.prepare_for_sql_insert(valid_df)
         assert len(result) == 1
