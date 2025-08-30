@@ -31,8 +31,6 @@ dags/sql/
 - `004_create_indexes.sql` - Create performance indexes
 
 ## ETL Files (Data Pipeline Operations)
-- `load_raw_stock_data_to_postgres.sql` - Load raw stock data from API to staging
-- `load_raw_exchange_data_to_postgres.sql` - Load raw exchange rate data
 - `clean_transform_data.sql` - Data cleaning and transformation logic
 - `daily_transforms.sql` - Daily data transformation processes
 - `load_dimensions.sql` - Load dimension table data
@@ -41,6 +39,8 @@ dags/sql/
 - `load_date_dimension.sql` - Load date dimension specifically
 - `data_quality_checks.sql` - Data validation and quality checks
 - `cleanup_old_data.sql` - Remove outdated data
+
+**Note**: Raw data loading is now handled directly by Python DAG helpers that insert JSON data into fact tables, eliminating the need for intermediate staging tables.
 
 ## Query Files (Business Logic)
 - `top_performers.sql` - Identify top performing stocks
@@ -59,12 +59,12 @@ SQL_DIR = "dags/sql"
 ```
 
 ### File References
-SQL files are referenced relative to the DAGs directory:
+SQL files are referenced relative to the DAGs directory (raw data loading now handled by Python helpers):
 ```python
 SQL_FILES = {
-    "load_raw_stock_data": "sql/etl/load_raw_stock_data_to_postgres.sql",
     "data_quality_checks": "sql/etl/data_quality_checks.sql",
-    # ...
+    "daily_transforms": "sql/etl/daily_transforms.sql",
+    # Raw data loading removed - handled by load_raw_to_db.py helper
 }
 ```
 

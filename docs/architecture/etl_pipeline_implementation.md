@@ -18,10 +18,10 @@ Financial applications require **reliable, real-time access to processed market 
 - Operational complexity from managing multiple processing systems
 
 ### Solution Architecture
-Our data pipeline addresses these challenges through a **three-layer approach**:
+Our data pipeline addresses these challenges through a **two-layer approach**:
 
-1. **Ingestion Layer (Python)**: Lightweight API clients fetch data from external sources
-2. **Transformation Layer (SQL)**: All business logic implemented in PostgreSQL for optimal performance  
+1. **Ingestion Layer (Python)**: Lightweight API clients fetch data and load directly into fact tables
+2. **Analytics Layer (SQL)**: All business logic implemented in PostgreSQL for optimal performance  
 3. **Serving Layer (FastAPI)**: Direct SQL execution provides sub-second analytical responses
 
 ## End-to-End Data Flow
@@ -44,17 +44,10 @@ Our data pipeline addresses these challenges through a **three-layer approach**:
 │  │   fetcher.py)   │  │   fetcher.py)   │   │
 │  └─────────────────┘  └─────────────────┘   │
 └─────────────────┬───────────────────────────┘
-                  │ Raw JSON Data
+                  │ Direct JSON→Fact Loading
                   ▼
 ┌─────────────────────────────────────────────┐
 │            PostgreSQL Database              │
-│  ┌─────────────────┐  ┌─────────────────┐   │
-│  │   Raw Tables    │  │  Staging Area   │   │
-│  │ • raw_stock_    │  │ • Clean & Load  │   │
-│  │   data          │  │ • Validate      │   │
-│  │ • raw_currency_ │  │ • Transform     │   │
-│  │   data          │  │                 │   │
-│  └─────────────────┘  └─────────────────┘   │
 │                                             │
 │  ┌─────────────────┐  ┌─────────────────┐   │
 │  │   Dimensions    │  │     Facts       │   │

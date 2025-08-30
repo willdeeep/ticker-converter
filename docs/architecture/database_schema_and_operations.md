@@ -277,24 +277,18 @@ ON dim_dates(date); -- Date range queries
 
 ### ETL-Optimized Schema Design
 
-**Staging Tables** (Raw data layer):
+**Direct Fact Loading** (Streamlined ETL):
 ```sql
--- Raw data staging for ETL processes
-CREATE TABLE raw_stock_data (
-    raw_id BIGSERIAL PRIMARY KEY,
-    symbol VARCHAR(10) NOT NULL,
-    date DATE NOT NULL,
-    data JSONB NOT NULL,  -- Flexible schema for API responses
-    source VARCHAR(50) NOT NULL, -- API source tracking
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- No staging tables - direct insertion into dimensional model
+-- Data validation and transformation handled in Python layer
+-- Date dimensions automatically populated during insertion
 ```
 
 **ETL Processing Patterns**:
-1. **Extract**: Load raw API responses into staging tables
-2. **Transform**: SQL-based transformations from raw to dimensional
-3. **Load**: Bulk INSERT/UPDATE operations into fact tables
-4. **Validate**: Data quality checks via SQL queries
+1. **Extract**: API responses processed in Python with validation
+2. **Transform**: Data cleansing and type conversion in Python
+3. **Load**: Direct bulk INSERT operations into fact tables with dimensional lookups
+4. **Validate**: Data quality enforced at application layer and database constraints
 
 ### Bulk Loading Optimization
 
@@ -401,9 +395,9 @@ python -m ticker_converter.cli_ingestion --teardown
 - PostgreSQL-specific syntax handling
 
 ### Database Teardown
-- Successfully dropped 10 objects:
+- Successfully dropped 8 objects:
   - 3 views: `vw_daily_performance`, `vw_latest_stock_prices`, `vw_stock_rankings`
-  - 7 tables: `dim_currency`, `dim_date`, `dim_stocks`, `fact_currency_rates`, `fact_stock_prices`, `raw_currency_data`, `raw_stock_data`
+  - 5 tables: `dim_currency`, `dim_date`, `dim_stocks`, `fact_currency_rates`, `fact_stock_prices`
 - Proper CASCADE handling
 - Clean database state verification
 
