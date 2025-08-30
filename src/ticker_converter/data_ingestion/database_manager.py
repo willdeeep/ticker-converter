@@ -258,62 +258,68 @@ class DatabaseManager:
 
         return None
 
-    def ensure_date_dimension(self, date_value: str | datetime) -> None:
+    def ensure_date_dimension(self, date_value: str | datetime) -> bool:
         """Ensure date exists in dim_date table.
         
         Args:
             date_value: Date to ensure exists in dimension table
+            
+        Returns:
+            True if date was successfully ensured, False otherwise
         """
-        if isinstance(date_value, str):
-            date_obj = datetime.strptime(date_value, "%Y-%m-%d").date()
-        elif isinstance(date_value, datetime):
-            date_obj = date_value.date()
-        else:
-            date_obj = date_value
+        try:
+            if isinstance(date_value, str):
+                date_obj = datetime.strptime(date_value, "%Y-%m-%d").date()
+            elif isinstance(date_value, datetime):
+                date_obj = date_value.date()
+            else:
+                date_obj = date_value
 
-        insert_query = """
-        INSERT INTO dim_date (
-            date_value, year, quarter, month, day, day_of_week, 
-            day_of_year, week_of_year, is_weekend
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT (date_value) DO NOTHING
-        """
-
-        if not self.is_sqlite:
             insert_query = """
             INSERT INTO dim_date (
                 date_value, year, quarter, month, day, day_of_week, 
                 day_of_year, week_of_year, is_weekend
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (date_value) DO NOTHING
             """
 
-        # Calculate date components
-        quarter = (date_obj.month - 1) // 3 + 1
-        day_of_week = date_obj.weekday() + 1  # 1=Monday, 7=Sunday
-        day_of_year = date_obj.timetuple().tm_yday
-        week_of_year = date_obj.isocalendar()[1]
-        is_weekend = date_obj.weekday() >= 5  # Saturday=5, Sunday=6
+            if not self.is_sqlite:
+                insert_query = """
+                INSERT INTO dim_date (
+                    date_value, year, quarter, month, day, day_of_week, 
+                    day_of_year, week_of_year, is_weekend
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (date_value) DO NOTHING
+                """
 
-        date_record = [
-            date_obj,
-            date_obj.year,
-            quarter,
-            date_obj.month,
-            date_obj.day,
-            day_of_week,
-            day_of_year,
-            week_of_year,
-            is_weekend
-        ]
+            # Calculate date components
+            quarter = (date_obj.month - 1) // 3 + 1
+            day_of_week = date_obj.weekday() + 1  # 1=Monday, 7=Sunday
+            day_of_year = date_obj.timetuple().tm_yday
+            week_of_year = date_obj.isocalendar()[1]
+            is_weekend = date_obj.weekday() >= 5  # Saturday=5, Sunday=6
 
-        try:
+            date_record = (
+                date_obj,
+                date_obj.year,
+                quarter,
+                date_obj.month,
+                date_obj.day,
+                day_of_week,
+                day_of_year,
+                week_of_year,
+                is_weekend
+            )
+
             with self.connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(insert_query, date_record)
                 conn.commit()
-        except (sqlite3.Error, psycopg2.Error) as e:
-            self.logger.warning("Error ensuring date dimension for %s: %s", date_obj, e)
+                return True
+                
+        except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
+            self.logger.error("Error ensuring date dimension for %s: %s", date_value, e)
+            return False
 
     def insert_stock_data(self, records: list[dict[str, Any]]) -> int:
         """Insert stock data records directly into fact_stock_prices table.
@@ -329,8 +335,18 @@ class DatabaseManager:
             return 0
 
         # Ensure all dates exist in dim_date table
+        failed_dates = []
         for record in records:
-            self.ensure_date_dimension(record.get('data_date'))
+            if not self.ensure_date_dimension(record.get('data_date')):
+                failed_dates.append(record.get('data_date'))
+        
+        if failed_dates:
+            self.logger.warning("Failed to ensure %d dates in dimension table", len(failed_dates))
+            # Filter out records with failed dates
+            records = [r for r in records if r.get('data_date') not in failed_dates]
+            if not records:
+                self.logger.error("No valid records remaining after date validation")
+                return 0
 
         # Insert directly into fact_stock_prices table with dimensional lookups
         insert_query = """
@@ -433,8 +449,18 @@ class DatabaseManager:
             return 0
 
         # Ensure all dates exist in dim_date table
+        failed_dates = []
         for record in records:
-            self.ensure_date_dimension(record.get('data_date'))
+            if not self.ensure_date_dimension(record.get('data_date')):
+                failed_dates.append(record.get('data_date'))
+        
+        if failed_dates:
+            self.logger.warning("Failed to ensure %d dates in dimension table", len(failed_dates))
+            # Filter out records with failed dates
+            records = [r for r in records if r.get('data_date') not in failed_dates]
+            if not records:
+                self.logger.error("No valid records remaining after date validation")
+                return 0
 
         # Insert directly into fact_currency_rates table with dimensional lookups
         insert_query = """

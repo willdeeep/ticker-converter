@@ -35,20 +35,83 @@ def _get_database_connection() -> str:
     return f"postgresql://{user}:{password}@{host}:{port}/{database}"
 
 
+def _validate_stock_record(record: Dict[str, Any]) -> bool:
+    """Validate a stock record has required fields."""
+    required_fields = ['symbol', 'data_date', 'open_price', 'high_price', 'low_price', 'close_price', 'volume']
+    
+    for field in required_fields:
+        if field not in record or record[field] is None:
+            print(f"⚠️ Invalid stock record missing {field}: {record}")
+            return False
+    
+    # Validate data types
+    try:
+        float(record['open_price'])
+        float(record['high_price'])
+        float(record['low_price'])
+        float(record['close_price'])
+        int(record['volume'])
+    except (ValueError, TypeError):
+        print(f"⚠️ Invalid stock record data types: {record}")
+        return False
+    
+    return True
+
+
+def _validate_currency_record(record: Dict[str, Any]) -> bool:
+    """Validate a currency record has required fields."""
+    required_fields = ['from_currency', 'to_currency', 'data_date', 'exchange_rate']
+    
+    for field in required_fields:
+        if field not in record or record[field] is None:
+            print(f"⚠️ Invalid currency record missing {field}: {record}")
+            return False
+    
+    # Validate data types
+    try:
+        float(record['exchange_rate'])
+    except (ValueError, TypeError):
+        print(f"⚠️ Invalid currency record data types: {record}")
+        return False
+    
+    return True
+
+
 def _read_json_files(directory: Path) -> List[Dict[str, Any]]:
+    """Read and validate JSON files from directory."""
     records: List[Dict[str, Any]] = []
+    invalid_count = 0
+    
     for p in sorted(directory.glob("*.json")):
         try:
             with open(p, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 if isinstance(data, list):
-                    records.extend(data)
+                    # Validate each record based on directory type
+                    is_stock_dir = "stocks" in str(directory)
+                    for record in data:
+                        if is_stock_dir and _validate_stock_record(record):
+                            records.append(record)
+                        elif not is_stock_dir and _validate_currency_record(record):
+                            records.append(record)
+                        else:
+                            invalid_count += 1
                 elif isinstance(data, dict):
-                    # support single-file dict wrappers
-                    records.append(data)
-        except Exception:
-            # Skip invalid files but continue processing others
+                    # Support single-file dict wrappers
+                    is_stock_dir = "stocks" in str(directory)
+                    if is_stock_dir and _validate_stock_record(data):
+                        records.append(data)
+                    elif not is_stock_dir and _validate_currency_record(data):
+                        records.append(data)
+                    else:
+                        invalid_count += 1
+        except Exception as e:
+            print(f"⚠️ Error reading {p}: {e}")
             continue
+    
+    if invalid_count > 0:
+        print(f"⚠️ Skipped {invalid_count} invalid records from {directory}")
+    
     return records
 
 
