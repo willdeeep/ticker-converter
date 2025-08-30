@@ -309,7 +309,13 @@ class TestDatabaseStatusChecking:
         manager = DatabaseManager("sqlite:///test.db")
         result = manager.get_latest_stock_date("AAPL")
 
-        expected_query = "SELECT MAX(data_date) as latest_date FROM raw_stock_data WHERE symbol = ?"
+        expected_query = """
+                SELECT MAX(dd.date_value) as latest_date 
+                FROM fact_stock_prices fsp
+                JOIN dim_stocks ds ON fsp.stock_id = ds.stock_id
+                JOIN dim_date dd ON fsp.date_id = dd.date_id
+                WHERE ds.symbol = ?
+                """
         mock_execute_query.assert_called_once_with(expected_query, ("AAPL",))
         assert result == datetime.strptime(test_date, "%Y-%m-%d")
 
@@ -322,7 +328,11 @@ class TestDatabaseStatusChecking:
         manager = DatabaseManager("sqlite:///test.db")
         result = manager.get_latest_stock_date()
 
-        expected_query = "SELECT MAX(data_date) as latest_date FROM raw_stock_data"
+        expected_query = """
+                SELECT MAX(dd.date_value) as latest_date 
+                FROM fact_stock_prices fsp
+                JOIN dim_date dd ON fsp.date_id = dd.date_id
+                """
         mock_execute_query.assert_called_once_with(expected_query, None)
         assert result == test_date
 
@@ -355,7 +365,11 @@ class TestDatabaseStatusChecking:
         manager = DatabaseManager("sqlite:///test.db")
         result = manager.get_latest_currency_date()
 
-        expected_query = "SELECT MAX(data_date) as latest_date FROM raw_currency_data"
+        expected_query = """
+            SELECT MAX(dd.date_value) as latest_date 
+            FROM fact_currency_rates fcr
+            JOIN dim_date dd ON fcr.date_id = dd.date_id
+            """
         mock_execute_query.assert_called_once_with(expected_query)
         assert result == datetime.strptime(test_date, "%Y-%m-%d")
 
