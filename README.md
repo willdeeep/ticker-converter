@@ -15,6 +15,22 @@ This project implements a production-ready financial data analytics pipeline des
 - **Comprehensive Testing**: 69% test coverage with pytest, coverage reporting, and 100% test success rate
 - **Development Environment**: Pre-commit hooks and automated quality gates
 
+## What's New in v3.2.1
+
+### USD/GBP Stock Data API Integration
+- **New Currency Conversion Endpoint**: Added `/api/stocks/data-with-currency` endpoint providing side-by-side USD and GBP stock prices
+- **Real-Time Exchange Rate Integration**: Automatic currency conversion using daily USD/GBP exchange rates
+- **Comprehensive Integration Testing**: True database integration tests with PostgreSQL connectivity and data validation
+- **Test-Driven Development**: Complete TDD implementation with unit tests for models and SQL, plus integration tests for end-to-end verification
+- **Enhanced API Models**: New `StockDataWithCurrency` Pydantic model with field validation for price and volume constraints
+- **Production-Ready SQL Queries**: Optimized SQL with proper joins, COALESCE for null handling, and parameterized inputs
+
+### Development Quality Enhancements
+- **Code Quality Compliance**: All changes formatted with Black, validated with Pylint 10.00/10, and type-checked with MyPy
+- **Separated Test Architecture**: Clean separation of unit tests (models/SQL) and integration tests (real database connections)
+- **Data Freshness Validation**: Integration tests verify most recent data retrieval and proper date filtering
+- **Error Handling Coverage**: Comprehensive testing for missing exchange rate data and graceful degradation
+
 ## What's New in v3.2.0
 
 ### Major Performance Optimization and Infrastructure Improvements
