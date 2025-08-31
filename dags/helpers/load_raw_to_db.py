@@ -118,7 +118,7 @@ def _read_json_files(directory: Path) -> List[Dict[str, Any]]:
 def load_raw_to_db(data_directory: str = None, connection_string: str = None) -> Dict[str, int]:
     """Load JSON files directly into fact tables (bypassing raw tables).
 
-    Reads JSON files from configured directories and inserts them directly 
+    Reads JSON files from configured directories and inserts them directly
     into fact_stock_prices and fact_currency_rates tables respectively.
 
     Args:

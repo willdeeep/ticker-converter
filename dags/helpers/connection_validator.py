@@ -40,7 +40,7 @@ class ConnectionValidator:
         Raises:
             AirflowException: If raise_on_failure=True and any connection is invalid
         """
-        logger.info(f"Validating {len(self.required_connections)} required connections...")
+        logger.info("Validating %d required connections...", len(self.required_connections))
 
         failed_connections = []
 
@@ -50,13 +50,15 @@ class ConnectionValidator:
 
             if not result["is_valid"]:
                 failed_connections.append(conn_id)
-                logger.error(f"Connection validation failed for {conn_id}: {result['error']}")
+                logger.error("Connection validation failed for %s: %s", conn_id, result["error"])
             else:
-                logger.info(f"✓ Connection {conn_id} validated successfully")
+                logger.info("✓ Connection %s validated successfully", conn_id)
 
         # Summary logging
         valid_count = len(self.required_connections) - len(failed_connections)
-        logger.info(f"Connection validation summary: {valid_count}/{len(self.required_connections)} connections valid")
+        logger.info(
+            "Connection validation summary: %d/%d connections valid", valid_count, len(self.required_connections)
+        )
 
         if failed_connections and raise_on_failure:
             raise AirflowException(
@@ -93,7 +95,7 @@ class ConnectionValidator:
         }
 
         try:
-            logger.info(f"Validating connection: {conn_id}")
+            logger.info("Validating connection: %s", conn_id)
 
             # Attempt to retrieve connection
             connection = BaseHook.get_connection(conn_id)
@@ -111,7 +113,7 @@ class ConnectionValidator:
                 }
             )
 
-            logger.info(f"✓ Connection {conn_id} details: type={connection.conn_type}, host={connection.host}")
+            logger.info("✓ Connection %s details: type=%s, host=%s", conn_id, connection.conn_type, connection.host)
 
         except Exception as e:
             error_msg = f"Failed to retrieve connection {conn_id}: {str(e)}"
@@ -119,7 +121,7 @@ class ConnectionValidator:
             logger.error(error_msg)
 
             if raise_on_failure:
-                raise AirflowException(error_msg)
+                raise AirflowException(error_msg) from e
 
         return result
 
@@ -181,13 +183,13 @@ def validate_dag_connections(
     Raises:
         AirflowException: If any required connection is invalid
     """
-    logger.info(f"[{task_name}] Starting connection validation...")
+    logger.info("[%s] Starting connection validation...", task_name)
 
     validator = ConnectionValidator(required_connections)
     results = validator.validate_all_connections(raise_on_failure=True)
     summary = validator.get_connection_summary()
 
-    logger.info(f"[{task_name}] Connection validation completed: {summary}")
+    logger.info("[%s] Connection validation completed: %s", task_name, summary)
 
     return {"validation_results": results, "summary": summary, "task_name": task_name}
 

@@ -156,11 +156,11 @@ class TestDirectFactTableLoadingIntegration:
 
         # Check final count - with upsert logic, records may be updated rather than inserted
         final_count = test_database_manager.execute_query("SELECT COUNT(*) as count FROM fact_stock_prices")[0]["count"]
-        
+
         # Since we use ON CONFLICT DO UPDATE, the final count may not always increase
         # The key is that the operation completed successfully (inserted_count > 0)
         assert final_count >= initial_count, "Should have at least the same number of records"
-        
+
         # Verify that data actually exists with our test symbols
         symbol_check = test_database_manager.execute_query(
             "SELECT COUNT(DISTINCT ds.symbol) as symbol_count FROM fact_stock_prices fsp "
@@ -189,7 +189,7 @@ class TestDirectFactTableLoadingIntegration:
         # Since we use ON CONFLICT DO UPDATE, the final count may not always increase
         # The key is that the operation completed successfully (inserted_count > 0)
         assert final_count >= initial_count, "Should have at least the same number of records"
-        
+
         # Verify that data actually exists for USD/GBP
         currency_check = test_database_manager.execute_query(
             "SELECT COUNT(*) as rate_count FROM fact_currency_rates fcr "
@@ -216,19 +216,19 @@ class TestDirectFactTableLoadingIntegration:
     def test_end_to_end_load_raw_to_db(self, temp_json_files_with_real_data, postgres_connection_string):
         """Test the complete load_raw_to_db function end-to-end."""
         from dags.helpers.load_raw_to_db import load_raw_to_db
-        
+
         # Execute the function with test data
         result = load_raw_to_db(str(temp_json_files_with_real_data), postgres_connection_string)
-        
+
         # Verify return value structure
         assert isinstance(result, dict), "Should return a dictionary"
         assert "stock_inserted" in result, "Should include stock insertion count"
         assert "exchange_inserted" in result, "Should include exchange insertion count"
-        
+
         # Verify data was actually inserted (based on our test data)
         assert result["stock_inserted"] > 0, "Should have inserted stock records"
         assert result["exchange_inserted"] > 0, "Should have inserted currency records"
-        
+
         print(f"✅ End-to-end test completed: {result}")
 
     def test_data_quality_after_insertion(self, test_database_manager, real_stock_json_data):

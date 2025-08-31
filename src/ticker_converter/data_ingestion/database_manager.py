@@ -139,10 +139,10 @@ class DatabaseManager:
             values = [[record[col] for col in columns] for record in records]
 
             execute_values(cursor, query, values)
-            inserted_count = cursor.rowcount
+            inserted_count = cursor.rowcount or 0  # Handle None case
 
             conn.commit()
-            return inserted_count
+            return int(inserted_count)
 
     def is_database_empty(self) -> bool:
         """Check if the database has any stock or currency data.
@@ -193,7 +193,16 @@ class DatabaseManager:
                 result = self.execute_query(query)
 
             if result and result[0]["latest_date"]:
-                return result[0]["latest_date"]
+                latest_date = result[0]["latest_date"]
+                # Ensure we return a datetime object
+                if isinstance(latest_date, datetime):
+                    return latest_date
+                # Handle string dates by parsing them
+                elif isinstance(latest_date, str):
+                    return datetime.fromisoformat(latest_date.replace("Z", "+00:00"))
+                else:
+                    # Return None for unexpected types to avoid Any return
+                    return None
             return None
 
         except (psycopg2.Error, ValueError, TypeError) as e:
@@ -215,7 +224,16 @@ class DatabaseManager:
             result = self.execute_query(query)
 
             if result and result[0]["latest_date"]:
-                return result[0]["latest_date"]
+                latest_date = result[0]["latest_date"]
+                # Ensure we return a datetime object
+                if isinstance(latest_date, datetime):
+                    return latest_date
+                # Handle string dates by parsing them
+                elif isinstance(latest_date, str):
+                    return datetime.fromisoformat(latest_date.replace("Z", "+00:00"))
+                else:
+                    # Return None for unexpected types to avoid Any return
+                    return None
             return None
 
         except (psycopg2.Error, ValueError, TypeError) as e:
@@ -329,10 +347,10 @@ class DatabaseManager:
                             "symbol": record["symbol"],
                             "data_date": record["data_date"],
                             "open_price": record["open_price"],
-                            "high_price": record["high_price"], 
+                            "high_price": record["high_price"],
                             "low_price": record["low_price"],
                             "close_price": record["close_price"],
-                            "volume": record["volume"]
+                            "volume": record["volume"],
                         }
                         cursor.execute(query, mapped_record)
                         if cursor.rowcount > 0:
@@ -400,7 +418,7 @@ class DatabaseManager:
                             "from_currency": record["from_currency"],
                             "to_currency": record["to_currency"],
                             "data_date": record["data_date"],
-                            "exchange_rate": record["exchange_rate"]
+                            "exchange_rate": record["exchange_rate"],
                         }
                         cursor.execute(query, mapped_record)
                         if cursor.rowcount > 0:
@@ -459,7 +477,7 @@ class DatabaseManager:
         Returns:
             Dictionary with health check results
         """
-        health_status = {
+        health_status: dict[str, Any] = {
             "database_connected": False,
             "tables_exist": False,
             "has_data": False,
