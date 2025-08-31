@@ -6,7 +6,6 @@ pipeline, including checking if the database needs initial setup.
 
 import logging
 import os
-import sqlite3
 from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
@@ -55,7 +54,6 @@ class DatabaseManager:
             connection_string: Database connection string. If None, uses config.
         """
         self.connection_string = connection_string or self._get_default_connection()
-        self.is_sqlite = "sqlite" in self.connection_string.lower()
         self.logger = logging.getLogger(__name__)
 
     def _get_default_connection(self) -> str:
@@ -74,20 +72,14 @@ class DatabaseManager:
             "This project requires PostgreSQL for all structured data storage."
         )
 
-    def get_connection(self) -> sqlite3.Connection | psycopg2.extensions.connection:
-        """Get database connection based on connection string."""
-        if self.is_sqlite:
-            # Extract path from sqlite:///path format
-            db_path = self.connection_string.replace("sqlite:///", "")
-            return sqlite3.connect(db_path)
-
-        # PostgreSQL connection
+    def get_connection(self) -> psycopg2.extensions.connection:
+        """Get PostgreSQL database connection."""
         return psycopg2.connect(self.connection_string)
 
     @contextmanager
     def connection(
         self,
-    ) -> Generator[sqlite3.Connection | psycopg2.extensions.connection, None, None]:
+    ) -> Generator[psycopg2.extensions.connection, None, None]:
         """Context manager for database connections.
 
         Ensures proper connection cleanup and error handling.
@@ -115,13 +107,6 @@ class DatabaseManager:
             List of result dictionaries
         """
         with self.connection() as conn:
-            if self.is_sqlite:
-                assert isinstance(conn, sqlite3.Connection)
-                conn.row_factory = sqlite3.Row
-                cursor = conn.cursor()
-                cursor.execute(query, params or ())
-                return [dict(row) for row in cursor.fetchall()]
-
             # PostgreSQL connection
             assert isinstance(conn, psycopg2.extensions.connection)
             with conn.cursor(cursor_factory=RealDictCursor) as pg_cursor:
@@ -144,22 +129,17 @@ class DatabaseManager:
         with self.connection() as conn:
             cursor = conn.cursor()
 
-            if self.is_sqlite:
-                # SQLite bulk insert
-                cursor.executemany(query, records)
-                inserted_count = cursor.rowcount
-            else:
-                # PostgreSQL bulk insert
-                from psycopg2.extras import (  # pylint: disable=import-outside-toplevel
-                    execute_values,
-                )
+            # PostgreSQL bulk insert
+            from psycopg2.extras import (  # pylint: disable=import-outside-toplevel
+                execute_values,
+            )
 
-                # Convert dict records to tuple values
-                columns = list(records[0].keys())
-                values = [[record[col] for col in columns] for record in records]
+            # Convert dict records to tuple values
+            columns = list(records[0].keys())
+            values = [[record[col] for col in columns] for record in records]
 
-                execute_values(cursor, query, values)
-                inserted_count = cursor.rowcount
+            execute_values(cursor, query, values)
+            inserted_count = cursor.rowcount
 
             conn.commit()
             return inserted_count
@@ -173,460 +153,331 @@ class DatabaseManager:
         try:
             # Check for stock data in fact table
             stock_result = self.execute_query("SELECT COUNT(*) as count FROM fact_stock_prices")
-            stock_count = int(stock_result[0]["count"])
+            stock_count = stock_result[0]["count"] if stock_result else 0
 
             # Check for currency data in fact table
             currency_result = self.execute_query("SELECT COUNT(*) as count FROM fact_currency_rates")
-            currency_count = int(currency_result[0]["count"])
+            currency_count = currency_result[0]["count"] if currency_result else 0
 
-            is_empty = stock_count == 0 and currency_count == 0
-            self.logger.info(
-                "Database check: %d stock records, %d currency records",
-                stock_count,
-                currency_count,
-            )
+            return stock_count == 0 and currency_count == 0
 
-            return is_empty
-
-        except (sqlite3.Error, psycopg2.Error, OSError) as e:
-            self.logger.warning("Error checking database status: %s", e)
-            # Assume empty if we can't check
-            return True
+        except (psycopg2.Error, OSError) as e:
+            self.logger.error("Database error during empty check: %s", e)
+            # Assume not empty on error to prevent unnecessary initialization
+            return False
 
     def get_latest_stock_date(self, symbol: str | None = None) -> datetime | None:
-        """Get the latest date for stock data from fact table.
+        """Get the most recent stock data date.
 
         Args:
-            symbol: Specific symbol to check, or None for any symbol
+            symbol: Optional specific symbol to check. If None, checks across all symbols.
 
         Returns:
-            Latest date or None if no data
+            Latest date as datetime object, or None if no data exists
         """
         try:
             if symbol:
                 query = """
-                SELECT MAX(dd.date_value) as latest_date 
-                FROM fact_stock_prices fsp
-                JOIN dim_stocks ds ON fsp.stock_id = ds.stock_id
-                JOIN dim_date dd ON fsp.date_id = dd.date_id
-                WHERE ds.symbol = ?
+                    SELECT MAX(d.date_value) as latest_date 
+                    FROM fact_stock_prices fsp
+                    JOIN dim_date d ON fsp.date_id = d.date_id
+                    WHERE fsp.symbol = %s
                 """
-                params = (symbol,)
+                result = self.execute_query(query, (symbol,))
             else:
                 query = """
-                SELECT MAX(dd.date_value) as latest_date 
-                FROM fact_stock_prices fsp
-                JOIN dim_date dd ON fsp.date_id = dd.date_id
+                    SELECT MAX(d.date_value) as latest_date 
+                    FROM fact_stock_prices fsp
+                    JOIN dim_date d ON fsp.date_id = d.date_id
                 """
-                params = None
+                result = self.execute_query(query)
 
-            result = self.execute_query(query, params)
-            latest_date = result[0]["latest_date"] if result else None
+            if result and result[0]["latest_date"]:
+                return result[0]["latest_date"]
+            return None
 
-            if isinstance(latest_date, str):
-                return datetime.strptime(latest_date, "%Y-%m-%d")
-            if isinstance(latest_date, datetime):
-                return latest_date
-
-        except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
+        except (psycopg2.Error, ValueError, TypeError) as e:
             self.logger.error("Error getting latest stock date: %s", e)
-
-        return None
+            return None
 
     def get_latest_currency_date(self) -> datetime | None:
-        """Get the latest date for currency data from fact table.
+        """Get the most recent currency data date.
 
         Returns:
-            Latest date or None if no data
+            Latest date as datetime object, or None if no data exists
         """
         try:
             query = """
-            SELECT MAX(dd.date_value) as latest_date 
-            FROM fact_currency_rates fcr
-            JOIN dim_date dd ON fcr.date_id = dd.date_id
+                SELECT MAX(d.date_value) as latest_date 
+                FROM fact_currency_rates fcr
+                JOIN dim_date d ON fcr.date_id = d.date_id
             """
             result = self.execute_query(query)
-            latest_date = result[0]["latest_date"] if result else None
 
-            if isinstance(latest_date, str):
-                return datetime.strptime(latest_date, "%Y-%m-%d")
-            if isinstance(latest_date, datetime):
-                return latest_date
+            if result and result[0]["latest_date"]:
+                return result[0]["latest_date"]
+            return None
 
-        except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
+        except (psycopg2.Error, ValueError, TypeError) as e:
             self.logger.error("Error getting latest currency date: %s", e)
-
-        return None
+            return None
 
     def ensure_date_dimension(self, date_value: str | datetime) -> bool:
-        """Ensure date exists in dim_date table.
+        """Ensure the given date exists in the dim_date table.
 
         Args:
-            date_value: Date to ensure exists in dimension table
+            date_value: Date as string (YYYY-MM-DD) or datetime object
 
         Returns:
-            True if date was successfully ensured, False otherwise
+            True if date dimension record was ensured, False on error
         """
         try:
+            # Convert to datetime if string
             if isinstance(date_value, str):
-                date_obj = datetime.strptime(date_value, "%Y-%m-%d").date()
-            elif isinstance(date_value, datetime):
-                date_obj = date_value.date()
+                dt = datetime.strptime(date_value, "%Y-%m-%d")
             else:
-                date_obj = date_value
+                dt = date_value
 
-            insert_query = """
-            INSERT INTO dim_date (
-                date_value, year, quarter, month, day, day_of_week, 
-                day_of_year, week_of_year, is_weekend
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT (date_value) DO NOTHING
-            """
-
-            if not self.is_sqlite:
-                insert_query = """
-                INSERT INTO dim_date (
-                    date_value, year, quarter, month, day, day_of_week, 
-                    day_of_year, week_of_year, is_weekend
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (date_value) DO NOTHING
-                """
-
-            # Calculate date components
-            quarter = (date_obj.month - 1) // 3 + 1
-            day_of_week = date_obj.weekday() + 1  # 1=Monday, 7=Sunday
-            day_of_year = date_obj.timetuple().tm_yday
-            week_of_year = date_obj.isocalendar()[1]
-            is_weekend = date_obj.weekday() >= 5  # Saturday=5, Sunday=6
-
-            date_record = (
-                date_obj,
-                date_obj.year,
-                quarter,
-                date_obj.month,
-                date_obj.day,
-                day_of_week,
-                day_of_year,
-                week_of_year,
-                is_weekend,
+            # Check if date already exists
+            existing = self.execute_query(
+                "SELECT date_id FROM dim_date WHERE date_value = %s", (dt.strftime("%Y-%m-%d"),)
             )
+
+            if existing:
+                return True
+
+            # PostgreSQL-specific insert with upsert functionality
+            from psycopg2.extras import (  # pylint: disable=import-outside-toplevel
+                execute_values,
+            )
+
+            date_record = {
+                "date_value": dt.strftime("%Y-%m-%d"),
+                "year": dt.year,
+                "month": dt.month,
+                "day": dt.day,
+                "weekday": dt.weekday() + 1,  # Monday = 1, Sunday = 7
+                "quarter": (dt.month - 1) // 3 + 1,
+                "is_weekend": dt.weekday() >= 5,
+            }
+
+            query = """
+                INSERT INTO dim_date (date_value, year, month, day, weekday, quarter, is_weekend)
+                VALUES %(values)s
+                ON CONFLICT (date_value) DO NOTHING
+            """
 
             with self.connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute(insert_query, date_record)
-                conn.commit()
-                return True
+                values = [
+                    (
+                        date_record["date_value"],
+                        date_record["year"],
+                        date_record["month"],
+                        date_record["day"],
+                        date_record["weekday"],
+                        date_record["quarter"],
+                        date_record["is_weekend"],
+                    )
+                ]
 
-        except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
+                execute_values(cursor, query, values, template="(%s,%s,%s,%s,%s,%s,%s)")
+                conn.commit()
+
+            return True
+
+        except (psycopg2.Error, ValueError, TypeError) as e:
             self.logger.error("Error ensuring date dimension for %s: %s", date_value, e)
             return False
 
     def insert_stock_data(self, records: list[dict[str, Any]]) -> int:
-        """Insert stock data records directly into fact_stock_prices table.
+        """Insert stock data into fact_stock_prices table.
 
         Args:
-            records: List of stock data records with keys: symbol, data_date,
-                    open_price, high_price, low_price, close_price, volume
+            records: List of stock data records
 
         Returns:
-            Number of records inserted
+            Number of records successfully inserted
         """
         if not records:
             return 0
 
-        # Ensure all dates exist in dim_date table
-        failed_dates = []
-        for record in records:
-            if not self.ensure_date_dimension(record.get("data_date")):
-                failed_dates.append(record.get("data_date"))
-
-        if failed_dates:
-            self.logger.warning("Failed to ensure %d dates in dimension table", len(failed_dates))
-            # Filter out records with failed dates
-            records = [r for r in records if r.get("data_date") not in failed_dates]
-            if not records:
-                self.logger.error("No valid records remaining after date validation")
-                return 0
-
-        # Insert directly into fact_stock_prices table with dimensional lookups
-        insert_query = """
-        INSERT INTO fact_stock_prices 
-        (stock_id, date_id, opening_price, high_price, low_price, closing_price, volume, created_at)
-        SELECT 
-            ds.stock_id,
-            dd.date_id,
-            ?,  -- opening_price
-            ?,  -- high_price
-            ?,  -- low_price
-            ?,  -- closing_price
-            ?,  -- volume
-            CURRENT_TIMESTAMP
-        FROM dim_stocks ds
-        CROSS JOIN dim_date dd
-        WHERE ds.symbol = ? AND dd.date_value = ?
-        ON CONFLICT (stock_id, date_id) DO NOTHING
-        """
-
-        if not self.is_sqlite:
-            # PostgreSQL syntax - need to handle bulk inserts differently
-            insert_query = """
-            INSERT INTO fact_stock_prices 
-            (stock_id, date_id, opening_price, high_price, low_price, closing_price, volume, created_at)
-            SELECT 
-                ds.stock_id,
-                dd.date_id,
-                vals.opening_price,
-                vals.high_price,
-                vals.low_price,
-                vals.closing_price,
-                vals.volume,
-                CURRENT_TIMESTAMP
-            FROM (VALUES %s) AS vals(opening_price, high_price, low_price, closing_price, volume, symbol, data_date)
-            JOIN dim_stocks ds ON ds.symbol = vals.symbol
-            JOIN dim_date dd ON dd.date_value = vals.data_date::date
-            ON CONFLICT (stock_id, date_id) DO NOTHING
-            """
+        inserted_count = 0
 
         try:
-            if not self.is_sqlite:
-                # PostgreSQL bulk insert using execute_values
-                from psycopg2.extras import execute_values
+            # First, ensure all required dates exist in dim_date
+            for record in records:
+                date_str = record.get("date")
+                if date_str and not self.ensure_date_dimension(date_str):
+                    self.logger.warning("Failed to ensure date dimension for %s", date_str)
 
-                # Prepare records for fact table insert - reorder fields for the VALUES clause
-                fact_records = []
+            # PostgreSQL-specific bulk insert with conflict resolution
+            query = """
+                INSERT INTO fact_stock_prices (symbol, date_id, open_price, high_price, low_price, 
+                                             close_price, volume, adj_close_price)
+                SELECT %(symbol)s, d.date_id, %(open_price)s, %(high_price)s, %(low_price)s, 
+                       %(close_price)s, %(volume)s, %(adj_close_price)s
+                FROM dim_date d
+                WHERE d.date_value = %(date)s
+                ON CONFLICT (symbol, date_id) DO UPDATE SET
+                    open_price = EXCLUDED.open_price,
+                    high_price = EXCLUDED.high_price,
+                    low_price = EXCLUDED.low_price,
+                    close_price = EXCLUDED.close_price,
+                    volume = EXCLUDED.volume,
+                    adj_close_price = EXCLUDED.adj_close_price,
+                    updated_at = CURRENT_TIMESTAMP
+            """
+
+            with self.connection() as conn:
+                cursor = conn.cursor()
                 for record in records:
-                    fact_record = (
-                        record.get("open_price"),
-                        record.get("high_price"),
-                        record.get("low_price"),
-                        record.get("close_price"),
-                        record.get("volume"),
-                        record.get("symbol"),
-                        record.get("data_date"),
-                    )
-                    fact_records.append(fact_record)
+                    try:
+                        cursor.execute(query, record)
+                        if cursor.rowcount > 0:
+                            inserted_count += cursor.rowcount
+                    except psycopg2.Error as e:
+                        self.logger.warning("Failed to insert stock record %s: %s", record, e)
+                        continue
 
-                with self.connection() as conn:
-                    cursor = conn.cursor()
-                    execute_values(cursor, insert_query, fact_records)
-                    inserted = cursor.rowcount
-                    conn.commit()
-            else:
-                # SQLite individual inserts
-                inserted = 0
-                with self.connection() as conn:
-                    cursor = conn.cursor()
-                    for record in records:
-                        cursor.execute(
-                            insert_query,
-                            (
-                                record.get("open_price"),
-                                record.get("high_price"),
-                                record.get("low_price"),
-                                record.get("close_price"),
-                                record.get("volume"),
-                                record.get("symbol"),
-                                record.get("data_date"),
-                            ),
-                        )
-                        inserted += cursor.rowcount
-                    conn.commit()
+                conn.commit()
 
-            self.logger.info("Inserted %d stock data records into fact_stock_prices", inserted)
-            return inserted
-        except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
-            self.logger.error("Error inserting stock data into fact_stock_prices: %s", e)
+            self.logger.info("Successfully inserted %d stock records", inserted_count)
+            return inserted_count
+
+        except (psycopg2.Error, ValueError, TypeError) as e:
+            self.logger.error("Error during stock data insertion: %s", e)
             return 0
 
     def insert_currency_data(self, records: list[dict[str, Any]]) -> int:
-        """Insert currency data records directly into fact_currency_rates table.
+        """Insert currency data into fact_currency_rates table.
 
         Args:
-            records: List of currency data records with keys: from_currency, to_currency,
-                    data_date, exchange_rate
+            records: List of currency data records
 
         Returns:
-            Number of records inserted
+            Number of records successfully inserted
         """
         if not records:
             return 0
 
-        # Ensure all dates exist in dim_date table
-        failed_dates = []
-        for record in records:
-            if not self.ensure_date_dimension(record.get("data_date")):
-                failed_dates.append(record.get("data_date"))
-
-        if failed_dates:
-            self.logger.warning("Failed to ensure %d dates in dimension table", len(failed_dates))
-            # Filter out records with failed dates
-            records = [r for r in records if r.get("data_date") not in failed_dates]
-            if not records:
-                self.logger.error("No valid records remaining after date validation")
-                return 0
-
-        # Insert directly into fact_currency_rates table with dimensional lookups
-        insert_query = """
-        INSERT INTO fact_currency_rates 
-        (from_currency_id, to_currency_id, date_id, exchange_rate, created_at)
-        SELECT 
-            dc_from.currency_id,
-            dc_to.currency_id,
-            dd.date_id,
-            ?,  -- exchange_rate
-            CURRENT_TIMESTAMP
-        FROM dim_currency dc_from
-        CROSS JOIN dim_currency dc_to
-        CROSS JOIN dim_date dd
-        WHERE dc_from.currency_code = ? 
-          AND dc_to.currency_code = ?
-          AND dd.date_value = ?
-        ON CONFLICT (from_currency_id, to_currency_id, date_id) DO NOTHING
-        """
-
-        if not self.is_sqlite:
-            # PostgreSQL syntax - need to handle bulk inserts differently
-            insert_query = """
-            INSERT INTO fact_currency_rates 
-            (from_currency_id, to_currency_id, date_id, exchange_rate, created_at)
-            SELECT 
-                dc_from.currency_id,
-                dc_to.currency_id,
-                dd.date_id,
-                vals.exchange_rate,
-                CURRENT_TIMESTAMP
-            FROM (VALUES %s) AS vals(exchange_rate, from_currency, to_currency, data_date)
-            JOIN dim_currency dc_from ON dc_from.currency_code = vals.from_currency
-            JOIN dim_currency dc_to ON dc_to.currency_code = vals.to_currency
-            JOIN dim_date dd ON dd.date_value = vals.data_date::date
-            ON CONFLICT (from_currency_id, to_currency_id, date_id) DO NOTHING
-            """
+        inserted_count = 0
 
         try:
-            if not self.is_sqlite:
-                # PostgreSQL bulk insert using execute_values
-                from psycopg2.extras import execute_values
+            # First, ensure all required dates exist in dim_date
+            for record in records:
+                date_str = record.get("date")
+                if date_str and not self.ensure_date_dimension(date_str):
+                    self.logger.warning("Failed to ensure date dimension for %s", date_str)
 
-                # Prepare records for fact table insert - reorder fields for the VALUES clause
-                fact_records = []
+            # PostgreSQL-specific bulk insert with conflict resolution
+            query = """
+                INSERT INTO fact_currency_rates (base_currency, target_currency, date_id, 
+                                                exchange_rate, bid_rate, ask_rate)
+                SELECT %(base_currency)s, %(target_currency)s, d.date_id, 
+                       %(exchange_rate)s, %(bid_rate)s, %(ask_rate)s
+                FROM dim_date d
+                WHERE d.date_value = %(date)s
+                ON CONFLICT (base_currency, target_currency, date_id) DO UPDATE SET
+                    exchange_rate = EXCLUDED.exchange_rate,
+                    bid_rate = EXCLUDED.bid_rate,
+                    ask_rate = EXCLUDED.ask_rate,
+                    updated_at = CURRENT_TIMESTAMP
+            """
+
+            with self.connection() as conn:
+                cursor = conn.cursor()
                 for record in records:
-                    fact_record = (
-                        record.get("exchange_rate"),
-                        record.get("from_currency"),
-                        record.get("to_currency"),
-                        record.get("data_date"),
-                    )
-                    fact_records.append(fact_record)
+                    try:
+                        cursor.execute(query, record)
+                        if cursor.rowcount > 0:
+                            inserted_count += cursor.rowcount
+                    except psycopg2.Error as e:
+                        self.logger.warning("Failed to insert currency record %s: %s", record, e)
+                        continue
 
-                with self.connection() as conn:
-                    cursor = conn.cursor()
-                    execute_values(cursor, insert_query, fact_records)
-                    inserted = cursor.rowcount
-                    conn.commit()
-            else:
-                # SQLite individual inserts
-                inserted = 0
-                with self.connection() as conn:
-                    cursor = conn.cursor()
-                    for record in records:
-                        cursor.execute(
-                            insert_query,
-                            (
-                                record.get("exchange_rate"),
-                                record.get("from_currency"),
-                                record.get("to_currency"),
-                                record.get("data_date"),
-                            ),
-                        )
-                        inserted += cursor.rowcount
-                    conn.commit()
+                conn.commit()
 
-            self.logger.info("Inserted %d currency data records into fact_currency_rates", inserted)
-            return inserted
-        except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
-            self.logger.error("Error inserting currency data into fact_currency_rates: %s", e)
+            self.logger.info("Successfully inserted %d currency records", inserted_count)
+            return inserted_count
+
+        except (psycopg2.Error, ValueError, TypeError) as e:
+            self.logger.error("Error during currency data insertion: %s", e)
             return 0
 
     def get_missing_dates_for_symbol(self, symbol: str, days_back: int = 10) -> list[datetime]:
-        """Get list of missing dates for a symbol within the last N days.
+        """Get dates that are missing for a specific symbol within the last N days.
 
         Args:
             symbol: Stock symbol to check
-            days_back: Number of days to check back
+            days_back: Number of days back from today to check
 
         Returns:
-            List of missing dates
+            List of missing datetime objects
         """
         try:
             end_date = datetime.now().date()
             start_date = end_date - timedelta(days=days_back)
 
-            # Get existing dates for this symbol from fact table
-            existing_query = """
-            SELECT DISTINCT dd.date_value as data_date
-            FROM fact_stock_prices fsp
-            JOIN dim_stocks ds ON fsp.stock_id = ds.stock_id
-            JOIN dim_date dd ON fsp.date_id = dd.date_id
-            WHERE ds.symbol = ? AND dd.date_value >= ? AND dd.date_value <= ?
+            # PostgreSQL query to find missing dates for the symbol
+            query = """
+                SELECT d.date_value
+                FROM dim_date d
+                WHERE d.date_value BETWEEN %s AND %s
+                  AND d.is_weekend = false
+                  AND NOT EXISTS (
+                      SELECT 1 
+                      FROM fact_stock_prices fsp 
+                      WHERE fsp.date_id = d.date_id AND fsp.symbol = %s
+                  )
+                ORDER BY d.date_value
             """
 
-            existing_results = self.execute_query(existing_query, (symbol, start_date, end_date))
-            existing_dates = {
-                (
-                    datetime.strptime(row["data_date"], "%Y-%m-%d").date()
-                    if isinstance(row["data_date"], str)
-                    else row["data_date"]
-                )
-                for row in existing_results
-            }
+            result = self.execute_query(query, (start_date, end_date, symbol))
+            return [row["date_value"] for row in result]
 
-            # Generate all business days in range (rough approximation)
-            all_dates = []
-            current_date = start_date
-            while current_date <= end_date:
-                # Skip weekends (rough filter)
-                if current_date.weekday() < 5:  # Monday = 0, Friday = 4
-                    all_dates.append(current_date)
-                current_date += timedelta(days=1)
-
-            # Find missing dates
-            missing_dates = [date for date in all_dates if date not in existing_dates]
-
-            return [datetime.combine(date, datetime.min.time()) for date in missing_dates]
-
-        except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
-            self.logger.error("Error finding missing dates for %s: %s", symbol, e)
+        except (psycopg2.Error, ValueError, TypeError) as e:
+            self.logger.error("Error getting missing dates for symbol %s: %s", symbol, e)
             return []
 
     def health_check(self) -> dict[str, Any]:
-        """Perform database health check.
+        """Perform a health check on the database.
 
         Returns:
             Dictionary with health check results
         """
+        health_status = {
+            "database_connected": False,
+            "tables_exist": False,
+            "has_data": False,
+            "error": None,
+        }
+
         try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
+            # Test basic connection
+            with self.connection():
+                health_status["database_connected"] = True
 
-                # Basic connectivity test
-                cursor.execute("SELECT 1")
+                # Check if required tables exist
+                table_check_query = """
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name IN ('fact_stock_prices', 'fact_currency_rates', 'dim_date')
+                """
 
-                # Get table counts from fact tables
-                stock_count = self.execute_query("SELECT COUNT(*) as count FROM fact_stock_prices")[0]["count"]
-                currency_count = self.execute_query("SELECT COUNT(*) as count FROM fact_currency_rates")[0]["count"]
+                tables = self.execute_query(table_check_query)
+                table_names = {row["table_name"] for row in tables}
+                required_tables = {"fact_stock_prices", "fact_currency_rates", "dim_date"}
 
-                # Get date ranges
-                latest_stock = self.get_latest_stock_date()
-                latest_currency = self.get_latest_currency_date()
+                health_status["tables_exist"] = required_tables.issubset(table_names)
 
-                return {
-                    "status": "healthy",
-                    "stock_records": stock_count,
-                    "currency_records": currency_count,
-                    "latest_stock_date": (latest_stock.isoformat() if latest_stock else None),
-                    "latest_currency_date": (latest_currency.isoformat() if latest_currency else None),
-                    "is_empty": self.is_database_empty(),
-                }
+                if health_status["tables_exist"]:
+                    # Check if there's any data
+                    health_status["has_data"] = not self.is_database_empty()
 
-        except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
-            return {"status": "error", "error": str(e)}
+        except (psycopg2.Error, ValueError, TypeError) as e:
+            health_status["error"] = str(e)
+            self.logger.error("Database health check failed: %s", e)
+
+        return health_status
