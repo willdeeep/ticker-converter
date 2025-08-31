@@ -115,29 +115,44 @@ def _read_json_files(directory: Path) -> List[Dict[str, Any]]:
     return records
 
 
-def load_raw_to_db() -> Dict[str, int]:
+def load_raw_to_db(data_directory: str = None, connection_string: str = None) -> Dict[str, int]:
     """Load JSON files directly into fact tables (bypassing raw tables).
 
-    Reads JSON files from dags/raw_data/stocks and dags/raw_data/exchange
-    directories and inserts them directly into fact_stock_prices and
-    fact_currency_rates tables respectively.
+    Reads JSON files from configured directories and inserts them directly 
+    into fact_stock_prices and fact_currency_rates tables respectively.
+
+    Args:
+        data_directory (str, optional): Override directory path for JSON files.
+                                      If provided, function looks for 'stocks' and 'exchange' subdirectories.
+                                      If None, uses configured RAW_STOCKS_DIR and RAW_EXCHANGE_DIR.
+        connection_string (str, optional): Override PostgreSQL connection string.
+                                         If None, uses environment configuration.
 
     Returns a summary dict with inserted counts.
     """
-    # Use explicit database connection to avoid file system issues
-    connection_string = _get_database_connection()
-    db = DatabaseManager(connection_string=connection_string)
+    # Use provided connection string or get from environment
+    conn_str = connection_string if connection_string else _get_database_connection()
+    db = DatabaseManager(connection_string=conn_str)
 
-    print(f"Loading stock data from: {RAW_STOCKS_DIR}")
-    print(f"Loading exchange data from: {RAW_EXCHANGE_DIR}")
+    # Determine data directories
+    if data_directory:
+        stocks_dir = os.path.join(data_directory, "stocks")
+        exchange_dir = os.path.join(data_directory, "exchange")
+        print(f"Loading stock data from: {stocks_dir}")
+        print(f"Loading exchange data from: {exchange_dir}")
+    else:
+        stocks_dir = RAW_STOCKS_DIR
+        exchange_dir = RAW_EXCHANGE_DIR
+        print(f"Loading stock data from: {stocks_dir}")
+        print(f"Loading exchange data from: {exchange_dir}")
 
     # Read stock records
-    stock_records = _read_json_files(RAW_STOCKS_DIR)
+    stock_records = _read_json_files(Path(stocks_dir))
     print(f"Found {len(stock_records)} stock records to insert")
     stock_inserted = db.insert_stock_data(stock_records) if stock_records else 0
 
     # Read exchange records
-    exchange_records = _read_json_files(RAW_EXCHANGE_DIR)
+    exchange_records = _read_json_files(Path(exchange_dir))
     print(f"Found {len(exchange_records)} exchange records to insert")
     exchange_inserted = db.insert_currency_data(exchange_records) if exchange_records else 0
 
