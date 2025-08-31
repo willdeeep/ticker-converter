@@ -39,7 +39,9 @@ def _import_module_from_path(module_name: str, file_path: Path):
 _assess_module = _import_module_from_path("assess_records", _dags_dir / "helpers" / "assess_records.py")
 _collect_module = _import_module_from_path("collect_api_data", _dags_dir / "helpers" / "collect_api_data.py")
 _load_module = _import_module_from_path("load_raw_to_db", _dags_dir / "helpers" / "load_raw_to_db.py")
-_connection_validator_module = _import_module_from_path("connection_validator", _dags_dir / "helpers" / "connection_validator.py")
+_connection_validator_module = _import_module_from_path(
+    "connection_validator", _dags_dir / "helpers" / "connection_validator.py"
+)
 
 # Extract the functions we need
 assess_latest_records = _assess_module.assess_latest_records
@@ -69,8 +71,7 @@ with DAG(  # type: ignore[arg-type]
     def validate_connections_task() -> dict[str, Any]:
         """Validate that all required connections are available before starting the pipeline."""
         return validate_dag_connections(
-            required_connections=STANDARD_PIPELINE_CONNECTIONS,
-            task_name="validate_connections"
+            required_connections=STANDARD_PIPELINE_CONNECTIONS, task_name="validate_connections"
         )
 
     @task(task_id="assess_latest")
@@ -105,11 +106,12 @@ with DAG(  # type: ignore[arg-type]
         """Dummy task to allow skipping the API collection step."""
         pass
 
-    @task(task_id="load_raw", trigger_rule="none_failed_min_one_success")
-    def load_raw_task() -> dict:
+    @task(task_id="load_to_facts", trigger_rule="none_failed_min_one_success")
+    def load_to_facts_task() -> dict:
         """
-        Task to load raw data from JSON files into the database.
-        This task acts as a join point after the branching logic.
+        Task to load data from JSON files directly into fact tables.
+        This task acts as a join point after the branching logic and
+        bypasses the removed raw table intermediary layer.
         """
         return load_raw_to_db()
 
@@ -124,7 +126,7 @@ with DAG(  # type: ignore[arg-type]
     branch = decide_collect(assess)
     collect = collect_api_task()
     skip = skip_collection_task()
-    load = load_raw_task()
+    load = load_to_facts_task()
     end = end_task()
 
     # Define the DAG structure with branching

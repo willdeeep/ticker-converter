@@ -99,7 +99,7 @@ class NYSEDataFetcher(BaseDataFetcher):
         return results
 
     def prepare_for_sql_insert(self, df: pd.DataFrame, *args: Any) -> list[dict[str, Any]]:
-        """Prepare DataFrame data for SQL insertion into raw_stock_data table.
+        """Prepare DataFrame data for direct insertion into fact_stock_prices table.
 
         Args:
             df: DataFrame with stock data

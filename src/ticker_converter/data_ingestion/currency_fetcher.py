@@ -125,7 +125,7 @@ class CurrencyDataFetcher(BaseDataFetcher):
             return None
 
     def prepare_for_sql_insert(self, df: pd.DataFrame, *args: Any) -> list[dict[str, Any]]:
-        """Prepare DataFrame data for SQL insertion into raw_currency_data table.
+        """Prepare DataFrame data for direct insertion into fact_currency_rates table.
 
         Args:
             df: DataFrame with FX data
