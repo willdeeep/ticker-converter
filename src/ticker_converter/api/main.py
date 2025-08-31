@@ -1,12 +1,13 @@
 """FastAPI main application with SQL-powered endpoints for Magnificent Seven stocks."""
 
+from datetime import date
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 
 from .database import DatabaseConnection
 from .dependencies import get_db, get_sql_query
-from .models import StockPerformanceDetails, TopPerformerStock
+from .models import StockDataWithCurrency, StockPerformanceDetails, TopPerformerStock
 
 app = FastAPI(
     title="Magnificent Seven Stock Performance API",
@@ -61,6 +62,29 @@ def _build_stock_performance_details(row: dict[str, Any]) -> StockPerformanceDet
         price_change_30d_pct=(float(row["price_change_30d_pct"]) if row.get("price_change_30d_pct") else None),
         volatility_30d=(float(row["volatility_30d"]) if row.get("volatility_30d") else None),
         performance_rank=(int(row["performance_rank"]) if row.get("performance_rank") else None),
+    )
+
+
+def _build_stock_data_with_currency(row: dict[str, Any]) -> StockDataWithCurrency:
+    """Build StockDataWithCurrency model from database row.
+
+    Args:
+        row: Database row as dictionary
+
+    Returns:
+        StockDataWithCurrency model instance
+    """
+    return StockDataWithCurrency(
+        symbol=row["symbol"],
+        company_name=row["company_name"],
+        trade_date=row["trade_date"],
+        price_usd=float(row["price_usd"]),
+        price_gbp=float(row["price_gbp"]) if row["price_gbp"] else None,
+        usd_to_gbp_rate=float(row["usd_to_gbp_rate"]) if row["usd_to_gbp_rate"] else None,
+        volume=int(row["volume"]),
+        daily_return=float(row["daily_return"]) if row["daily_return"] else None,
+        market_cap_usd=float(row["market_cap_usd"]) if row["market_cap_usd"] else None,
+        market_cap_gbp=float(row["market_cap_gbp"]) if row["market_cap_gbp"] else None,
     )
 
 
@@ -155,6 +179,43 @@ async def get_performance_details(
         )
 
     return [_build_stock_performance_details(row) for row in rows]
+
+
+@app.get("/api/stocks/data-with-currency", response_model=list[StockDataWithCurrency])
+async def get_stock_data_with_currency(
+    symbol: str | None = Query(None, description="Stock symbol (e.g., AAPL)"),
+    date: date | None = Query(None, description="Specific date for stock data (YYYY-MM-DD)"),
+    db: DatabaseConnection = Depends(get_db),
+) -> list[StockDataWithCurrency]:
+    """Get stock data with side-by-side USD and GBP pricing.
+
+    Returns comprehensive stock data including current prices in both USD and GBP
+    based on the day's exchange rate, along with market capitalization calculations
+    and trading metrics.
+
+    Args:
+        symbol: Optional stock symbol to filter results (e.g., 'AAPL')
+        date: Optional specific date to get historical data (YYYY-MM-DD format)
+        db: Database connection dependency
+
+    Returns:
+        List of stock data with USD and GBP pricing information
+
+    Raises:
+        HTTPException: If database query fails or no data available
+    """
+    query = get_sql_query("stock_data_with_currency.sql")
+    params = [symbol, date]
+
+    rows = await _execute_query_with_error_handling(db, query, params)
+
+    if not rows:
+        raise HTTPException(
+            status_code=404,
+            detail="No stock data available for the specified criteria",
+        )
+
+    return [_build_stock_data_with_currency(row) for row in rows]
 
 
 if __name__ == "__main__":
