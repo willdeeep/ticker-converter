@@ -5,8 +5,8 @@ from datetime import datetime
 from unittest.mock import MagicMock, Mock, patch
 
 import psycopg2
-import psycopg2.extras
 import psycopg2.extensions
+import psycopg2.extras
 import pytest
 
 from src.ticker_converter.data_ingestion.database_manager import DatabaseManager
@@ -39,7 +39,7 @@ class TestDatabaseQueryOperations:
         """Test successful PostgreSQL query execution."""
         mock_connection = MagicMock()
         mock_connection.__class__ = psycopg2.extensions.connection
-        
+
         # Mock the RealDictCursor context manager
         mock_cursor = MagicMock()
         mock_cursor.fetchall.return_value = [{"id": 1, "name": "test"}]
@@ -57,7 +57,7 @@ class TestDatabaseQueryOperations:
         """Test query execution without parameters."""
         mock_connection = MagicMock()
         mock_connection.__class__ = psycopg2.extensions.connection
-        
+
         # Mock the RealDictCursor context manager
         mock_cursor = MagicMock()
         mock_cursor.fetchall.return_value = []
