@@ -260,10 +260,10 @@ class DatabaseManager:
 
     def ensure_date_dimension(self, date_value: str | datetime) -> bool:
         """Ensure date exists in dim_date table.
-        
+
         Args:
             date_value: Date to ensure exists in dimension table
-            
+
         Returns:
             True if date was successfully ensured, False otherwise
         """
@@ -308,7 +308,7 @@ class DatabaseManager:
                 day_of_week,
                 day_of_year,
                 week_of_year,
-                is_weekend
+                is_weekend,
             )
 
             with self.connection() as conn:
@@ -316,7 +316,7 @@ class DatabaseManager:
                 cursor.execute(insert_query, date_record)
                 conn.commit()
                 return True
-                
+
         except (sqlite3.Error, psycopg2.Error, ValueError, TypeError) as e:
             self.logger.error("Error ensuring date dimension for %s: %s", date_value, e)
             return False
@@ -325,7 +325,7 @@ class DatabaseManager:
         """Insert stock data records directly into fact_stock_prices table.
 
         Args:
-            records: List of stock data records with keys: symbol, data_date, 
+            records: List of stock data records with keys: symbol, data_date,
                     open_price, high_price, low_price, close_price, volume
 
         Returns:
@@ -337,13 +337,13 @@ class DatabaseManager:
         # Ensure all dates exist in dim_date table
         failed_dates = []
         for record in records:
-            if not self.ensure_date_dimension(record.get('data_date')):
-                failed_dates.append(record.get('data_date'))
-        
+            if not self.ensure_date_dimension(record.get("data_date")):
+                failed_dates.append(record.get("data_date"))
+
         if failed_dates:
             self.logger.warning("Failed to ensure %d dates in dimension table", len(failed_dates))
             # Filter out records with failed dates
-            records = [r for r in records if r.get('data_date') not in failed_dates]
+            records = [r for r in records if r.get("data_date") not in failed_dates]
             if not records:
                 self.logger.error("No valid records remaining after date validation")
                 return 0
@@ -396,13 +396,13 @@ class DatabaseManager:
                 fact_records = []
                 for record in records:
                     fact_record = (
-                        record.get('open_price'),
-                        record.get('high_price'), 
-                        record.get('low_price'),
-                        record.get('close_price'),
-                        record.get('volume'),
-                        record.get('symbol'),
-                        record.get('data_date')
+                        record.get("open_price"),
+                        record.get("high_price"),
+                        record.get("low_price"),
+                        record.get("close_price"),
+                        record.get("volume"),
+                        record.get("symbol"),
+                        record.get("data_date"),
                     )
                     fact_records.append(fact_record)
 
@@ -417,15 +417,18 @@ class DatabaseManager:
                 with self.connection() as conn:
                     cursor = conn.cursor()
                     for record in records:
-                        cursor.execute(insert_query, (
-                            record.get('open_price'),
-                            record.get('high_price'),
-                            record.get('low_price'), 
-                            record.get('close_price'),
-                            record.get('volume'),
-                            record.get('symbol'),
-                            record.get('data_date')
-                        ))
+                        cursor.execute(
+                            insert_query,
+                            (
+                                record.get("open_price"),
+                                record.get("high_price"),
+                                record.get("low_price"),
+                                record.get("close_price"),
+                                record.get("volume"),
+                                record.get("symbol"),
+                                record.get("data_date"),
+                            ),
+                        )
                         inserted += cursor.rowcount
                     conn.commit()
 
@@ -451,13 +454,13 @@ class DatabaseManager:
         # Ensure all dates exist in dim_date table
         failed_dates = []
         for record in records:
-            if not self.ensure_date_dimension(record.get('data_date')):
-                failed_dates.append(record.get('data_date'))
-        
+            if not self.ensure_date_dimension(record.get("data_date")):
+                failed_dates.append(record.get("data_date"))
+
         if failed_dates:
             self.logger.warning("Failed to ensure %d dates in dimension table", len(failed_dates))
             # Filter out records with failed dates
-            records = [r for r in records if r.get('data_date') not in failed_dates]
+            records = [r for r in records if r.get("data_date") not in failed_dates]
             if not records:
                 self.logger.error("No valid records remaining after date validation")
                 return 0
@@ -508,10 +511,10 @@ class DatabaseManager:
                 fact_records = []
                 for record in records:
                     fact_record = (
-                        record.get('exchange_rate'),
-                        record.get('from_currency'),
-                        record.get('to_currency'),
-                        record.get('data_date')
+                        record.get("exchange_rate"),
+                        record.get("from_currency"),
+                        record.get("to_currency"),
+                        record.get("data_date"),
                     )
                     fact_records.append(fact_record)
 
@@ -526,12 +529,15 @@ class DatabaseManager:
                 with self.connection() as conn:
                     cursor = conn.cursor()
                     for record in records:
-                        cursor.execute(insert_query, (
-                            record.get('exchange_rate'),
-                            record.get('from_currency'),
-                            record.get('to_currency'),
-                            record.get('data_date')
-                        ))
+                        cursor.execute(
+                            insert_query,
+                            (
+                                record.get("exchange_rate"),
+                                record.get("from_currency"),
+                                record.get("to_currency"),
+                                record.get("data_date"),
+                            ),
+                        )
                         inserted += cursor.rowcount
                     conn.commit()
 

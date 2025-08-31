@@ -39,7 +39,9 @@ def _import_module_from_path(module_name: str, file_path: Path):
 _assess_module = _import_module_from_path("assess_records", _dags_dir / "helpers" / "assess_records.py")
 _collect_module = _import_module_from_path("collect_api_data", _dags_dir / "helpers" / "collect_api_data.py")
 _load_module = _import_module_from_path("load_raw_to_db", _dags_dir / "helpers" / "load_raw_to_db.py")
-_connection_validator_module = _import_module_from_path("connection_validator", _dags_dir / "helpers" / "connection_validator.py")
+_connection_validator_module = _import_module_from_path(
+    "connection_validator", _dags_dir / "helpers" / "connection_validator.py"
+)
 
 # Extract the functions we need
 assess_latest_records = _assess_module.assess_latest_records
@@ -69,8 +71,7 @@ with DAG(  # type: ignore[arg-type]
     def validate_connections_task() -> dict[str, Any]:
         """Validate that all required connections are available before starting the pipeline."""
         return validate_dag_connections(
-            required_connections=STANDARD_PIPELINE_CONNECTIONS,
-            task_name="validate_connections"
+            required_connections=STANDARD_PIPELINE_CONNECTIONS, task_name="validate_connections"
         )
 
     @task(task_id="assess_latest")
