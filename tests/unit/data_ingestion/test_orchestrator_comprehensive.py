@@ -185,13 +185,13 @@ class TestDataIngestionOrchestratorInitialSetup:
         assert result["total_records_inserted"] == 0
 
     def test_perform_initial_setup_unexpected_exception(self) -> None:
-        """Test initial setup handling unexpected exceptions."""
+        """Test initial setup handling data processing exceptions."""
         self.mock_nyse.fetch_and_prepare_all_data.side_effect = ValueError("API connection failed")
 
         result = self.orchestrator.perform_initial_setup(days_back=5)
 
-        # Verify exception is handled and recorded
-        assert any("Unexpected error" in error for error in result["errors"])
+        # Verify exception is handled and recorded as data processing error
+        assert any("Data processing error" in error for error in result["errors"])
         assert any("API connection failed" in error for error in result["errors"])
         assert result["total_records_inserted"] == 0
 
