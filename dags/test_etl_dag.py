@@ -215,7 +215,7 @@ def test_etl_dag() -> None:
                     if "isn't defined" in str(conn_error):
                         print(f"⚠️  Airflow connection 'postgres_default' not configured: {conn_error}")
                         print("ℹ️  Skipping Airflow hook test, proceeding to direct connection test")
-                        raise ValueError("airflow_connection_not_configured")
+                        raise ValueError("airflow_connection_not_configured") from conn_error
                     else:
                         raise conn_error
 

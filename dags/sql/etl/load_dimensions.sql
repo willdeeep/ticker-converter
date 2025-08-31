@@ -22,7 +22,7 @@ SELECT
     EXTRACT(DOW FROM generate_series) AS day_of_week,
     EXTRACT(DOY FROM generate_series) AS day_of_year,
     EXTRACT(WEEK FROM generate_series) AS week_of_year,
-    CASE WHEN EXTRACT(DOW FROM generate_series) IN (0, 6) THEN TRUE ELSE FALSE END AS is_weekend
+    (EXTRACT(DOW FROM generate_series) IN (0, 6)) AS is_weekend
 FROM generate_series(
     DATE_TRUNC('year', CURRENT_DATE),  -- Start of current year
     DATE_TRUNC('year', CURRENT_DATE) + INTERVAL '1 year' - INTERVAL '1 day',  -- End of current year
@@ -41,6 +41,6 @@ SELECT
     EXTRACT(DOW FROM CURRENT_DATE + generate_series) AS day_of_week,
     EXTRACT(DOY FROM CURRENT_DATE + generate_series) AS day_of_year,
     EXTRACT(WEEK FROM CURRENT_DATE + generate_series) AS week_of_year,
-    CASE WHEN EXTRACT(DOW FROM CURRENT_DATE + generate_series) IN (0, 6) THEN TRUE ELSE FALSE END AS is_weekend
+    (EXTRACT(DOW FROM CURRENT_DATE + generate_series) IN (0, 6)) AS is_weekend
 FROM generate_series(1, 30) AS generate_series
 ON CONFLICT (date_value) DO NOTHING;
