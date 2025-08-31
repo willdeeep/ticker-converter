@@ -33,19 +33,6 @@ CREATE INDEX IF NOT EXISTS idx_dim_stocks_symbol
 CREATE INDEX IF NOT EXISTS idx_dim_stocks_active
     ON dim_stocks (is_active) WHERE is_active = TRUE;
 
--- Raw data staging indexes for ETL performance
-CREATE INDEX IF NOT EXISTS idx_raw_stock_data_symbol_date
-    ON raw_stock_data (symbol, data_date);
-
-CREATE INDEX IF NOT EXISTS idx_raw_stock_data_created_at
-    ON raw_stock_data (created_at);
-
-CREATE INDEX IF NOT EXISTS idx_raw_currency_data_currencies_date
-    ON raw_currency_data (from_currency, to_currency, data_date);
-
-CREATE INDEX IF NOT EXISTS idx_raw_currency_data_created_at
-    ON raw_currency_data (created_at);
-
 -- Performance indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_fact_stock_prices_daily_return
     ON fact_stock_prices (daily_return DESC NULLS LAST);

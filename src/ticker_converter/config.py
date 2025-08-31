@@ -38,12 +38,6 @@ class DatabaseSettings(BaseSettings):
     max_overflow: int = Field(default=20, description="Max pool overflow")
     pool_timeout: int = Field(default=30, description="Pool timeout in seconds")
 
-    # SQLite fallback
-    sqlite_path: Path = Field(
-        default=Path("data/ticker_converter.db"),
-        description="SQLite database path for local development",
-    )
-
     def get_url(self) -> str:
         """Get the database URL."""
         # Check for explicit DATABASE_URL first
@@ -51,27 +45,12 @@ class DatabaseSettings(BaseSettings):
         if database_url:
             return database_url
 
-        # Build PostgreSQL URL if password is provided
+        # Build PostgreSQL URL
         password_value = self.password.get_secret_value()
         if password_value:
             return f"postgresql://{self.user}:{password_value}" f"@{self.host}:{self.port}/{self.name}"
-
-        # Fall back to SQLite for local development
-        self.sqlite_path.parent.mkdir(parents=True, exist_ok=True)
-        return f"sqlite:///{self.sqlite_path}"
-
-    @field_validator("sqlite_path", mode="before")
-    @classmethod
-    def resolve_sqlite_path(cls, v: Any) -> Path:
-        """Resolve SQLite path relative to project root."""
-        if isinstance(v, str):
-            path = Path(v)
-            if not path.is_absolute():
-                # Make relative to project root
-                project_root = Path(__file__).parent.parent.parent
-                path = project_root / path
-            return path
-        return Path(v) if not isinstance(v, Path) else v
+        else:
+            return f"postgresql://{self.user}@{self.host}:{self.port}/{self.name}"
 
 
 class APISettings(BaseSettings):

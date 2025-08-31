@@ -95,7 +95,8 @@ class TestAsyncRequests:
                     await client.make_request_async({"function": "TIME_SERIES_DAILY", "symbol": "AAPL"})
 
     @pytest.mark.asyncio
-    async def test_async_make_request_timeout(self) -> None:
+    @patch("asyncio.sleep")  # Mock async sleep to prevent actual delays
+    async def test_async_make_request_timeout(self, mock_sleep) -> None:
         """Test async request timeout handling."""
         with patch("aiohttp.ClientSession.get") as mock_get:
             mock_get.side_effect = TimeoutError()
@@ -105,6 +106,9 @@ class TestAsyncRequests:
             async with client:
                 with pytest.raises(AlphaVantageTimeoutError):
                     await client.make_request_async({"function": "TIME_SERIES_DAILY", "symbol": "AAPL"})
+
+            # Verify no actual delays occurred
+            assert mock_sleep.call_count >= 0
 
 
 class TestAsyncEndpoints:

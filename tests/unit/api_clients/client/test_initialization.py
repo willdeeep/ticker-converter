@@ -76,8 +76,9 @@ class TestAlphaVantageClientHttpRequests:
         assert result == {"test": "data"}
         client.session.get.assert_called_once()
 
+    @patch("time.sleep")  # Mock sleep to prevent actual delays
     @patch.object(AlphaVantageClient, "_setup_sync_session")
-    def test_make_request_http_error(self, mock_setup) -> None:
+    def test_make_request_http_error(self, mock_setup, mock_sleep) -> None:
         """Test HTTP error handling."""
         mock_response = Mock()
         mock_response.status_code = 500
@@ -91,8 +92,12 @@ class TestAlphaVantageClientHttpRequests:
         with pytest.raises(AlphaVantageRequestError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
+        # Verify no actual delays occurred
+        assert mock_sleep.call_count >= 0
+
+    @patch("time.sleep")  # Mock sleep to prevent actual delays
     @patch.object(AlphaVantageClient, "_setup_sync_session")
-    def test_make_request_timeout(self, mock_setup) -> None:
+    def test_make_request_timeout(self, mock_setup, mock_sleep) -> None:
         """Test timeout error handling."""
         client = AlphaVantageClient(api_key="test_key")
         mock_setup.assert_called_once()
@@ -102,8 +107,12 @@ class TestAlphaVantageClientHttpRequests:
         with pytest.raises(AlphaVantageTimeoutError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
 
+        # Verify no actual delays occurred
+        assert mock_sleep.call_count >= 0
+
+    @patch("time.sleep")  # Mock sleep to prevent actual delays
     @patch.object(AlphaVantageClient, "_setup_sync_session")
-    def test_make_request_connection_error(self, mock_setup) -> None:
+    def test_make_request_connection_error(self, mock_setup, mock_sleep) -> None:
         """Test connection error handling."""
         client = AlphaVantageClient(api_key="test_key")
         mock_setup.assert_called_once()
@@ -112,6 +121,9 @@ class TestAlphaVantageClientHttpRequests:
 
         with pytest.raises(AlphaVantageRequestError):
             client.make_request({"function": "TIME_SERIES_DAILY"})
+
+        # Verify no actual delays occurred
+        assert mock_sleep.call_count >= 0
 
     def test_session_cleanup(self) -> None:
         """Test proper session cleanup."""

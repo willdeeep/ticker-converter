@@ -1,16 +1,14 @@
 -- Data Retention Management
 -- Cleanup old data according to retention policies
 
--- Delete raw stock data older than 90 days
-DELETE FROM raw_stock_data
-WHERE created_at < CURRENT_DATE - INTERVAL '90 days';
+-- Note: Raw staging tables have been removed. Data is loaded directly into fact tables.
+-- Cleanup now focuses on fact tables and dimension maintenance.
 
--- Delete raw currency data older than 90 days  
-DELETE FROM raw_currency_data
-WHERE created_at < CURRENT_DATE - INTERVAL '90 days';
-
--- Archive old fact data to separate tables (optional)
--- Keep 2 years of fact data, archive older data
+-- Archive old fact data (optional) - Keep 2 years of fact data
+-- Example: Move data older than 2 years to archive tables
+-- CREATE TABLE fact_stock_prices_archive AS 
+-- SELECT * FROM fact_stock_prices 
+-- WHERE date_id IN (SELECT date_id FROM dim_date WHERE date_value < CURRENT_DATE - INTERVAL '2 years');
 
 -- Clean up dimension dates older than 5 years (keep only recent history)
 DELETE FROM dim_date
@@ -24,10 +22,11 @@ AND date_id NOT IN (
 -- Update statistics after cleanup
 ANALYZE fact_stock_prices;
 ANALYZE fact_currency_rates;
-ANALYZE raw_stock_data;
-ANALYZE raw_currency_data;
+ANALYZE dim_date;
+ANALYZE dim_stocks;
+ANALYZE dim_currency;
 
--- Log cleanup completion
+-- Log cleanup completion by ensuring current date exists in dimension
 INSERT INTO dim_date (date_value, year, quarter, month, day, day_of_week, day_of_year, week_of_year, is_weekend)
 SELECT
     CURRENT_DATE AS date_value,

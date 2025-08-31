@@ -332,6 +332,9 @@ class AirflowManager:
         # Create admin user
         self._create_admin_user()
 
+        # Create required connections
+        self._create_connections()
+
         # Sync DAGs to database
         self._reserialized_dags()
 
@@ -415,6 +418,67 @@ class AirflowManager:
             print_success("Admin user created")
         except subprocess.CalledProcessError:
             print_info(f"Admin user {self.config.admin_username} already exists")
+
+    def _create_connections(self) -> None:
+        """Create required connections from environment variables"""
+        print_status("Creating required connections...", Colors.YELLOW)
+
+        # Create postgres_default connection if configured
+        if self.config.postgres_conn_url:
+            print_status("Creating postgres_default connection...", Colors.CYAN)
+            try:
+                # Check if connection already exists
+                list_result = subprocess.run(
+                    [str(self.runner.venv_python), "-m", "airflow", "connections", "get", "postgres_default"],
+                    env=self.runner._prepare_environment(),
+                    capture_output=True,
+                    text=True,
+                )
+
+                if list_result.returncode == 0:
+                    print_info("postgres_default connection already exists, updating...")
+                    # Delete existing connection
+                    self.runner.run_command(["connections", "delete", "postgres_default"])
+
+                # Create the connection
+                self.runner.run_command(
+                    ["connections", "add", "postgres_default", "--conn-uri", self.config.postgres_conn_url]
+                )
+                print_success("postgres_default connection created")
+
+            except subprocess.CalledProcessError as e:
+                print_warning(f"Failed to create postgres_default connection: {e}")
+                print_info("DAGs may fail if postgres_default connection is not available")
+        else:
+            print_warning("No postgres connection URL configured in environment variables")
+
+        # Verify connections were created
+        self._verify_connections()
+
+    def _verify_connections(self) -> None:
+        """Verify that required connections are available"""
+        print_status("Verifying connections...", Colors.CYAN)
+
+        required_connections = ["postgres_default"]
+
+        for conn_id in required_connections:
+            try:
+                result = subprocess.run(
+                    [str(self.runner.venv_python), "-m", "airflow", "connections", "get", conn_id],
+                    env=self.runner._prepare_environment(),
+                    capture_output=True,
+                    text=True,
+                )
+
+                if result.returncode == 0:
+                    print_success(f"✓ Connection {conn_id} is available")
+                else:
+                    print_warning(f"⚠️ Connection {conn_id} is not available")
+
+            except Exception as e:
+                print_warning(f"⚠️ Could not verify connection {conn_id}: {e}")
+
+        print_success("Connection verification completed")
 
     def start(self) -> None:
         """Start Airflow services: scheduler and API server"""

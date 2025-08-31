@@ -1,23 +1,40 @@
 -- Clean and transform data
--- This is a placeholder SQL file for the Airflow DAG
--- In a real implementation, this would contain SQL for data cleaning and transformation
+-- Note: Data cleaning and validation is now handled during direct fact loading
+-- This is a placeholder SQL file for additional post-processing transformations
 
-SELECT 'Cleaning and transforming data...' AS status;
+SELECT 'Data cleaning handled during direct fact loading...' AS status;
 
--- Example of what this might look like:
--- WITH cleaned_data AS (
+-- Data cleaning and validation is now performed in Python during direct insertion:
+-- 1. Validation functions in load_raw_to_db.py check data quality before insertion
+-- 2. DatabaseManager handles type conversion and dimensional lookups
+-- 3. Invalid records are logged and skipped, not inserted into fact tables
+
+-- Example of post-processing transformations that could be added:
+-- WITH stock_metrics AS (
 --   SELECT 
---     symbol,
---     date,
---     CASE WHEN open_price > 0 THEN open_price ELSE NULL END AS open_price,
---     CASE WHEN high_price > low_price THEN high_price ELSE NULL END AS high_price,
---     CASE WHEN low_price > 0 THEN low_price ELSE NULL END AS low_price,
---     CASE WHEN close_price > 0 THEN close_price ELSE NULL END AS close_price,
---     CASE WHEN volume >= 0 THEN volume ELSE 0 END AS volume
---   FROM raw_stock_data
---   WHERE date = '{{ ds }}'
+--     fsp.stock_id,
+--     fsp.date_id,
+--     fsp.closing_price,
+--     AVG(fsp.closing_price) OVER (
+--       PARTITION BY fsp.stock_id 
+--       ORDER BY dd.date_value 
+--       ROWS BETWEEN 19 PRECEDING AND CURRENT ROW
+--     ) AS moving_avg_20d,
+--     AVG(fsp.volume) OVER (
+--       PARTITION BY fsp.stock_id 
+--       ORDER BY dd.date_value 
+--       ROWS BETWEEN 9 PRECEDING AND CURRENT ROW
+--     ) AS avg_volume_10d
+--   FROM fact_stock_prices fsp
+--   JOIN dim_date dd ON fsp.date_id = dd.date_id
+--   WHERE dd.date_value = '{{ ds }}'
 -- )
--- INSERT INTO processed_stock_data (symbol, date, open_price, high_price, low_price, close_price, volume)
--- SELECT symbol, date, open_price, high_price, low_price, close_price, volume 
--- FROM cleaned_data 
--- WHERE open_price IS NOT NULL;
+-- UPDATE fact_stock_prices 
+-- SET 
+--   additional_metrics = jsonb_build_object(
+--     'moving_avg_20d', sm.moving_avg_20d,
+--     'avg_volume_10d', sm.avg_volume_10d
+--   )
+-- FROM stock_metrics sm
+-- WHERE fact_stock_prices.stock_id = sm.stock_id 
+-- AND fact_stock_prices.date_id = sm.date_id;

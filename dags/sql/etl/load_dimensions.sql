@@ -1,43 +1,46 @@
--- Load Dimensions from Raw Data
--- Populates dimension tables from staging tables
+-- Load Dimensions: Direct Insertion Support
+-- Note: Dimension loading is now handled automatically during direct fact loading
+-- This file contains maintenance queries for dimension completeness
 
--- Ensure date dimension has required dates
-INSERT INTO dim_date (date_value, year_num, quarter_num, month_num, day_num, day_of_week, day_of_year, week_of_year, is_weekend)
-SELECT DISTINCT
-    rsd.data_date AS date_value,
-    EXTRACT(YEAR FROM rsd.data_date) AS year_num,
-    EXTRACT(QUARTER FROM rsd.data_date) AS quarter_num,
-    EXTRACT(MONTH FROM rsd.data_date) AS month_num,
-    EXTRACT(DAY FROM rsd.data_date) AS day_num,
-    EXTRACT(DOW FROM rsd.data_date) AS day_of_week,
-    EXTRACT(DOY FROM rsd.data_date) AS day_of_year,
-    EXTRACT(WEEK FROM rsd.data_date) AS week_of_year,
-    COALESCE(EXTRACT(DOW FROM rsd.data_date) IN (0, 6), FALSE) AS is_weekend
-FROM raw_stock_data AS rsd
-WHERE rsd.date_value NOT IN (SELECT dd.date_value FROM dim_date AS dd)
+-- Dimension loading is now handled by the Python DatabaseManager:
+-- 1. ensure_date_dimension() automatically creates dates during fact insertion
+-- 2. Stock and currency dimensions are populated during system initialization
+-- 3. Dimensional lookups happen during direct fact table insertion
 
-UNION
+-- Manual dimension maintenance (optional) - Ensure dimension integrity
+-- Update any missing dates that might be needed for reporting
+-- This query adds a range of dates if needed for calendar tables
 
-SELECT DISTINCT
-    rcd.data_date AS date_value,
-    EXTRACT(YEAR FROM rcd.data_date) AS year_num,
-    EXTRACT(QUARTER FROM rcd.data_date) AS quarter_num,
-    EXTRACT(MONTH FROM rcd.data_date) AS month_num,
-    EXTRACT(DAY FROM rcd.data_date) AS day_num,
-    EXTRACT(DOW FROM rcd.data_date) AS day_of_week,
-    EXTRACT(DOY FROM rcd.data_date) AS day_of_year,
-    EXTRACT(WEEK FROM rcd.data_date) AS week_of_year,
-    COALESCE(EXTRACT(DOW FROM rcd.data_date) IN (0, 6), FALSE) AS is_weekend
-FROM raw_currency_data AS rcd
-WHERE rcd.date_value NOT IN (SELECT dd.date_value FROM dim_date AS dd);
+-- Generate date range for current year (if not already present)
+INSERT INTO dim_date (date_value, year, quarter, month, day, day_of_week, day_of_year, week_of_year, is_weekend)
+SELECT
+    generate_series::date AS date_value,
+    EXTRACT(YEAR FROM generate_series) AS year,
+    EXTRACT(QUARTER FROM generate_series) AS quarter,
+    EXTRACT(MONTH FROM generate_series) AS month,
+    EXTRACT(DAY FROM generate_series) AS day,
+    EXTRACT(DOW FROM generate_series) AS day_of_week,
+    EXTRACT(DOY FROM generate_series) AS day_of_year,
+    EXTRACT(WEEK FROM generate_series) AS week_of_year,
+    (EXTRACT(DOW FROM generate_series) IN (0, 6)) AS is_weekend
+FROM generate_series(
+    DATE_TRUNC('year', CURRENT_DATE),  -- Start of current year
+    DATE_TRUNC('year', CURRENT_DATE) + INTERVAL '1 year' - INTERVAL '1 day',  -- End of current year
+    '1 day'::interval
+) AS generate_series
+ON CONFLICT (date_value) DO NOTHING;
 
--- Update stock dimension with any new symbols
-INSERT INTO dim_stocks (symbol, company_name, sector, market_cap_category)
-SELECT DISTINCT
-    symbol,
-    'Unknown Company' AS company_name,
-    'Unknown Sector' AS sector,
-    'Unknown Cap' AS market_cap_category
-FROM raw_stock_data
-WHERE symbol NOT IN (SELECT ds.symbol FROM dim_stocks AS ds)
-ON CONFLICT (symbol) DO NOTHING;
+-- Optional: Add future dates for forecasting (next 30 days)
+INSERT INTO dim_date (date_value, year, quarter, month, day, day_of_week, day_of_year, week_of_year, is_weekend)
+SELECT
+    (CURRENT_DATE + generate_series)::date AS date_value,
+    EXTRACT(YEAR FROM CURRENT_DATE + generate_series) AS year,
+    EXTRACT(QUARTER FROM CURRENT_DATE + generate_series) AS quarter,
+    EXTRACT(MONTH FROM CURRENT_DATE + generate_series) AS month,
+    EXTRACT(DAY FROM CURRENT_DATE + generate_series) AS day,
+    EXTRACT(DOW FROM CURRENT_DATE + generate_series) AS day_of_week,
+    EXTRACT(DOY FROM CURRENT_DATE + generate_series) AS day_of_year,
+    EXTRACT(WEEK FROM CURRENT_DATE + generate_series) AS week_of_year,
+    (EXTRACT(DOW FROM CURRENT_DATE + generate_series) IN (0, 6)) AS is_weekend
+FROM generate_series(1, 30) AS generate_series
+ON CONFLICT (date_value) DO NOTHING;
