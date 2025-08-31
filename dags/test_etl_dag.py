@@ -170,40 +170,54 @@ def test_etl_dag() -> None:
                     raise ValueError(f"{env_var} environment variable not properly set")
 
             # Test Airflow's PostgreSQL connection using SQLExecuteQueryOperator
-            print("� Testing Airflow PostgreSQL connection 'postgres_default'...")
+            print("🔌 Testing Airflow PostgreSQL connection 'postgres_default'...")
             try:
+                from airflow.hooks.base import BaseHook
                 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-                # Test the Airflow connection
-                postgres_hook = PostgresHook(postgres_conn_id="postgres_default")
+                # Check if connection exists before creating hook
+                try:
+                    connection = BaseHook.get_connection("postgres_default")
+                    print(f"✅ Found Airflow connection: {connection.conn_type} -> {connection.host}:{connection.port}")
 
-                # Execute a simple test query
-                result = postgres_hook.get_first("SELECT version() as version, current_database() as database;")
+                    # Now create and test the hook
+                    postgres_hook = PostgresHook(postgres_conn_id="postgres_default")
 
-                if result:
-                    version, current_db = result
-                    print(f"✅ Airflow PostgreSQL connection successful!")
-                    print(f"✅ Connected to database: {current_db}")
-                    print(f"✅ PostgreSQL version: {version}")
+                    # Execute a simple test query
+                    result = postgres_hook.get_first("SELECT version() as version, current_database() as database;")
 
-                    # Test table creation permissions
-                    test_table_sql = """
-                    CREATE TABLE IF NOT EXISTS airflow_test_table (
-                        id SERIAL PRIMARY KEY,
-                        test_column VARCHAR(50),
-                        created_at TIMESTAMP DEFAULT NOW()
-                    );
-                    """
-                    postgres_hook.run(test_table_sql)
-                    print("✅ Database write permissions verified (test table created)")
+                    if result:
+                        version, current_db = result
+                        print(f"✅ Airflow PostgreSQL connection successful!")
+                        print(f"✅ Connected to database: {current_db}")
+                        print(f"✅ PostgreSQL version: {version}")
 
-                    # Clean up test table
-                    postgres_hook.run("DROP TABLE IF EXISTS airflow_test_table;")
-                    print("✅ Test table cleaned up")
+                        # Test table creation permissions
+                        test_table_sql = """
+                        CREATE TABLE IF NOT EXISTS airflow_test_table (
+                            id SERIAL PRIMARY KEY,
+                            test_column VARCHAR(50),
+                            created_at TIMESTAMP DEFAULT NOW()
+                        );
+                        """
+                        postgres_hook.run(test_table_sql)
+                        print("✅ Database write permissions verified (test table created)")
 
-                    return "airflow_postgresql_connection_ok"
-                else:
-                    raise ConnectionError("No result from PostgreSQL version query")
+                        # Clean up test table
+                        postgres_hook.run("DROP TABLE IF EXISTS airflow_test_table;")
+                        print("✅ Test table cleaned up")
+
+                        return "airflow_postgresql_connection_ok"
+                    else:
+                        raise ConnectionError("No result from PostgreSQL version query")
+
+                except Exception as conn_error:
+                    if "isn't defined" in str(conn_error):
+                        print(f"⚠️  Airflow connection 'postgres_default' not configured: {conn_error}")
+                        print("ℹ️  Skipping Airflow hook test, proceeding to direct connection test")
+                        raise ValueError("airflow_connection_not_configured")
+                    else:
+                        raise conn_error
 
             except Exception as airflow_error:
                 print(f"❌ Airflow PostgreSQL connection failed: {airflow_error}")

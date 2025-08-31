@@ -67,7 +67,7 @@ with DAG(  # type: ignore[arg-type]
     max_active_runs=1,
 ) as dag:
 
-    @task(task_id="validate_connections")
+    @task(task_id="validate_connections", execution_timeout=timedelta(minutes=2))
     def validate_connections_task() -> dict[str, Any]:
         """Validate that all required connections are available before starting the pipeline."""
         return validate_dag_connections(
