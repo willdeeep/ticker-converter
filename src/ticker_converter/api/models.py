@@ -1,8 +1,9 @@
 """Response models for API endpoints."""
 
 from datetime import date
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class StockPerformance(BaseModel):
@@ -87,3 +88,50 @@ class StockPerformanceDetails(BaseModel):
     price_change_30d_pct: float | None = Field(None, description="30-day price change percentage")
     volatility_30d: float | None = Field(None, description="30-day volatility (standard deviation)")
     performance_rank: int | None = Field(None, description="Performance ranking")
+
+
+class StockDataWithCurrency(BaseModel):
+    """Stock data with side-by-side USD and GBP pricing based on daily exchange rates."""
+
+    symbol: str = Field(..., description="Stock symbol (e.g., AAPL)")
+    company_name: str = Field(..., description="Company name")
+    trade_date: date = Field(..., description="Trading date")
+    price_usd: float = Field(..., description="Closing price in USD")
+    price_gbp: float | None = Field(None, description="Closing price in GBP")
+    usd_to_gbp_rate: float | None = Field(None, description="USD to GBP exchange rate used")
+    volume: int = Field(..., description="Trading volume")
+    daily_return: float | None = Field(None, description="Daily return percentage")
+    market_cap_usd: float | None = Field(None, description="Market capitalization in USD")
+    market_cap_gbp: float | None = Field(None, description="Market capitalization in GBP")
+
+    @field_validator("price_usd")
+    @classmethod
+    def validate_price_usd(cls, v: float) -> float:
+        """Validate that USD price is positive."""
+        if v <= 0:
+            raise ValueError("price_usd must be positive")
+        return v
+
+    @field_validator("volume")
+    @classmethod
+    def validate_volume(cls, v: int) -> int:
+        """Validate that volume is non-negative."""
+        if v < 0:
+            raise ValueError("volume must be non-negative")
+        return v
+
+    @field_validator("price_gbp")
+    @classmethod
+    def validate_price_gbp(cls, v: float | None) -> float | None:
+        """Validate that GBP price is positive if provided."""
+        if v is not None and v <= 0:
+            raise ValueError("price_gbp must be positive if provided")
+        return v
+
+    @field_validator("usd_to_gbp_rate")
+    @classmethod
+    def validate_exchange_rate(cls, v: float | None) -> float | None:
+        """Validate that exchange rate is positive if provided."""
+        if v is not None and v <= 0:
+            raise ValueError("usd_to_gbp_rate must be positive if provided")
+        return v
