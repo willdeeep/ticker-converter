@@ -1,0 +1,288 @@
+# ============================================================================
+# PLATFORM DETECTION & CROSS-PLATFORM CONFIGURATION
+# ============================================================================
+# This module handles automatic OS detection and sets platform-specific
+# variables and tool paths for cross-platform compatibility
+#
+# Supported Platforms:
+# - macOS (Intel/Apple Silicon) 
+# - Linux (Ubuntu/Debian/RHEL/CentOS)
+# - Windows (Native/WSL2) - planned
+# ============================================================================
+
+# Core platform detection
+DETECTED_OS := $(shell uname -s 2>/dev/null || echo "Windows")
+DETECTED_ARCH := $(shell uname -m 2>/dev/null || echo "unknown")
+
+# Normalize OS names for consistent conditional logic
+ifeq ($(DETECTED_OS),Darwin)
+    PLATFORM_OS := macos
+    PLATFORM_FAMILY := unix
+else ifeq ($(DETECTED_OS),Linux)
+    PLATFORM_OS := linux
+    PLATFORM_FAMILY := unix
+else ifeq ($(findstring CYGWIN,$(DETECTED_OS)),CYGWIN)
+    PLATFORM_OS := windows
+    PLATFORM_FAMILY := windows
+else ifeq ($(findstring MINGW,$(DETECTED_OS)),MINGW)
+    PLATFORM_OS := windows
+    PLATFORM_FAMILY := windows
+else ifeq ($(findstring MSYS,$(DETECTED_OS)),MSYS)
+    PLATFORM_OS := windows
+    PLATFORM_FAMILY := windows
+else
+    PLATFORM_OS := windows
+    PLATFORM_FAMILY := windows
+endif
+
+# Architecture normalization
+ifeq ($(DETECTED_ARCH),x86_64)
+    PLATFORM_ARCH := x64
+else ifeq ($(DETECTED_ARCH),amd64)
+    PLATFORM_ARCH := x64
+else ifeq ($(DETECTED_ARCH),arm64)
+    PLATFORM_ARCH := arm64
+else ifeq ($(DETECTED_ARCH),aarch64)
+    PLATFORM_ARCH := arm64
+else
+    PLATFORM_ARCH := $(DETECTED_ARCH)
+endif
+
+# ============================================================================
+# PLATFORM-SPECIFIC TOOL PATHS AND COMMANDS
+# ============================================================================
+
+# Shell configuration
+ifeq ($(PLATFORM_FAMILY),unix)
+    SHELL := /bin/bash
+    PATH_SEP := /
+    NULL_DEVICE := /dev/null
+else
+    SHELL := cmd.exe
+    PATH_SEP := \\
+    NULL_DEVICE := nul
+endif
+
+# Python command detection
+ifeq ($(PLATFORM_OS),macos)
+    PYTHON_CMD := python3
+    PIP_CMD := pip3
+else ifeq ($(PLATFORM_OS),linux)
+    PYTHON_CMD := python3
+    PIP_CMD := pip3
+else
+    PYTHON_CMD := python
+    PIP_CMD := pip
+endif
+
+# Package manager detection and configuration
+ifeq ($(PLATFORM_OS),macos)
+    PACKAGE_MANAGER := brew
+    PACKAGE_INSTALL := brew install
+    PACKAGE_UPDATE := brew update && brew upgrade
+    SERVICE_MANAGER := brew services
+    SERVICE_START := brew services start
+    SERVICE_STOP := brew services stop
+    SERVICE_STATUS := brew services list
+else ifeq ($(PLATFORM_OS),linux)
+    # Detect Linux distribution and package manager
+    DISTRO := $(shell lsb_release -si 2>/dev/null || echo "Unknown")
+    ifeq ($(findstring Ubuntu,$(DISTRO)),Ubuntu)
+        PACKAGE_MANAGER := apt
+        PACKAGE_INSTALL := sudo apt install -y
+        PACKAGE_UPDATE := sudo apt update && sudo apt upgrade -y
+    else ifeq ($(findstring Debian,$(DISTRO)),Debian)
+        PACKAGE_MANAGER := apt
+        PACKAGE_INSTALL := sudo apt install -y
+        PACKAGE_UPDATE := sudo apt update && sudo apt upgrade -y
+    else ifeq ($(findstring CentOS,$(DISTRO)),CentOS)
+        PACKAGE_MANAGER := yum
+        PACKAGE_INSTALL := sudo yum install -y
+        PACKAGE_UPDATE := sudo yum update -y
+    else ifeq ($(findstring RedHat,$(DISTRO)),RedHat)
+        PACKAGE_MANAGER := dnf
+        PACKAGE_INSTALL := sudo dnf install -y
+        PACKAGE_UPDATE := sudo dnf update -y
+    else
+        # Default to apt for unknown Linux distributions
+        PACKAGE_MANAGER := apt
+        PACKAGE_INSTALL := sudo apt install -y
+        PACKAGE_UPDATE := sudo apt update && sudo apt upgrade -y
+    endif
+    SERVICE_MANAGER := systemctl
+    SERVICE_START := sudo systemctl start
+    SERVICE_STOP := sudo systemctl stop
+    SERVICE_STATUS := sudo systemctl status
+else
+    # Windows (planned)
+    PACKAGE_MANAGER := choco
+    PACKAGE_INSTALL := choco install -y
+    PACKAGE_UPDATE := choco upgrade all -y
+    SERVICE_MANAGER := sc
+    SERVICE_START := sc start
+    SERVICE_STOP := sc stop
+    SERVICE_STATUS := sc query
+endif
+
+# ============================================================================
+# TOOL AVAILABILITY DETECTION
+# ============================================================================
+
+# Core development tools
+HAS_PYTHON := $(shell command -v $(PYTHON_CMD) >/dev/null 2>&1 && echo "yes" || echo "no")
+HAS_GIT := $(shell command -v git >/dev/null 2>&1 && echo "yes" || echo "no")
+HAS_MAKE := $(shell command -v make >/dev/null 2>&1 && echo "yes" || echo "no")
+
+# Package managers
+HAS_BREW := $(shell command -v brew >/dev/null 2>&1 && echo "yes" || echo "no")
+HAS_APT := $(shell command -v apt >/dev/null 2>&1 && echo "yes" || echo "no")
+HAS_YUM := $(shell command -v yum >/dev/null 2>&1 && echo "yes" || echo "no")
+HAS_DNF := $(shell command -v dnf >/dev/null 2>&1 && echo "yes" || echo "no")
+HAS_CHOCO := $(shell command -v choco >/dev/null 2>&1 && echo "yes" || echo "no")
+
+# Python environment tools
+HAS_PYENV := $(shell command -v pyenv >/dev/null 2>&1 && echo "yes" || echo "no")
+HAS_VENV := $(shell $(PYTHON_CMD) -m venv --help >/dev/null 2>&1 && echo "yes" || echo "no")
+
+# Database tools
+HAS_PSQL := $(shell command -v psql >/dev/null 2>&1 && echo "yes" || echo "no")
+HAS_CREATEDB := $(shell command -v createdb >/dev/null 2>&1 && echo "yes" || echo "no")
+
+# Quality tools (optional)
+HAS_CHECKMAKE := $(shell command -v checkmake >/dev/null 2>&1 && echo "yes" || echo "no")
+HAS_DOCKER := $(shell command -v docker >/dev/null 2>&1 && echo "yes" || echo "no")
+HAS_ACT := $(shell command -v act >/dev/null 2>&1 && echo "yes" || echo "no")
+
+# ============================================================================
+# PLATFORM-SPECIFIC POSTGRESQL CONFIGURATION
+# ============================================================================
+
+ifeq ($(PLATFORM_OS),macos)
+    # macOS PostgreSQL configuration
+    PG_SERVICE_NAME := postgresql@15
+    PG_DEFAULT_VERSION := 15
+    PG_BIN_PATH := /opt/homebrew/bin
+    ifeq ($(PLATFORM_ARCH),x64)
+        PG_BIN_PATH := /usr/local/bin
+    endif
+    PG_START_CMD := $(SERVICE_START) $(PG_SERVICE_NAME)
+    PG_STOP_CMD := $(SERVICE_STOP) $(PG_SERVICE_NAME)
+    PG_STATUS_CMD := $(SERVICE_STATUS) | grep postgresql
+else ifeq ($(PLATFORM_OS),linux)
+    # Linux PostgreSQL configuration
+    PG_SERVICE_NAME := postgresql
+    PG_DEFAULT_VERSION := 14
+    PG_BIN_PATH := /usr/bin
+    PG_START_CMD := $(SERVICE_START) $(PG_SERVICE_NAME)
+    PG_STOP_CMD := $(SERVICE_STOP) $(PG_SERVICE_NAME)
+    PG_STATUS_CMD := $(SERVICE_STATUS) $(PG_SERVICE_NAME)
+else
+    # Windows PostgreSQL configuration (planned)
+    PG_SERVICE_NAME := postgresql-x64-14
+    PG_DEFAULT_VERSION := 14
+    PG_BIN_PATH := C:\\Program Files\\PostgreSQL\\14\\bin
+    PG_START_CMD := $(SERVICE_START) $(PG_SERVICE_NAME)
+    PG_STOP_CMD := $(SERVICE_STOP) $(PG_SERVICE_NAME)
+    PG_STATUS_CMD := $(SERVICE_STATUS) $(PG_SERVICE_NAME)
+endif
+
+# ============================================================================
+# AIRFLOW PLATFORM CONFIGURATION
+# ============================================================================
+
+ifeq ($(PLATFORM_FAMILY),unix)
+    AIRFLOW_HOME_DEFAULT := $(shell pwd)/airflow
+    AIRFLOW_DAGS_FOLDER_DEFAULT := $(shell pwd)/dags
+    AIRFLOW_LOG_FOLDER_DEFAULT := $(shell pwd)/airflow/logs
+else
+    AIRFLOW_HOME_DEFAULT := $(shell cd)/airflow
+    AIRFLOW_DAGS_FOLDER_DEFAULT := $(shell cd)/dags
+    AIRFLOW_LOG_FOLDER_DEFAULT := $(shell cd)/airflow/logs
+endif
+
+# ============================================================================
+# UTILITY FUNCTIONS FOR CROSS-PLATFORM OPERATIONS
+# ============================================================================
+
+# Function to check if a command exists
+# Usage: $(call check_command,command_name)
+define check_command
+$(shell command -v $(1) >/dev/null 2>&1 && echo "yes" || echo "no")
+endef
+
+# Function to get absolute path (cross-platform)
+# Usage: $(call abs_path,relative_path)
+define abs_path
+$(shell cd $(1) && pwd 2>/dev/null || echo $(1))
+endef
+
+# Function to create directory (cross-platform)
+# Usage: $(call mkdir_p,directory_path)
+ifeq ($(PLATFORM_FAMILY),unix)
+define mkdir_p
+mkdir -p $(1)
+endef
+else
+define mkdir_p
+if not exist "$(1)" mkdir "$(1)"
+endef
+endif
+
+# Function to remove files/directories (cross-platform)
+# Usage: $(call rm_rf,path)
+ifeq ($(PLATFORM_FAMILY),unix)
+define rm_rf
+rm -rf $(1)
+endef
+else
+define rm_rf
+if exist "$(1)" rmdir /s /q "$(1)"
+endef
+endif
+
+# ============================================================================
+# PLATFORM INFORMATION AND DEBUGGING
+# ============================================================================
+
+.PHONY: platform-info platform-debug
+
+platform-info: ## Display current platform detection information
+	@echo -e "$(CYAN)Platform Detection Results:$(NC)"
+	@echo -e "$(YELLOW)Operating System:$(NC) $(DETECTED_OS) ($(PLATFORM_OS))"
+	@echo -e "$(YELLOW)Architecture:$(NC) $(DETECTED_ARCH) ($(PLATFORM_ARCH))"
+	@echo -e "$(YELLOW)Platform Family:$(NC) $(PLATFORM_FAMILY)"
+	@echo -e "$(YELLOW)Package Manager:$(NC) $(PACKAGE_MANAGER)"
+	@echo -e "$(YELLOW)Service Manager:$(NC) $(SERVICE_MANAGER)"
+	@echo -e "$(YELLOW)Python Command:$(NC) $(PYTHON_CMD)"
+	@echo -e "$(YELLOW)Shell:$(NC) $(SHELL)"
+
+platform-debug: ## Show detailed platform detection and tool availability
+	@echo -e "$(CYAN)Platform Detection Debug Information:$(NC)"
+	@echo -e "$(YELLOW)Raw OS Detection:$(NC) $(DETECTED_OS)"
+	@echo -e "$(YELLOW)Raw Architecture:$(NC) $(DETECTED_ARCH)"
+	@echo -e "$(YELLOW)Normalized OS:$(NC) $(PLATFORM_OS)"
+	@echo -e "$(YELLOW)Platform Family:$(NC) $(PLATFORM_FAMILY)"
+	@echo ""
+	@echo -e "$(CYAN)Tool Availability:$(NC)"
+	@echo -e "$(YELLOW)Python ($(PYTHON_CMD)):$(NC) $(HAS_PYTHON)"
+	@echo -e "$(YELLOW)Git:$(NC) $(HAS_GIT)"
+	@echo -e "$(YELLOW)Make:$(NC) $(HAS_MAKE)"
+	@echo -e "$(YELLOW)pyenv:$(NC) $(HAS_PYENV)"
+	@echo -e "$(YELLOW)PostgreSQL (psql):$(NC) $(HAS_PSQL)"
+	@echo -e "$(YELLOW)Package Manager ($(PACKAGE_MANAGER)):$(NC) $(call check_command,$(PACKAGE_MANAGER))"
+	@echo ""
+	@echo -e "$(CYAN)Platform-Specific Configuration:$(NC)"
+	@echo -e "$(YELLOW)PostgreSQL Service:$(NC) $(PG_SERVICE_NAME)"
+	@echo -e "$(YELLOW)PostgreSQL Binary Path:$(NC) $(PG_BIN_PATH)"
+	@echo -e "$(YELLOW)Airflow Home:$(NC) $(AIRFLOW_HOME_DEFAULT)"
+
+# Export platform variables for use in other modules
+export PLATFORM_OS
+export PLATFORM_FAMILY
+export PLATFORM_ARCH
+export PYTHON_CMD
+export PIP_CMD
+export PACKAGE_MANAGER
+export SERVICE_MANAGER
+export HAS_PYTHON
+export HAS_PYENV
