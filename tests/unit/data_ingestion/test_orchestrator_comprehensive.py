@@ -114,8 +114,8 @@ class TestDataIngestionOrchestratorInitialSetup:
         result = self.orchestrator.perform_initial_setup(days_back=10)
 
         # Verify API calls
-        self.mock_nyse.fetch_and_prepare_all_data.assert_called_once_with(10)
-        self.mock_currency.fetch_and_prepare_fx_data.assert_called_once_with(10)
+        self.mock_nyse.fetch_and_prepare_all_data.assert_called_once_with(days_back=10)
+        self.mock_currency.fetch_and_prepare_fx_data.assert_called_once_with(days_back=10)
         self.mock_db.insert_stock_data.assert_called_once_with(stock_data)
         self.mock_db.insert_currency_data.assert_called_once_with(currency_data)
 
@@ -123,7 +123,7 @@ class TestDataIngestionOrchestratorInitialSetup:
         assert "setup_started" in result
         assert "setup_completed" in result
         assert result["days_requested"] == 10
-        assert result["total_records_inserted"] == 1  # Currency data overwrites stock data in update()
+        assert result["total_records_inserted"] == 3  # Stock data (2) + Currency data (1) = 3
         assert result["stock_data"]["records_fetched"] == 2
         assert result["stock_data"]["records_inserted"] == 2
         assert result["currency_data"]["records_fetched"] == 1
@@ -143,7 +143,7 @@ class TestDataIngestionOrchestratorInitialSetup:
         assert result["total_records_inserted"] == 1  # Only currency data
 
         # Verify currency data still processed
-        self.mock_currency.fetch_and_prepare_fx_data.assert_called_once_with(5)
+        self.mock_currency.fetch_and_prepare_fx_data.assert_called_once_with(days_back=5)
         self.mock_db.insert_currency_data.assert_called_once()
 
     def test_perform_initial_setup_currency_data_failure(self) -> None:
@@ -169,7 +169,7 @@ class TestDataIngestionOrchestratorInitialSetup:
         assert result["total_records_inserted"] == 1  # Only stock data
 
         # Verify stock data still processed
-        self.mock_nyse.fetch_and_prepare_all_data.assert_called_once_with(7)
+        self.mock_nyse.fetch_and_prepare_all_data.assert_called_once_with(days_back=7)
         self.mock_db.insert_stock_data.assert_called_once_with(stock_data)
 
     def test_perform_initial_setup_complete_failure(self) -> None:
@@ -835,16 +835,16 @@ class TestDataIngestionOrchestratorIntegration:
         result = self.orchestrator.run_full_ingestion()
 
         # Verify complete workflow
-        # Note: initial_setup doesn't return "success" field, so full_ingestion defaults to False
-        assert result["success"] is False  # Default when no "success" field in results
+        # Note: initial_setup returns "success" field, so full_ingestion should succeed
+        assert result["success"] is True  # Successful workflow when all data is fetched
         assert result["operation_performed"] == "initial_setup"
-        assert result["results"]["total_records_inserted"] == 1  # Currency overwrites stock total
+        assert result["results"]["total_records_inserted"] == 3  # Stock data (2) + Currency data (1) = 3
         assert len(result["results"]["errors"]) == 0
 
         # Verify all components were called correctly
         self.mock_db.is_database_empty.assert_called_once()
-        self.mock_nyse.fetch_and_prepare_all_data.assert_called_once_with(10)
-        self.mock_currency.fetch_and_prepare_fx_data.assert_called_once_with(10)
+        self.mock_nyse.fetch_and_prepare_all_data.assert_called_once_with(days_back=10)
+        self.mock_currency.fetch_and_prepare_fx_data.assert_called_once_with(days_back=10)
         self.mock_db.insert_stock_data.assert_called_once_with(stock_data)
         self.mock_db.insert_currency_data.assert_called_once_with(currency_data)
 

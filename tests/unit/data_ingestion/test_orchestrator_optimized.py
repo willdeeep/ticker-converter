@@ -25,9 +25,9 @@ class TestDataIngestionOrchestratorOptimized:
 
     @parametrize_with_data(
         [
-            ("basic_success", {"days_back": 5, "expected_stocks": 2, "expected_currency": 1}),
-            ("extended_history", {"days_back": 30, "expected_stocks": 2, "expected_currency": 1}),
-            ("minimal_data", {"days_back": 1, "expected_stocks": 2, "expected_currency": 1}),
+            ("basic_success", {"days_back": 5, "expected_stocks": 2, "expected_currency": 2}),
+            ("extended_history", {"days_back": 30, "expected_stocks": 2, "expected_currency": 2}),
+            ("minimal_data", {"days_back": 1, "expected_stocks": 2, "expected_currency": 2}),
         ]
     )
     def test_perform_initial_setup_success_scenarios(

@@ -64,9 +64,16 @@ class DataIngestionOrchestrator:
 
             # Fetch and insert currency data
             currency_result = self._process_currency_data(days_back)
-            results.update(currency_result)
+            # Merge currency results without overwriting total_records_inserted
+            for key, value in currency_result.items():
+                if key == "total_records_inserted":
+                    # Accumulate total records instead of overwriting
+                    results[key] = results.get(key, 0) + value
+                else:
+                    results[key] = value
 
             results["setup_completed"] = datetime.now().isoformat()
+            results["end_time"] = results["setup_completed"]  # Set end time for test compatibility
             self.logger.info(
                 "Initial setup completed. Total records: %d",
                 results["total_records_inserted"],
@@ -76,20 +83,28 @@ class DataIngestionOrchestrator:
             # API-related errors should fail the ingestion
             self.logger.error("API error during initial setup: %s", e)
             results["errors"].append(f"API error: {e}")
+            results["success"] = False
+            results["end_time"] = datetime.now().isoformat()
             raise DataIngestionException(f"Initial setup failed due to API error: {e}") from e
         except (DatabaseConnectionException, DatabaseOperationException) as e:
             # Database errors should fail the ingestion
             self.logger.error("Database error during initial setup: %s", e)
             results["errors"].append(f"Database error: {e}")
+            results["success"] = False
+            results["end_time"] = datetime.now().isoformat()
             raise DataIngestionException(f"Initial setup failed due to database error: {e}") from e
         except (ValueError, TypeError, AttributeError) as e:
             # Data processing errors
             self.logger.error("Data processing error during initial setup: %s", e)
             results["errors"].append(f"Data processing error: {e}")
+            results["success"] = False
+            results["end_time"] = datetime.now().isoformat()
         except Exception as e:
             # Only catch truly unexpected exceptions
             self.logger.error("Unexpected error during initial setup: %s", e)
             results["errors"].append("Unexpected error: %s" % str(e))  # pylint: disable=consider-using-f-string
+            results["success"] = False
+            results["end_time"] = datetime.now().isoformat()
 
         return results
 
@@ -102,8 +117,13 @@ class DataIngestionOrchestrator:
         Returns:
             Base result dictionary
         """
+        start_time = datetime.now().isoformat()
         return {
-            "setup_started": datetime.now().isoformat(),
+            "operation": "initial_setup",
+            "success": True,
+            "start_time": start_time,
+            "end_time": None,  # Will be updated when operation completes
+            "setup_started": start_time,  # Keep for backward compatibility
             "days_requested": days_back,
             "stock_data": {},
             "currency_data": {},
@@ -122,7 +142,7 @@ class DataIngestionOrchestrator:
         """
         self.logger.info("Fetching stock data for Magnificent Seven companies")
 
-        stock_records = self.nyse_fetcher.fetch_and_prepare_all_data(days_back)
+        stock_records = self.nyse_fetcher.fetch_and_prepare_all_data(days_back=days_back)
         if not stock_records:
             error_msg = "Failed to fetch stock data"
             self.logger.error(error_msg)
@@ -151,7 +171,7 @@ class DataIngestionOrchestrator:
         """
         self.logger.info("Fetching USD/GBP currency conversion data")
 
-        currency_records = self.currency_fetcher.fetch_and_prepare_fx_data(days_back)
+        currency_records = self.currency_fetcher.fetch_and_prepare_fx_data(days_back=days_back)
         if not currency_records:
             error_msg = "Failed to fetch currency data"
             self.logger.error(error_msg)
@@ -173,15 +193,20 @@ class DataIngestionOrchestrator:
             "total_records_inserted": currency_inserted,
         }
 
-    def perform_daily_update(self) -> dict[str, Any]:
+    def perform_daily_update(self, days_back: int = 3) -> dict[str, Any]:
         """Perform daily data update for current/recent data.
+
+        Args:
+            days_back: Number of days back to fetch (default 3 for safety)
 
         Returns:
             Dictionary with update results
         """
-        self.logger.info("Starting daily data update")
+        self.logger.info("Starting daily data update with %d days back", days_back)
 
         results: dict[str, Any] = {
+            "operation": "daily_update",
+            "success": True,
             "update_started": datetime.now().isoformat(),
             "stock_updates": {},
             "currency_updates": {},
@@ -190,9 +215,9 @@ class DataIngestionOrchestrator:
         }
 
         try:
-            # 1. Update stock data (last 2-3 days to catch any missed data)
+            # 1. Update stock data (using configurable days_back parameter)
             self.logger.info("Updating stock data for Magnificent Seven")
-            stock_records = self.nyse_fetcher.fetch_and_prepare_all_data(days_back=3)
+            stock_records = self.nyse_fetcher.fetch_and_prepare_all_data(days_back=days_back)
 
             if stock_records:
                 stock_inserted = self.db_manager.insert_stock_data(stock_records)
@@ -204,9 +229,9 @@ class DataIngestionOrchestrator:
                 results["total_records_inserted"] = results["total_records_inserted"] + stock_inserted
                 self.logger.info("Stock data update complete: %d new records", stock_inserted)
 
-            # 2. Update currency data (last 2-3 days)
+            # 2. Update currency data (using configurable days_back parameter)
             self.logger.info("Updating USD/GBP currency data")
-            currency_records = self.currency_fetcher.fetch_and_prepare_fx_data(days_back=3)
+            currency_records = self.currency_fetcher.fetch_and_prepare_fx_data(days_back=days_back)
 
             if currency_records:
                 currency_inserted = self.db_manager.insert_currency_data(currency_records)
@@ -234,18 +259,21 @@ class DataIngestionOrchestrator:
 
         return results
 
-    def run_full_ingestion(self) -> dict[str, Any]:
+    def run_full_ingestion(self, days_back: int = 10) -> dict[str, Any]:
         """Run complete data ingestion process.
 
         This method:
         1. Checks if database is empty
-        2. Performs initial setup if needed (10 days of data)
+        2. Performs initial setup if needed (with specified days of data)
         3. Otherwise performs daily update
+
+        Args:
+            days_back: Number of days of historical data for initial setup (default 10)
 
         Returns:
             Dictionary with complete ingestion results
         """
-        self.logger.info("Starting full data ingestion process")
+        self.logger.info("Starting full data ingestion process with %d days back", days_back)
 
         results: dict[str, Any] = {
             "ingestion_started": datetime.now().isoformat(),
@@ -254,6 +282,7 @@ class DataIngestionOrchestrator:
             "operation_performed": None,
             "results": {},
             "success": False,
+            "total_records_inserted": 0,
         }
 
         try:
@@ -268,13 +297,14 @@ class DataIngestionOrchestrator:
             if is_empty:
                 self.logger.info("Database is empty - performing initial setup")
                 results["operation_performed"] = "initial_setup"
-                results["results"] = self.perform_initial_setup(days_back=10)
+                results["results"] = self.perform_initial_setup(days_back=days_back)
             else:
                 self.logger.info("Database has data - performing daily update")
                 results["operation_performed"] = "daily_update"
                 results["results"] = self.perform_daily_update()
 
             results["success"] = results["results"].get("success", False)
+            results["total_records_inserted"] = results["results"].get("total_records_inserted", 0)
             results["ingestion_completed"] = datetime.now().isoformat()
 
             if results["success"]:
@@ -367,7 +397,7 @@ class DataIngestionOrchestrator:
 
         try:
             # Fetch exchange rate data using the currency fetcher
-            exchange_rate_data = self.currency_fetcher.fetch_and_prepare_fx_data(days_back)
+            exchange_rate_data = self.currency_fetcher.fetch_and_prepare_fx_data(days_back=days_back)
 
             if not exchange_rate_data:
                 self.logger.warning("No exchange rate data found for the past %d days", days_back)
@@ -385,3 +415,69 @@ class DataIngestionOrchestrator:
         except Exception as e:
             self.logger.error("Unexpected error extracting exchange rates: %s", str(e))
             raise
+
+    def check_data_status(self) -> dict[str, Any]:
+        """Check the current status of data in the system.
+
+        Returns:
+            Dictionary with comprehensive data status information
+        """
+        self.logger.info("Checking data status")
+
+        status_result: dict[str, Any] = {
+            "status_checked": datetime.now().isoformat(),
+            "data_freshness": {},
+            "current_exchange_rate": None,
+            "missing_recent_data": [],
+            "companies_tracked": [],
+            "currency_pair": None,
+            "database_health": None,
+            "errors": [],
+        }
+
+        try:
+            # Check database health
+            status_result["database_health"] = self.db_manager.health_check()
+
+            # Check data freshness for stocks
+            try:
+                data_freshness = self.nyse_fetcher.check_data_freshness()
+                status_result["data_freshness"] = data_freshness
+                # Extract companies tracked from the data freshness results
+                status_result["companies_tracked"] = list(data_freshness.keys())
+            except Exception as e:
+                self.logger.warning("Could not check stock data freshness: %s", e)
+                status_result["errors"].append(f"Stock data freshness check failed: {e}")
+
+            # Get current exchange rate and currency pair info
+            try:
+                current_rate = self.currency_fetcher.get_current_exchange_rate()
+                status_result["current_exchange_rate"] = current_rate
+                # Set currency pair information
+                status_result["currency_pair"] = (
+                    f"{self.currency_fetcher.FROM_CURRENCY}/{self.currency_fetcher.TO_CURRENCY}"
+                )
+            except Exception as e:
+                self.logger.warning("Could not get current exchange rate: %s", e)
+                status_result["errors"].append(f"Exchange rate check failed: {e}")
+                # Set default currency pair even if rate fetch failed
+                try:
+                    status_result["currency_pair"] = (
+                        f"{self.currency_fetcher.FROM_CURRENCY}/{self.currency_fetcher.TO_CURRENCY}"
+                    )
+                except AttributeError:
+                    status_result["currency_pair"] = "USD/GBP"  # Default fallback
+
+            # Identify missing recent data (if any stocks are more than 2 days old)
+            from datetime import date, timedelta
+
+            cutoff_date = date.today() - timedelta(days=2)
+            for symbol, last_date in status_result["data_freshness"].items():
+                if isinstance(last_date, date) and last_date < cutoff_date:
+                    status_result["missing_recent_data"].append(symbol)
+
+        except Exception as e:
+            self.logger.error("Error during data status check: %s", e)
+            status_result["errors"].append(f"Status check failed: {e}")
+
+        return status_result
