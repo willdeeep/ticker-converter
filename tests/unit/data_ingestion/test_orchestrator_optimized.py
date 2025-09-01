@@ -162,7 +162,7 @@ class TestDataIngestionOrchestratorOptimized:
         }
 
         mocks.mock_nyse.check_data_freshness.return_value = test_freshness_data
-        mocks.mock_currency.get_current_exchange_rate.return_value = 0.7850
+        mocks.mock_currency.fetch_current_exchange_rate.return_value = 0.7850
 
         # Execute status check
         result = orchestrator.check_data_status()

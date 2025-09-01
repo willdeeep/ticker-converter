@@ -184,11 +184,7 @@ class DataIngestionOrchestrator:
             "currency_data": {
                 "records_fetched": len(currency_records),
                 "records_inserted": currency_inserted,
-                "currency_pair": "%s/%s"
-                % (
-                    self.currency_fetcher.FROM_CURRENCY,
-                    self.currency_fetcher.TO_CURRENCY,
-                ),  # pylint: disable=consider-using-f-string
+                "currency_pair": f"{self.currency_fetcher.FROM_CURRENCY}/{self.currency_fetcher.TO_CURRENCY}",
             },
             "total_records_inserted": currency_inserted,
         }
@@ -451,7 +447,7 @@ class DataIngestionOrchestrator:
 
             # Get current exchange rate and currency pair info
             try:
-                current_rate = self.currency_fetcher.get_current_exchange_rate()
+                current_rate = self.currency_fetcher.fetch_current_exchange_rate()
                 status_result["current_exchange_rate"] = current_rate
                 # Set currency pair information
                 status_result["currency_pair"] = (
