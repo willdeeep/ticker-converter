@@ -14,6 +14,7 @@ This project implements a production-ready financial data analytics pipeline des
 - **Code Quality Tools**: Automated formatting, linting, and type checking
 - **Comprehensive Testing**: 69% test coverage with pytest, coverage reporting, and 100% test success rate
 - **Development Environment**: Pre-commit hooks and automated quality gates
+- **Cross-Platform Support**: Works seamlessly on macOS, Linux, and Windows environments
 
 ## What's New in v3.2.2
 
@@ -31,6 +32,20 @@ This project implements a production-ready financial data analytics pipeline des
 - **GitHub Workflow Integration**: Enhanced CI/CD documentation and pull request automation
 - **Data Freshness Validation**: Integration tests verify most recent data retrieval and proper date filtering
 - **Error Handling Coverage**: Comprehensive testing for missing exchange rate data and graceful degradation
+
+## 🔮 Coming Next: Makefile Modernization (GitHub Issue #62)
+
+### Modular & Cross-Platform Enhancement
+
+We're modernizing our build system to be more maintainable and portable across development environments:
+
+- **🏗️ Modular Architecture**: Breaking the monolithic Makefile into focused modules (platform, environment, testing, quality, etc.)
+- **🌐 Cross-Platform Support**: Enhanced compatibility for macOS, Linux, and Windows development  
+- **🔧 Automatic Tool Detection**: Smart detection of package managers and development tools
+- **📚 Improved Documentation**: Platform-specific setup guides and troubleshooting
+- **⚡ Enhanced Developer Experience**: Faster onboarding and better error handling
+
+**Progress**: Planning phase complete, implementation starting Q4 2025. See [roadmap documentation](my_docs/MAKEFILE_MODERNIZATION_ROADMAP.md) for details.
 
 ## What's New in v3.2.0
 

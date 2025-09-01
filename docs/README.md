@@ -60,6 +60,8 @@ Contains organized and regularly updated series of markdown documents that clear
   - Development process documentation
   - Quality assurance procedures
   - Automation script documentation
+  - Cross-platform development setup guides
+  - Makefile modernization roadmaps
 
 ### Additional Subject Directories (as needed)
 - `/docs/api/`: Detailed API documentation
@@ -117,7 +119,9 @@ docs/
 │   └── airflow_setup.md       # Airflow configuration
 ├── development/               # Development workflows and processes
 │   ├── github_copilot_workflow_template.md      # Complete workflow template
-│   └── github_copilot_workflow_implementation.md # Implementation guide
+│   ├── github_copilot_workflow_implementation.md # Implementation guide
+│   ├── quality_gate_automation.md              # Quality pipeline documentation
+│   └── cross_platform_setup.md                 # Cross-platform development setup
 ├── deployment/                 # Operations documentation
 │   └── [deployment guides]
 └── user_guides/               # User documentation

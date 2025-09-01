@@ -2,6 +2,43 @@
 
 These instructions guide GitHub Copilot in managing GitHub-specific workflows, issue creation, and CI/CD processes for this repository.
 
+## Makefile Modernization Project (Issue #62)
+
+### Cross-Platform Development Support
+
+When working with Makefile-related tasks, consider cross-platform compatibility:
+
+1. **Platform Detection**: Use conditional logic for OS-specific commands
+2. **Tool Availability**: Implement graceful degradation when tools are missing
+3. **Path Handling**: Account for different path separators and conventions
+4. **Package Managers**: Support multiple package managers (brew, apt, choco)
+
+### Modular Makefile Structure
+
+The project is transitioning to a modular Makefile structure:
+
+```
+make/
+├── Makefile.platform     # OS detection and platform configurations
+├── Makefile.env          # Environment setup and validation
+├── Makefile.install      # Installation and dependency management
+├── Makefile.database     # PostgreSQL and database operations
+├── Makefile.airflow      # Airflow orchestration and management
+├── Makefile.testing      # Test execution and coverage
+├── Makefile.quality      # Code quality, linting, and validation
+├── Makefile.cleanup      # Cleaning and teardown operations
+└── help.sh               # Enhanced help system
+```
+
+### Implementation Guidelines
+
+When implementing Makefile modernization features:
+
+1. **Backward Compatibility**: Ensure all existing commands continue to work
+2. **Testing Strategy**: Test across macOS, Linux, and Windows environments
+3. **Documentation**: Update platform-specific setup instructions
+4. **Performance**: Monitor for any performance impact from modularization
+
 ## Issue Management
 
 ### Issue Creation Protocol
