@@ -140,16 +140,17 @@ help-cleanup: ## Show cleanup and teardown commands
 # =============================================================================
 # These targets ensure backward compatibility with existing workflows
 
-.PHONY: run inspect teardown-cache teardown-env teardown-airflow teardown-db
+.PHONY: airflow run inspect teardown-cache teardown-env teardown-airflow teardown-db
 
 # Alias common commands for backward compatibility
-run: airflow-run-dag ## Legacy alias for airflow-run-dag  
-inspect: airflow-status ## Legacy alias for airflow-status
+airflow: airflow-start ## Legacy alias for airflow-start (start Airflow services)
+run: airflow-dag-trigger ## Legacy alias for airflow-dag-trigger (run DAG)
+inspect: airflow-status ## Legacy alias for airflow-status (check Airflow status)
 
 # Legacy teardown commands (map to new modular equivalents)
 teardown-cache: clean-cache ## Legacy alias for clean-cache
 teardown-env: clean-env ## Legacy alias for clean-env  
-teardown-airflow: airflow-teardown ## Legacy alias for airflow-teardown
+teardown-airflow: airflow-stop ## Legacy alias for airflow-stop
 teardown-db: database-teardown ## Legacy alias for database-teardown
 
 # =============================================================================

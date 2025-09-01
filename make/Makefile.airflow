@@ -29,12 +29,12 @@ airflow-start: _load_env _check_airflow_deps airflow-init ## Start Airflow (sche
 	echo -e "$(YELLOW)Starting Airflow scheduler...$(NC)" && \
 	nohup $(PYTHON) -m airflow scheduler > airflow/airflow-scheduler.out 2> airflow/airflow-scheduler.err & \
 	echo $$! > airflow/scheduler.pid && \
-	echo -e "$(YELLOW)Starting Airflow webserver...$(NC)" && \
-	nohup $(PYTHON) -m airflow webserver --port 8080 > airflow/airflow-webserver.out 2> airflow/airflow-webserver.err & \
+	echo -e "$(YELLOW)Starting Airflow API server...$(NC)" && \
+	nohup $(PYTHON) -m airflow api-server --port 8080 > airflow/airflow-webserver.out 2> airflow/airflow-webserver.err & \
 	echo $$! > airflow/webserver.pid && \
 	sleep 3 && \
 	echo -e "$(GREEN)✓ Airflow started$(NC)" && \
-	echo -e "$(CYAN)Webserver: http://localhost:8080$(NC)" && \
+	echo -e "$(CYAN)API Server: http://localhost:8080$(NC)" && \
 	echo -e "$(CYAN)Logs: airflow/airflow-*.out$(NC)"
 
 airflow-stop: ## Stop all Airflow processes
