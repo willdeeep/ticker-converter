@@ -13,6 +13,9 @@ from pathlib import Path
 
 import pytest
 
+# Mark all tests in this file as integration tests
+pytestmark = pytest.mark.integration
+
 # Add scripts directory to path for environment loading
 scripts_dir = Path(__file__).parent.parent.parent / "scripts"
 sys.path.insert(0, str(scripts_dir))

@@ -11,6 +11,9 @@ from pathlib import Path
 
 import pytest
 
+# Mark all tests in this file as integration tests
+pytestmark = pytest.mark.integration
+
 
 class TestEnvironmentConfiguration:
     """Test that environment variables are properly loaded from .env file."""

@@ -12,6 +12,9 @@ from pathlib import Path
 
 import pytest
 
+# Mark all tests in this file as integration tests
+pytestmark = pytest.mark.integration
+
 from dags.helpers.load_raw_to_db import load_raw_to_db
 from src.ticker_converter.data_ingestion.database_manager import DatabaseManager
 

@@ -306,6 +306,28 @@ test-int: ## Run integration tests only (requires external services)
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:///$$(pwd)/airflow/airflow.db" && \
 	$(PYTHON) -m pytest tests/integration/ -v --tb=short --no-cov
 
+test-dag: _validate_env ## Run DAG execution integration tests
+	@echo -e "$(BLUE)Running DAG execution integration tests...$(NC)"
+	@echo -e "$(YELLOW)This test manually triggers and monitors DAG execution$(NC)"
+	@if [ ! -f .env ]; then echo "Error: .env file not found. Run 'make setup' first."; exit 1; fi
+	@set -a && . ./.env && set +a && \
+	export AIRFLOW_HOME="$$PWD/airflow" && \
+	export AIRFLOW__CORE__DAGS_FOLDER="$$PWD/dags" && \
+	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:///$$(pwd)/airflow/airflow.db" && \
+	$(PYTHON) -m pytest tests/integration/test_dag_execution_integration.py -v -s -m "integration" --no-cov --tb=short
+	@echo -e "$(GREEN)DAG integration tests completed$(NC)"
+
+test-dag-full: _validate_env ## Run comprehensive DAG tests including execution monitoring
+	@echo -e "$(BLUE)Running comprehensive DAG integration tests...$(NC)"
+	@echo -e "$(YELLOW)This may take several minutes as it executes actual DAGs...$(NC)"
+	@if [ ! -f .env ]; then echo "Error: .env file not found. Run 'make setup' first."; exit 1; fi
+	@set -a && . ./.env && set +a && \
+	export AIRFLOW_HOME="$$PWD/airflow" && \
+	export AIRFLOW__CORE__DAGS_FOLDER="$$PWD/dags" && \
+	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:///$$(pwd)/airflow/airflow.db" && \
+	$(PYTHON) -m pytest tests/integration/test_dag_execution_integration.py -v -s -m "integration" --no-cov
+	@echo -e "$(GREEN)Comprehensive DAG tests completed$(NC)"
+
 test-ci: ## Run all CI tests
 	@echo -e "$(BLUE)Running CI tests...$(NC)"
 	@$(PYTHON) -m pytest tests/ --cov=$(PACKAGE_NAME) --cov-report=xml --cov-fail-under=80 --ignore=tests/integration

@@ -49,7 +49,8 @@ class TestAsyncRequests:
     """Test async HTTP request functionality."""
 
     @pytest.mark.asyncio
-    async def test_async_make_request_success(self) -> None:
+    @patch("asyncio.sleep")  # Mock async sleep to prevent delays
+    async def test_async_make_request_success(self, mock_sleep) -> None:
         """Test successful async API request."""
         mock_response_data = {
             "Time Series (Daily)": {
