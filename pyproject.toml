@@ -174,7 +174,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["ticker_converter", "api"]
+source = ["src/ticker_converter"]
 omit = [
     "*/tests/*",
     "*/venv/*",
