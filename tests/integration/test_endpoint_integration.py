@@ -10,6 +10,9 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
+# Mark all tests in this file as integration tests
+pytestmark = pytest.mark.integration
+
 # Try to import the FastAPI app
 try:
     from src.ticker_converter.api.main import app

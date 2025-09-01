@@ -62,7 +62,8 @@ class TestAlphaVantageClientInitialization:
 class TestAlphaVantageClientHttpRequests:
     """Test HTTP request functionality and error handling."""
 
-    def test_make_request_success(self) -> None:
+    @patch("time.sleep")  # Mock sleep to prevent delays in tests
+    def test_make_request_success(self, mock_sleep) -> None:
         """Test successful API request."""
         mock_response = Mock()
         mock_response.status_code = 200
