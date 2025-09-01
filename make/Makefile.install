@@ -1,0 +1,372 @@
+# ============================================================================
+# INSTALLATION AND DEPENDENCY MANAGEMENT
+# ============================================================================
+# This module handles cross-platform dependency installation and package
+# management for development, testing, and production environments
+#
+# Dependencies: Makefile.platform, Makefile.env
+# ============================================================================
+
+# ============================================================================
+# SYSTEM DEPENDENCY INSTALLATION
+# ============================================================================
+
+.PHONY: check-tools install-system-deps _suggest_system_install
+
+check-tools: ## Verify required system tools availability
+	@echo -e "$(CYAN)Checking system tool availability...$(NC)"
+	@echo -e "$(YELLOW)Required Tools:$(NC)"
+	@echo -e "  Python: $(if $(HAS_PYTHON),$(GREEN)✓ Available,$(RED)❌ Missing) $(if $(PYTHON_CMD),- $(PYTHON_CMD),)$(NC)"
+	@echo -e "  Git: $(if $(HAS_GIT),$(GREEN)✓ Available,$(RED)❌ Missing) $(if $(GIT_CMD),- $(GIT_CMD),)$(NC)"
+	@echo -e "  PostgreSQL: $(if $(HAS_PSQL),$(GREEN)✓ Available,$(RED)❌ Missing) $(if $(PSQL_CMD),- $(PSQL_CMD),)$(NC)"
+	@echo ""
+	@echo -e "$(YELLOW)Optional Tools:$(NC)"
+	@echo -e "  pyenv: $(if $(HAS_PYENV),$(GREEN)✓ Available,$(YELLOW)○ Optional) $(if $(PYENV_CMD),- $(PYENV_CMD),)$(NC)"
+	@echo -e "  Docker: $(if $(HAS_DOCKER),$(GREEN)✓ Available,$(YELLOW)○ Optional) $(if $(DOCKER_CMD),- $(DOCKER_CMD),)$(NC)"
+	@echo ""
+	@echo -e "$(YELLOW)Package Managers:$(NC)"
+ifeq ($(PLATFORM_OS),macos)
+	@echo -e "  Homebrew: $(if $(HAS_BREW),$(GREEN)✓ Available,$(YELLOW)○ Recommended) $(if $(BREW_CMD),- $(BREW_CMD),)$(NC)"
+else ifeq ($(PLATFORM_OS),linux)
+	@echo -e "  APT: $(if $(HAS_APT),$(GREEN)✓ Available,$(YELLOW)○ N/A) $(if $(APT_CMD),- $(APT_CMD),)$(NC)"
+	@echo -e "  YUM: $(if $(HAS_YUM),$(GREEN)✓ Available,$(YELLOW)○ N/A) $(if $(YUM_CMD),- $(YUM_CMD),)$(NC)"
+else ifeq ($(PLATFORM_OS),windows)
+	@echo -e "  Chocolatey: $(if $(HAS_CHOCO),$(GREEN)✓ Available,$(YELLOW)○ Recommended) $(if $(CHOCO_CMD),- $(CHOCO_CMD),)$(NC)"
+endif
+ifeq ($(HAS_PYTHON)$(HAS_GIT)$(HAS_PSQL),nonono)
+	@echo -e "$(RED)Error: Critical tools missing. Run 'make install-system-deps' to install.$(NC)"
+	@exit 1
+else ifeq ($(HAS_PYTHON)$(HAS_GIT),nono)
+	@echo -e "$(RED)Error: Python and Git are required. Run 'make install-system-deps' to install.$(NC)"
+	@exit 1
+else ifeq ($(HAS_PYTHON),no)
+	@echo -e "$(RED)Error: Python is required. Run 'make install-system-deps' to install.$(NC)"
+	@exit 1
+else ifeq ($(HAS_GIT),no)
+	@echo -e "$(RED)Error: Git is required. Run 'make install-system-deps' to install.$(NC)"
+	@exit 1
+else
+	@echo -e "$(GREEN)✓ All critical tools are available$(NC)"
+endif
+
+install-system-deps: ## Install system-level dependencies
+	@echo -e "$(BLUE)Installing system dependencies...$(NC)"
+ifeq ($(PLATFORM_OS),macos)
+	@$(MAKE) _install_macos_deps
+else ifeq ($(PLATFORM_OS),linux)
+	@$(MAKE) _install_linux_deps
+else ifeq ($(PLATFORM_OS),windows)
+	@$(MAKE) _install_windows_deps
+else
+	@echo -e "$(RED)Error: Unsupported platform for automatic installation$(NC)"
+	@$(MAKE) _suggest_manual_install
+	@exit 1
+endif
+	@echo -e "$(GREEN)✓ System dependencies installation completed$(NC)"
+
+_install_macos_deps: ## Internal: Install macOS dependencies
+	@echo -e "$(YELLOW)Installing macOS dependencies...$(NC)"
+ifeq ($(HAS_BREW),no)
+	@echo -e "$(YELLOW)Installing Homebrew...$(NC)"
+	@/bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+endif
+ifeq ($(HAS_PYTHON),no)
+	@echo -e "$(YELLOW)Installing Python...$(NC)"
+	@$(BREW_CMD) install python@3.11
+endif
+ifeq ($(HAS_GIT),no)
+	@echo -e "$(YELLOW)Installing Git...$(NC)"
+	@$(BREW_CMD) install git
+endif
+ifeq ($(HAS_PSQL),no)
+	@echo -e "$(YELLOW)Installing PostgreSQL...$(NC)"
+	@$(BREW_CMD) install postgresql@15
+	@$(BREW_CMD) services start postgresql@15
+endif
+ifeq ($(HAS_PYENV),no)
+	@echo -e "$(YELLOW)Installing pyenv (recommended)...$(NC)"
+	@$(BREW_CMD) install pyenv
+endif
+
+_install_linux_deps: ## Internal: Install Linux dependencies
+	@echo -e "$(YELLOW)Installing Linux dependencies...$(NC)"
+ifeq ($(HAS_APT),yes)
+	@sudo apt update
+ifeq ($(HAS_PYTHON),no)
+	@echo -e "$(YELLOW)Installing Python...$(NC)"
+	@sudo apt install -y python3 python3-pip python3-venv python3-dev
+endif
+ifeq ($(HAS_GIT),no)
+	@echo -e "$(YELLOW)Installing Git...$(NC)"
+	@sudo apt install -y git
+endif
+ifeq ($(HAS_PSQL),no)
+	@echo -e "$(YELLOW)Installing PostgreSQL...$(NC)"
+	@sudo apt install -y postgresql postgresql-contrib
+	@sudo systemctl start postgresql
+	@sudo systemctl enable postgresql
+endif
+else ifeq ($(HAS_YUM),yes)
+	@sudo yum update -y
+ifeq ($(HAS_PYTHON),no)
+	@echo -e "$(YELLOW)Installing Python...$(NC)"
+	@sudo yum install -y python3 python3-pip python3-devel
+endif
+ifeq ($(HAS_GIT),no)
+	@echo -e "$(YELLOW)Installing Git...$(NC)"
+	@sudo yum install -y git
+endif
+ifeq ($(HAS_PSQL),no)
+	@echo -e "$(YELLOW)Installing PostgreSQL...$(NC)"
+	@sudo yum install -y postgresql-server postgresql-contrib
+	@sudo postgresql-setup initdb
+	@sudo systemctl start postgresql
+	@sudo systemctl enable postgresql
+endif
+else
+	@echo -e "$(YELLOW)Package manager not detected. Please install manually:$(NC)"
+	@$(MAKE) _suggest_manual_install
+endif
+
+_install_windows_deps: ## Internal: Install Windows dependencies
+	@echo -e "$(YELLOW)Installing Windows dependencies...$(NC)"
+ifeq ($(HAS_CHOCO),yes)
+ifeq ($(HAS_PYTHON),no)
+	@echo -e "$(YELLOW)Installing Python...$(NC)"
+	@choco install python -y
+endif
+ifeq ($(HAS_GIT),no)
+	@echo -e "$(YELLOW)Installing Git...$(NC)"
+	@choco install git -y
+endif
+ifeq ($(HAS_PSQL),no)
+	@echo -e "$(YELLOW)Installing PostgreSQL...$(NC)"
+	@choco install postgresql -y
+endif
+else
+	@echo -e "$(YELLOW)Chocolatey not available. Please install manually:$(NC)"
+	@$(MAKE) _suggest_manual_install
+endif
+
+_suggest_manual_install: ## Internal: Suggest manual installation steps
+	@echo -e "$(CYAN)Manual Installation Guide:$(NC)"
+	@echo -e "$(YELLOW)Python 3.11+:$(NC) https://www.python.org/downloads/"
+	@echo -e "$(YELLOW)Git:$(NC) https://git-scm.com/downloads"
+	@echo -e "$(YELLOW)PostgreSQL:$(NC) https://www.postgresql.org/download/"
+
+# ============================================================================
+# PYTHON PACKAGE INSTALLATION
+# ============================================================================
+
+.PHONY: install install-test install-dev install-all pip-list pip-outdated pip-update
+
+install: _load_env _setup_python_environment ## Install production dependencies
+	@echo -e "$(BLUE)Installing production dependencies...$(NC)"
+	@echo -e "$(YELLOW)Installing core packages from pyproject.toml...$(NC)"
+	@$(PIP) install -e . --quiet
+	@echo -e "$(GREEN)✓ Production dependencies installed$(NC)"
+
+install-test: _load_env _setup_python_environment ## Install testing dependencies
+	@echo -e "$(BLUE)Installing testing dependencies...$(NC)"
+	@echo -e "$(YELLOW)Installing test packages...$(NC)"
+	@$(PIP) install -e ".[test]" --quiet
+	@echo -e "$(GREEN)✓ Testing dependencies installed$(NC)"
+
+install-dev: _load_env _setup_python_environment ## Install development dependencies
+	@echo -e "$(BLUE)Installing development dependencies...$(NC)"
+	@echo -e "$(YELLOW)Installing all package groups...$(NC)"
+	@$(PIP) install -e ".[dev,test]" --quiet
+	@echo -e "$(GREEN)✓ Development dependencies installed$(NC)"
+
+install-all: _load_env _setup_python_environment ## Install all dependencies (runtime + test + dev)
+	@echo -e "$(BLUE)Installing all dependencies...$(NC)"
+	@echo -e "$(YELLOW)Installing complete package set...$(NC)"
+	@$(PIP) install -e ".[dev,test]" --quiet
+	@echo -e "$(GREEN)✓ All dependencies installed$(NC)"
+
+pip-list: ## List installed packages
+	@echo -e "$(CYAN)Installed Python packages:$(NC)"
+	@$(PIP) list
+
+pip-outdated: ## Check for package updates
+	@echo -e "$(CYAN)Checking for outdated packages:$(NC)"
+	@$(PIP) list --outdated
+
+pip-update: ## Update pip and setuptools
+	@echo -e "$(YELLOW)Updating pip and setuptools...$(NC)"
+	@$(PIP) install --upgrade pip setuptools --quiet
+	@echo -e "$(GREEN)✓ Package tools updated$(NC)"
+
+# ============================================================================
+# INSTALLATION VALIDATION
+# ============================================================================
+
+.PHONY: check-install validate-install _check_package_group
+
+check-install: ## Validate installation completeness
+	@echo -e "$(CYAN)Validating installation...$(NC)"
+	@echo -e "$(YELLOW)Checking Python environment...$(NC)"
+	@$(PYTHON) --version
+	@echo -e "$(YELLOW)Checking pip functionality...$(NC)"
+	@$(PIP) --version
+	@echo -e "$(YELLOW)Checking core package installation...$(NC)"
+	@$(MAKE) _check_package_group GROUP=core
+	@echo -e "$(GREEN)✓ Installation validation completed$(NC)"
+
+validate-install: ## Comprehensive installation validation with imports
+	@echo -e "$(CYAN)Comprehensive installation validation...$(NC)"
+	@echo -e "$(YELLOW)Testing core imports...$(NC)"
+	@$(PYTHON) -c "import ticker_converter; print('✓ ticker_converter module available')"
+	@$(PYTHON) -c "import requests; print('✓ requests available')"
+	@$(PYTHON) -c "import pandas; print('✓ pandas available')"
+	@$(PYTHON) -c "import psycopg2; print('✓ psycopg2 available')" 2>/dev/null || echo -e "$(YELLOW)⚠ psycopg2 not available (install-test or install-dev needed)$(NC)"
+	@$(PYTHON) -c "import pytest; print('✓ pytest available')" 2>/dev/null || echo -e "$(YELLOW)⚠ pytest not available (install-test or install-dev needed)$(NC)"
+	@$(PYTHON) -c "import black; print('✓ black available')" 2>/dev/null || echo -e "$(YELLOW)⚠ black not available (install-dev needed)$(NC)"
+	@echo -e "$(GREEN)✓ Installation validation completed$(NC)"
+
+_check_package_group: ## Internal: Check if package group is installed
+	@case "$(GROUP)" in \
+		"core") \
+			$(PYTHON) -c "import ticker_converter" 2>/dev/null && echo -e "$(GREEN)✓ Core packages installed$(NC)" || \
+			(echo -e "$(RED)❌ Core packages missing. Run 'make install'$(NC)" && exit 1) ;; \
+		"test") \
+			$(PYTHON) -c "import pytest" 2>/dev/null && echo -e "$(GREEN)✓ Test packages installed$(NC)" || \
+			(echo -e "$(RED)❌ Test packages missing. Run 'make install-test'$(NC)" && exit 1) ;; \
+		"dev") \
+			$(PYTHON) -c "import black" 2>/dev/null && echo -e "$(GREEN)✓ Dev packages installed$(NC)" || \
+			(echo -e "$(RED)❌ Dev packages missing. Run 'make install-dev'$(NC)" && exit 1) ;; \
+		*) \
+			echo -e "$(RED)Unknown package group: $(GROUP)$(NC)" && exit 1 ;; \
+	esac
+
+# ============================================================================
+# DEPENDENCY ANALYSIS
+# ============================================================================
+
+.PHONY: deps-tree deps-check deps-security
+
+deps-tree: ## Show dependency tree
+	@echo -e "$(CYAN)Dependency tree:$(NC)"
+	@if $(PYTHON) -c "import pipdeptree" 2>/dev/null; then \
+		$(PYTHON) -m pipdeptree; \
+	else \
+		echo -e "$(YELLOW)pipdeptree not available. Install with: pip install pipdeptree$(NC)"; \
+		$(PIP) list; \
+	fi
+
+deps-check: ## Check for dependency conflicts
+	@echo -e "$(CYAN)Checking for dependency conflicts...$(NC)"
+	@$(PIP) check && echo -e "$(GREEN)✓ No dependency conflicts found$(NC)" || \
+	echo -e "$(RED)❌ Dependency conflicts detected$(NC)"
+
+deps-security: ## Check for security vulnerabilities in dependencies
+	@echo -e "$(CYAN)Scanning for security vulnerabilities...$(NC)"
+	@if $(PYTHON) -c "import safety" 2>/dev/null; then \
+		$(PYTHON) -m safety check; \
+	else \
+		echo -e "$(YELLOW)Safety not available. Install with: pip install safety$(NC)"; \
+		echo -e "$(YELLOW)Alternatively, run: make install-dev$(NC)"; \
+	fi
+
+# ============================================================================
+# INSTALLATION WORKFLOWS
+# ============================================================================
+
+.PHONY: fresh-install quick-install developer-setup
+
+fresh-install: ## Complete fresh installation from scratch
+	@echo -e "$(BLUE)Performing fresh installation...$(NC)"
+	@$(MAKE) check-tools
+	@$(MAKE) _setup_python_environment
+	@$(MAKE) pip-update
+	@$(MAKE) install-all
+	@$(MAKE) validate-install
+	@echo -e "$(GREEN)✓ Fresh installation completed$(NC)"
+
+quick-install: ## Quick installation for CI/CD or minimal setup
+	@echo -e "$(BLUE)Performing quick installation...$(NC)"
+	@$(MAKE) _setup_python_environment
+	@$(MAKE) install
+	@echo -e "$(GREEN)✓ Quick installation completed$(NC)"
+
+developer-setup: ## Complete developer environment setup
+	@echo -e "$(BLUE)Setting up developer environment...$(NC)"
+	@$(MAKE) check-tools
+	@$(MAKE) _setup_python_environment
+	@$(MAKE) pip-update
+	@$(MAKE) install-dev
+	@$(MAKE) validate-install
+	@echo -e "$(CYAN)Optional: Install pre-commit hooks$(NC)"
+	@if $(PYTHON) -c "import pre_commit" 2>/dev/null; then \
+		$(PYTHON) -m pre_commit install; \
+		echo -e "$(GREEN)✓ Pre-commit hooks installed$(NC)"; \
+	else \
+		echo -e "$(YELLOW)⚠ pre-commit not available$(NC)"; \
+	fi
+	@echo -e "$(GREEN)✓ Developer environment setup completed$(NC)"
+
+# ============================================================================
+# INSTALLATION DEBUGGING AND TROUBLESHOOTING
+# ============================================================================
+
+.PHONY: install-debug install-info install-doctor
+
+install-debug: ## Debug installation issues
+	@echo -e "$(CYAN)Installation debug information:$(NC)"
+	@echo -e "$(YELLOW)Platform Information:$(NC)"
+	@echo -e "  OS: $(PLATFORM_OS)"
+	@echo -e "  Architecture: $(PLATFORM_ARCH)"
+	@echo -e "  Family: $(PLATFORM_FAMILY)"
+	@echo ""
+	@echo -e "$(YELLOW)Python Environment:$(NC)"
+	@echo -e "  Python Command: $(PYTHON)"
+	@echo -e "  Python Version: $(shell $(PYTHON) --version 2>/dev/null || echo 'Not Available')"
+	@echo -e "  Virtual Environment: $(if $(wildcard $(VENV_PYTHON)),Active ($(VENV_PATH)),Not Active)"
+	@echo -e "  Pip Command: $(PIP)"
+	@echo -e "  Pip Version: $(shell $(PIP) --version 2>/dev/null || echo 'Not Available')"
+	@echo ""
+	@echo -e "$(YELLOW)Package Installation Status:$(NC)"
+	@$(PYTHON) -c "import ticker_converter; print('✓ Core package installed')" 2>/dev/null || echo "❌ Core package not installed"
+	@$(PYTHON) -c "import pytest; print('✓ Test dependencies installed')" 2>/dev/null || echo "○ Test dependencies not installed"
+	@$(PYTHON) -c "import black; print('✓ Dev dependencies installed')" 2>/dev/null || echo "○ Dev dependencies not installed"
+
+install-info: ## Show installation information and recommendations
+	@echo -e "$(CYAN)Installation Information:$(NC)"
+	@echo -e "$(YELLOW)Available Installation Commands:$(NC)"
+	@echo -e "  make install          # Production runtime only"
+	@echo -e "  make install-test     # Production + testing tools"
+	@echo -e "  make install-dev      # Production + testing + development tools"
+	@echo -e "  make install-all      # Complete installation"
+	@echo ""
+	@echo -e "$(YELLOW)Recommended Workflows:$(NC)"
+	@echo -e "  Production:           make install"
+	@echo -e "  CI/CD:                make install-test"
+	@echo -e "  Development:          make install-dev"
+	@echo -e "  Complete Setup:       make setup && make install-dev"
+
+install-doctor: ## Diagnose and suggest fixes for installation problems
+	@echo -e "$(CYAN)Installation Doctor - Diagnosing Issues...$(NC)"
+	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo -e "$(YELLOW)1. Checking system requirements...$(NC)"
+	@$(MAKE) check-tools 2>/dev/null || echo -e "$(RED)Issue: Missing system tools$(NC)"
+	@echo ""
+	@echo -e "$(YELLOW)2. Checking Python environment...$(NC)"
+	@if [ ! -f $(VENV_PYTHON) ]; then \
+		echo -e "$(RED)Issue: Virtual environment not found$(NC)"; \
+		echo -e "$(CYAN)Fix: Run 'make setup' to create virtual environment$(NC)"; \
+	else \
+		echo -e "$(GREEN)✓ Virtual environment available$(NC)"; \
+	fi
+	@echo ""
+	@echo -e "$(YELLOW)3. Checking package installation...$(NC)"
+	@$(MAKE) _check_package_group GROUP=core 2>/dev/null || \
+		echo -e "$(CYAN)Fix: Run 'make install' to install core packages$(NC)"
+	@echo ""
+	@echo -e "$(YELLOW)4. Checking dependency conflicts...$(NC)"
+	@$(MAKE) deps-check 2>/dev/null || \
+		echo -e "$(CYAN)Fix: Review conflicts and update packages$(NC)"
+	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+
+# Export installation-related variables
+export PYTHON
+export PIP

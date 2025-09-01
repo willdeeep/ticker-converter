@@ -1,0 +1,383 @@
+# ============================================================================
+# POSTGRESQL OPERATIONS AND DATA MANAGEMENT
+# ============================================================================
+# This module handles PostgreSQL database operations, including service
+# management, database lifecycle, and data operations
+#
+# Dependencies: Makefile.platform, Makefile.env
+# ============================================================================
+
+# Database configuration from environment
+DB_SERVICE_NAME = $(if $(filter $(PLATFORM_OS),macos),postgresql,postgresql)
+
+# ============================================================================
+# POSTGRESQL SERVICE MANAGEMENT
+# ============================================================================
+
+.PHONY: db-start db-stop db-restart db-status _start_postgres _stop_postgres
+
+db-start: _load_env ## Start PostgreSQL service
+	@echo -e "$(BLUE)Starting PostgreSQL service...$(NC)"
+	@$(MAKE) _start_postgres
+	@sleep 2
+	@$(MAKE) db-status
+
+db-stop: ## Stop PostgreSQL service
+	@echo -e "$(BLUE)Stopping PostgreSQL service...$(NC)"
+	@$(MAKE) _stop_postgres
+	@echo -e "$(GREEN)✓ PostgreSQL service stopped$(NC)"
+
+db-restart: ## Restart PostgreSQL service
+	@echo -e "$(BLUE)Restarting PostgreSQL service...$(NC)"
+	@$(MAKE) db-stop
+	@sleep 1
+	@$(MAKE) db-start
+
+db-status: ## Check PostgreSQL service status
+	@echo -e "$(CYAN)PostgreSQL service status:$(NC)"
+ifeq ($(PLATFORM_OS),macos)
+	@if $(BREW_CMD) services list | grep -E "postgresql.*started" >/dev/null 2>&1; then \
+		echo -e "$(GREEN)✓ PostgreSQL is running (Homebrew)$(NC)"; \
+		$(BREW_CMD) services list | grep postgresql; \
+	else \
+		echo -e "$(YELLOW)⚠ PostgreSQL is not running (Homebrew)$(NC)"; \
+	fi
+else ifeq ($(PLATFORM_OS),linux)
+	@if systemctl is-active --quiet postgresql 2>/dev/null; then \
+		echo -e "$(GREEN)✓ PostgreSQL is running (systemd)$(NC)"; \
+		systemctl status postgresql --no-pager -l; \
+	elif service postgresql status >/dev/null 2>&1; then \
+		echo -e "$(GREEN)✓ PostgreSQL is running (service)$(NC)"; \
+		service postgresql status; \
+	else \
+		echo -e "$(YELLOW)⚠ PostgreSQL is not running$(NC)"; \
+	fi
+else
+	@if pgrep -f postgres >/dev/null 2>&1; then \
+		echo -e "$(GREEN)✓ PostgreSQL process found$(NC)"; \
+		pgrep -f postgres; \
+	else \
+		echo -e "$(YELLOW)⚠ PostgreSQL process not found$(NC)"; \
+	fi
+endif
+
+_start_postgres: ## Internal: Start PostgreSQL using platform-specific method
+ifeq ($(PLATFORM_OS),macos)
+	@if ! $(BREW_CMD) services list | grep -E "postgresql.*started" >/dev/null 2>&1; then \
+		echo -e "$(YELLOW)Starting PostgreSQL via Homebrew...$(NC)"; \
+		$(BREW_CMD) services start postgresql || \
+		$(BREW_CMD) services start postgresql@15 || \
+		$(BREW_CMD) services start postgresql@14; \
+		echo -e "$(GREEN)✓ PostgreSQL started$(NC)"; \
+	else \
+		echo -e "$(GREEN)✓ PostgreSQL already running$(NC)"; \
+	fi
+else ifeq ($(PLATFORM_OS),linux)
+	@if ! systemctl is-active --quiet postgresql 2>/dev/null; then \
+		echo -e "$(YELLOW)Starting PostgreSQL via systemd...$(NC)"; \
+		sudo systemctl start postgresql 2>/dev/null || \
+		sudo service postgresql start 2>/dev/null; \
+		echo -e "$(GREEN)✓ PostgreSQL started$(NC)"; \
+	else \
+		echo -e "$(GREEN)✓ PostgreSQL already running$(NC)"; \
+	fi
+else
+	@echo -e "$(YELLOW)Manual PostgreSQL start may be required on this platform$(NC)"
+	@echo -e "$(CYAN)Check your PostgreSQL installation documentation$(NC)"
+endif
+
+_stop_postgres: ## Internal: Stop PostgreSQL using platform-specific method
+ifeq ($(PLATFORM_OS),macos)
+	@if $(BREW_CMD) services list | grep -E "postgresql.*started" >/dev/null 2>&1; then \
+		echo -e "$(YELLOW)Stopping PostgreSQL via Homebrew...$(NC)"; \
+		$(BREW_CMD) services stop postgresql || \
+		$(BREW_CMD) services stop postgresql@15 || \
+		$(BREW_CMD) services stop postgresql@14; \
+	else \
+		echo -e "$(GREEN)✓ PostgreSQL already stopped$(NC)"; \
+	fi
+else ifeq ($(PLATFORM_OS),linux)
+	@if systemctl is-active --quiet postgresql 2>/dev/null; then \
+		echo -e "$(YELLOW)Stopping PostgreSQL via systemd...$(NC)"; \
+		sudo systemctl stop postgresql 2>/dev/null || \
+		sudo service postgresql stop 2>/dev/null; \
+	else \
+		echo -e "$(GREEN)✓ PostgreSQL already stopped$(NC)"; \
+	fi
+else
+	@echo -e "$(YELLOW)Manual PostgreSQL stop may be required on this platform$(NC)"
+endif
+
+# ============================================================================
+# DATABASE LIFECYCLE MANAGEMENT
+# ============================================================================
+
+.PHONY: db-create db-drop db-reset db-exists _check_db_connection
+
+db-create: _load_env db-start ## Create project database and user
+	@echo -e "$(BLUE)Creating PostgreSQL database and user...$(NC)"
+	@set -a && . ./.env && set +a && \
+	echo -e "$(YELLOW)Database Configuration:$(NC)" && \
+	echo -e "$(CYAN)  Host: $$POSTGRES_HOST:$$POSTGRES_PORT$(NC)" && \
+	echo -e "$(CYAN)  Database: $$POSTGRES_DB$(NC)" && \
+	echo -e "$(CYAN)  User: $$POSTGRES_USER$(NC)" && \
+	echo -e "$(YELLOW)Creating PostgreSQL user...$(NC)" && \
+	createuser -h $$POSTGRES_HOST -p $$POSTGRES_PORT -s $$POSTGRES_USER 2>/dev/null || \
+	echo -e "$(YELLOW)⚠ User $$POSTGRES_USER already exists or creation failed$(NC)" && \
+	echo -e "$(YELLOW)Creating PostgreSQL database...$(NC)" && \
+	createdb -h $$POSTGRES_HOST -p $$POSTGRES_PORT -O $$POSTGRES_USER $$POSTGRES_DB 2>/dev/null || \
+	echo -e "$(YELLOW)⚠ Database $$POSTGRES_DB already exists or creation failed$(NC)" && \
+	echo -e "$(GREEN)✓ Database setup completed$(NC)"
+
+db-drop: _load_env ## Drop project database (DESTRUCTIVE)
+	@echo -e "$(RED)WARNING: This will permanently delete the database!$(NC)"
+	@echo -e "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)"
+	@read -p ""
+	@set -a && . ./.env && set +a && \
+	echo -e "$(YELLOW)Dropping database $$POSTGRES_DB...$(NC)" && \
+	dropdb -h $$POSTGRES_HOST -p $$POSTGRES_PORT $$POSTGRES_DB 2>/dev/null || \
+	echo -e "$(YELLOW)⚠ Database $$POSTGRES_DB does not exist or drop failed$(NC)" && \
+	echo -e "$(RED)✓ Database dropped$(NC)"
+
+db-reset: db-drop db-create ## Drop and recreate database (DESTRUCTIVE)
+	@echo -e "$(GREEN)✓ Database reset completed$(NC)"
+
+db-exists: _load_env ## Check if project database exists
+	@set -a && . ./.env && set +a && \
+	if psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -lqt | cut -d \| -f 1 | grep -qw $$POSTGRES_DB; then \
+		echo -e "$(GREEN)✓ Database $$POSTGRES_DB exists$(NC)"; \
+	else \
+		echo -e "$(YELLOW)⚠ Database $$POSTGRES_DB does not exist$(NC)"; \
+		exit 1; \
+	fi
+
+_check_db_connection: _load_env ## Internal: Test database connection
+	@set -a && . ./.env && set +a && \
+	echo -e "$(YELLOW)Testing database connection...$(NC)" && \
+	PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -c "SELECT 1;" >/dev/null 2>&1 && \
+	echo -e "$(GREEN)✓ Database connection successful$(NC)" || \
+	(echo -e "$(RED)❌ Database connection failed$(NC)" && exit 1)
+
+# ============================================================================
+# DATABASE SCHEMA AND MIGRATION MANAGEMENT
+# ============================================================================
+
+.PHONY: db-migrate db-schema db-init-schema _apply_ddl_files
+
+db-migrate: _load_env db-exists ## Apply database migrations
+	@echo -e "$(BLUE)Applying database migrations...$(NC)"
+	@$(MAKE) _check_db_connection
+	@$(MAKE) _apply_ddl_files
+	@echo -e "$(GREEN)✓ Database migrations completed$(NC)"
+
+db-schema: _load_env db-exists ## Display database schema information
+	@echo -e "$(CYAN)Database schema information:$(NC)"
+	@set -a && . ./.env && set +a && \
+	PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -c "\dt" 2>/dev/null || \
+	echo -e "$(YELLOW)⚠ No tables found or connection failed$(NC)"
+
+db-init-schema: db-create _apply_ddl_files ## Initialize database with schema
+	@echo -e "$(GREEN)✓ Database schema initialization completed$(NC)"
+
+_apply_ddl_files: _load_env ## Internal: Apply DDL files from dags/sql/ddl
+	@set -a && . ./.env && set +a && \
+	if [ -d "dags/sql/ddl" ]; then \
+		echo -e "$(YELLOW)Applying DDL files from dags/sql/ddl/...$(NC)"; \
+		for ddl_file in dags/sql/ddl/*.sql; do \
+			if [ -f "$$ddl_file" ]; then \
+				echo -e "$(CYAN)  Executing: $$(basename $$ddl_file)$(NC)"; \
+				PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -f "$$ddl_file" 2>/dev/null || \
+				echo -e "$(YELLOW)  ⚠ Warning: Failed to execute $$ddl_file$(NC)"; \
+			fi; \
+		done; \
+	else \
+		echo -e "$(YELLOW)⚠ No DDL directory found at dags/sql/ddl$(NC)"; \
+		echo -e "$(CYAN)Hint: Create DDL files in dags/sql/ddl/ for automatic schema setup$(NC)"; \
+	fi
+
+# ============================================================================
+# DATA MANAGEMENT OPERATIONS
+# ============================================================================
+
+.PHONY: db-seed db-backup db-restore db-shell db-query
+
+db-seed: _load_env db-exists ## Load initial data into database
+	@echo -e "$(BLUE)Loading initial data...$(NC)"
+	@$(MAKE) _check_db_connection
+	@set -a && . ./.env && set +a && \
+	if [ -d "dags/sql/data" ]; then \
+		echo -e "$(YELLOW)Loading data from dags/sql/data/...$(NC)"; \
+		for data_file in dags/sql/data/*.sql; do \
+			if [ -f "$$data_file" ]; then \
+				echo -e "$(CYAN)  Loading: $$(basename $$data_file)$(NC)"; \
+				PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -f "$$data_file" 2>/dev/null || \
+				echo -e "$(YELLOW)  ⚠ Warning: Failed to load $$data_file$(NC)"; \
+			fi; \
+		done; \
+	else \
+		echo -e "$(YELLOW)⚠ No data directory found at dags/sql/data$(NC)"; \
+		echo -e "$(CYAN)Hint: Create data files in dags/sql/data/ for automatic data loading$(NC)"; \
+	fi
+	@echo -e "$(GREEN)✓ Data seeding completed$(NC)"
+
+db-backup: _load_env db-exists ## Create database backup
+	@echo -e "$(BLUE)Creating database backup...$(NC)"
+	@$(MAKE) _check_db_connection
+	@set -a && . ./.env && set +a && \
+	backup_file="backup_$${POSTGRES_DB}_$$(date +%Y%m%d_%H%M%S).sql" && \
+	echo -e "$(YELLOW)Creating backup: $$backup_file$(NC)" && \
+	PGPASSWORD=$$POSTGRES_PASSWORD pg_dump -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER $$POSTGRES_DB > $$backup_file && \
+	echo -e "$(GREEN)✓ Backup created: $$backup_file$(NC)"
+
+db-restore: _load_env ## Restore database from backup file
+	@echo -e "$(BLUE)Restoring database from backup...$(NC)"
+	@echo -e "$(YELLOW)Available backup files:$(NC)"
+	@ls -la backup_*.sql 2>/dev/null || echo -e "$(YELLOW)No backup files found$(NC)"
+	@echo -e "$(YELLOW)Enter backup filename:$(NC)"
+	@read -p "" backup_file && \
+	if [ -f "$$backup_file" ]; then \
+		echo -e "$(RED)WARNING: This will replace all data in the database!$(NC)"; \
+		echo -e "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)"; \
+		read -p ""; \
+		$(MAKE) db-drop; \
+		$(MAKE) db-create; \
+		set -a && . ./.env && set +a && \
+		echo -e "$(YELLOW)Restoring from $$backup_file...$(NC)" && \
+		PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB < $$backup_file && \
+		echo -e "$(GREEN)✓ Database restored from $$backup_file$(NC)"; \
+	else \
+		echo -e "$(RED)❌ Backup file not found: $$backup_file$(NC)"; \
+	fi
+
+db-shell: _load_env db-exists ## Open PostgreSQL shell (psql)
+	@echo -e "$(CYAN)Opening PostgreSQL shell...$(NC)"
+	@$(MAKE) _check_db_connection
+	@set -a && . ./.env && set +a && \
+	echo -e "$(YELLOW)Connecting to $$POSTGRES_DB on $$POSTGRES_HOST:$$POSTGRES_PORT as $$POSTGRES_USER$(NC)" && \
+	PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB
+
+db-query: _load_env db-exists ## Execute a SQL query interactively
+	@echo -e "$(CYAN)Interactive SQL query execution$(NC)"
+	@$(MAKE) _check_db_connection
+	@echo -e "$(YELLOW)Enter your SQL query (end with semicolon):$(NC)"
+	@read -p "SQL> " query && \
+	set -a && . ./.env && set +a && \
+	PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -c "$$query"
+
+# ============================================================================
+# DATABASE MONITORING AND DIAGNOSTICS
+# ============================================================================
+
+.PHONY: db-info db-debug db-logs db-size db-connections
+
+db-info: _load_env ## Display database information
+	@echo -e "$(CYAN)Database Information:$(NC)"
+	@set -a && . ./.env && set +a && \
+	echo -e "$(YELLOW)Configuration:$(NC)" && \
+	echo -e "  Host: $$POSTGRES_HOST:$$POSTGRES_PORT" && \
+	echo -e "  Database: $$POSTGRES_DB" && \
+	echo -e "  User: $$POSTGRES_USER" && \
+	echo -e "$(YELLOW)Connection Status:$(NC)" && \
+	$(MAKE) _check_db_connection 2>/dev/null && \
+	echo -e "$(YELLOW)Tables:$(NC)" && \
+	PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -c "\dt" 2>/dev/null || \
+	echo -e "$(YELLOW)  No tables found$(NC)"
+
+db-debug: _load_env ## Debug database connection and configuration
+	@echo -e "$(CYAN)Database Debug Information:$(NC)"
+	@set -a && . ./.env && set +a && \
+	echo -e "$(YELLOW)Environment Variables:$(NC)" && \
+	echo -e "  POSTGRES_HOST=$$POSTGRES_HOST" && \
+	echo -e "  POSTGRES_PORT=$$POSTGRES_PORT" && \
+	echo -e "  POSTGRES_DB=$$POSTGRES_DB" && \
+	echo -e "  POSTGRES_USER=$$POSTGRES_USER" && \
+	echo -e "  POSTGRES_PASSWORD=$$(echo $$POSTGRES_PASSWORD | sed 's/./*/g')" && \
+	echo -e "$(YELLOW)PostgreSQL Service:$(NC)" && \
+	$(MAKE) db-status && \
+	echo -e "$(YELLOW)Connection Test:$(NC)" && \
+	$(MAKE) _check_db_connection || echo -e "$(RED)Connection failed$(NC)" && \
+	echo -e "$(YELLOW)Database Existence:$(NC)" && \
+	$(MAKE) db-exists || echo -e "$(RED)Database does not exist$(NC)"
+
+db-logs: ## View PostgreSQL logs
+	@echo -e "$(CYAN)PostgreSQL logs:$(NC)"
+ifeq ($(PLATFORM_OS),macos)
+	@if [ -d "/opt/homebrew/var/log" ]; then \
+		tail -n 50 /opt/homebrew/var/log/postgresql*.log 2>/dev/null || \
+		echo -e "$(YELLOW)PostgreSQL logs not found in /opt/homebrew/var/log$(NC)"; \
+	elif [ -d "/usr/local/var/log" ]; then \
+		tail -n 50 /usr/local/var/log/postgresql*.log 2>/dev/null || \
+		echo -e "$(YELLOW)PostgreSQL logs not found in /usr/local/var/log$(NC)"; \
+	else \
+		echo -e "$(YELLOW)PostgreSQL log directory not found$(NC)"; \
+	fi
+else ifeq ($(PLATFORM_OS),linux)
+	@sudo tail -n 50 /var/log/postgresql/postgresql*.log 2>/dev/null || \
+	journalctl -u postgresql -n 50 --no-pager 2>/dev/null || \
+	echo -e "$(YELLOW)PostgreSQL logs not accessible$(NC)"
+else
+	@echo -e "$(YELLOW)Log viewing not implemented for this platform$(NC)"
+endif
+
+db-size: _load_env db-exists ## Show database size information
+	@echo -e "$(CYAN)Database size information:$(NC)"
+	@$(MAKE) _check_db_connection
+	@set -a && . ./.env && set +a && \
+	PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -c "\
+	SELECT \
+		schemaname, \
+		tablename, \
+		pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size \
+	FROM pg_tables \
+	WHERE schemaname = 'public' \
+	ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;" 2>/dev/null || \
+	echo -e "$(YELLOW)Unable to retrieve size information$(NC)"
+
+db-connections: _load_env db-exists ## Show active database connections
+	@echo -e "$(CYAN)Active database connections:$(NC)"
+	@$(MAKE) _check_db_connection
+	@set -a && . ./.env && set +a && \
+	PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -c "\
+	SELECT \
+		pid, \
+		usename, \
+		application_name, \
+		client_addr, \
+		state, \
+		query_start \
+	FROM pg_stat_activity \
+	WHERE datname = current_database();" 2>/dev/null || \
+	echo -e "$(YELLOW)Unable to retrieve connection information$(NC)"
+
+# ============================================================================
+# DATABASE CLEANUP OPERATIONS
+# ============================================================================
+
+.PHONY: db-clean-logs db-vacuum db-analyze
+
+db-clean-logs: ## Clean PostgreSQL log files
+	@echo -e "$(YELLOW)Cleaning PostgreSQL logs...$(NC)"
+ifeq ($(PLATFORM_OS),macos)
+	@find /opt/homebrew/var/log /usr/local/var/log -name "postgresql*.log" -type f -exec rm -f {} \; 2>/dev/null || \
+	echo -e "$(YELLOW)No log files found or permission denied$(NC)"
+else ifeq ($(PLATFORM_OS),linux)
+	@sudo find /var/log/postgresql -name "postgresql*.log" -type f -exec rm -f {} \; 2>/dev/null || \
+	echo -e "$(YELLOW)No log files found or permission denied$(NC)"
+else
+	@echo -e "$(YELLOW)Log cleanup not implemented for this platform$(NC)"
+endif
+	@echo -e "$(GREEN)✓ Log cleanup completed$(NC)"
+
+db-vacuum: _load_env db-exists ## Vacuum database to reclaim space
+	@echo -e "$(BLUE)Running database vacuum...$(NC)"
+	@$(MAKE) _check_db_connection
+	@set -a && . ./.env && set +a && \
+	PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -c "VACUUM;" && \
+	echo -e "$(GREEN)✓ Database vacuum completed$(NC)"
+
+db-analyze: _load_env db-exists ## Analyze database to update statistics
+	@echo -e "$(BLUE)Running database analyze...$(NC)"
+	@$(MAKE) _check_db_connection
+	@set -a && . ./.env && set +a && \
+	PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -c "ANALYZE;" && \
+	echo -e "$(GREEN)✓ Database analyze completed$(NC)"
