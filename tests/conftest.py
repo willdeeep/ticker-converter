@@ -12,6 +12,9 @@ from _pytest.config import Config
 from src.ticker_converter.api_clients import AlphaVantageClient
 from src.ticker_converter.api_clients.constants import APIConfig
 
+# Import optimized fixtures for data ingestion testing
+pytest_plugins = ["tests.fixtures.data_ingestion_fixtures"]
+
 
 @dataclass(frozen=True)
 class TestConfig:

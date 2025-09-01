@@ -11,6 +11,7 @@ import pandas as pd
 
 from ..api_clients.constants import OutputSize
 from ..api_clients.exceptions import AlphaVantageAPIError, AlphaVantageRateLimitError
+from ..exceptions import DataIngestionException
 from .base_fetcher import BaseDataFetcher
 
 
@@ -131,9 +132,12 @@ class NYSEDataFetcher(BaseDataFetcher):
                     **base_record,
                 }
                 records.append(record)
-            except Exception as e:
-                self.logger.warning("Skipping invalid row for %s: %s", symbol, e)
+            except (ValueError, TypeError, KeyError, AttributeError) as e:
+                self.logger.warning("Skipping invalid row for %s due to data error: %s", symbol, e)
                 continue
+            except Exception as e:
+                # Wrap unexpected errors in our custom exception for better context
+                raise DataIngestionException(f"Unexpected error processing NYSE row for {symbol}: {e}") from e
 
         return records
 

@@ -19,6 +19,9 @@ from src.ticker_converter.api_clients import (
     AlphaVantageClient,
 )
 
+# Mark all tests in this file as integration tests
+pytestmark = pytest.mark.integration
+
 # Configuration for integration tests
 # Integration tests should FAIL if environment variables are not set
 # This ensures the setup process has properly configured the environment
@@ -178,8 +181,10 @@ class TestAlphaVantageDataFormats:
 class TestMockedAPIIntegration:
     """Integration tests using mocked responses (always run)."""
 
+    @patch("time.sleep")  # Mock sleep to prevent delays in tests
     def test_end_to_end_data_flow(
         self,
+        mock_sleep,
         sample_daily_response: dict[str, Any],
         sample_company_overview: dict[str, Any],
     ) -> None:
@@ -223,7 +228,8 @@ class TestMockedAPIIntegration:
             with pytest.raises(AlphaVantageAPIError):
                 client.get_daily_stock_data("INVALID", "compact")
 
-    def test_data_consistency(self, sample_daily_response: dict[str, Any]) -> None:
+    @patch("time.sleep")  # Mock sleep to prevent delays in tests
+    def test_data_consistency(self, mock_sleep, sample_daily_response: dict[str, Any]) -> None:
         """Test data consistency across multiple calls."""
         with patch("requests.Session") as mock_session_class:
             mock_session = mock_session_class.return_value

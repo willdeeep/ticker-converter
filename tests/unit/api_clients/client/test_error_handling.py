@@ -65,7 +65,8 @@ class TestRateLimitErrors:
     """Test rate limit error handling."""
 
     @patch.object(AlphaVantageClient, "_setup_sync_session")
-    def test_rate_limit_error_handling(self, mock_setup) -> None:
+    @patch("time.sleep")  # Mock sleep to prevent actual delays
+    def test_rate_limit_error_handling(self, mock_sleep, mock_setup) -> None:
         """Test API rate limit error handling."""
         mock_response = Mock()
         mock_response.status_code = 200

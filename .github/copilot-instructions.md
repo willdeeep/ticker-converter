@@ -13,6 +13,51 @@ When creating GitHub issues from project roadmap phases:
 3. **Include Phase Context**: Reference current phase milestones and completion status
 4. **Use Consistent Labels**: Apply appropriate labels for tracking and organization
 
+### Long Documentation Submission Protocol
+
+For any long documentation, comments, or content containing code snippets submitted via Git or GitHub CLI commands, ALWAYS use EOF (heredoc) syntax instead of quoted strings to prevent quote escaping issues:
+
+**✅ CORRECT - Use EOF syntax with GitHub CLI:**
+```bash
+cat <<EOF | gh issue comment 123 --body-file -
+## Progress Update
+
+### Code Examples
+\`\`\`python
+def example():
+    return "This won't break the command"
+\`\`\`
+
+**Bold text**, _italic text_, and other markdown formatting work safely.
+EOF
+```
+
+**✅ CORRECT - Alternative GitHub CLI EOF syntax:**
+```bash
+gh issue create --title "Feature Request" --body-file - <<EOF
+## Description
+This is a multi-line description with code:
+
+\`\`\`bash
+make test
+\`\`\`
+
+And it handles quotes "safely" without escaping issues.
+EOF
+```
+
+**❌ INCORRECT - Avoid quoted strings for long content:**
+```bash
+gh issue comment 123 --body "This will break with quotes and code snippets"
+```
+
+**Benefits of EOF syntax:**
+- Prevents quote escaping issues with code snippets
+- Preserves markdown formatting (bold, italic, code blocks)
+- Handles multi-line content safely
+- Avoids shell interpretation of special characters
+- More readable for complex documentation
+
 ### Issue Template Structure
 
 ```markdown
@@ -70,6 +115,32 @@ git push -u origin feature/issue-[number]-[brief-description]
   - `feature/issue-42-add-currency-validation`
   - `feature/issue-73-refactor-database-manager`
   - `feature/issue-15-implement-error-handling`
+
+### Git Commit Message Protocol
+
+For multi-line commit messages with detailed descriptions, use EOF syntax to avoid quote escaping issues:
+
+**✅ CORRECT - Use EOF for detailed commits:**
+```bash
+git commit -m <<EOF
+feat: implement comprehensive error handling system
+
+- Added custom exception hierarchy in src/ticker_converter/exceptions.py
+- Replaced generic Exception catches with specific types:
+  * DataIngestionException for pipeline errors
+  * APIConnectionException for external API failures
+  * DatabaseOperationException for SQL operation failures
+- Maintained Pylint 10.00/10 score throughout implementation
+- All 241 tests passing with enhanced error handling
+
+Resolves: #58 (Phase 2 - Enhanced Error Handling)
+EOF
+```
+
+**❌ INCORRECT - Avoid quoted strings for detailed commits:**
+```bash
+git commit -m "Complex message with code examples that break quotes"
+```
 
 ## Pull Request Workflow
 

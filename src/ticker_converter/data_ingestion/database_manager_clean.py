@@ -17,8 +17,6 @@ import psycopg2.extensions
 from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 
-from ..exceptions import DatabaseConnectionException, DatabaseOperationException
-
 # Load environment variables from project root
 # Find project root by looking for pyproject.toml
 _current_file = Path(__file__).resolve()
@@ -141,7 +139,7 @@ class DatabaseManager:
             values = [[record[col] for col in columns] for record in records]
 
             execute_values(cursor, query, values)
-            inserted_count = cursor.rowcount or 0  # Handle None case
+            inserted_count = cursor.rowcount or 0
 
             conn.commit()
             return int(inserted_count)
@@ -196,15 +194,7 @@ class DatabaseManager:
 
             if result and result[0]["latest_date"]:
                 latest_date = result[0]["latest_date"]
-                # Ensure we return a datetime object
-                if isinstance(latest_date, datetime):
-                    return latest_date
-                # Handle string dates by parsing them
-                elif isinstance(latest_date, str):
-                    return datetime.fromisoformat(latest_date.replace("Z", "+00:00"))
-                else:
-                    # Return None for unexpected types to avoid Any return
-                    return None
+                return latest_date if isinstance(latest_date, datetime) else None
             return None
 
         except (psycopg2.Error, ValueError, TypeError) as e:
@@ -227,15 +217,7 @@ class DatabaseManager:
 
             if result and result[0]["latest_date"]:
                 latest_date = result[0]["latest_date"]
-                # Ensure we return a datetime object
-                if isinstance(latest_date, datetime):
-                    return latest_date
-                # Handle string dates by parsing them
-                elif isinstance(latest_date, str):
-                    return datetime.fromisoformat(latest_date.replace("Z", "+00:00"))
-                else:
-                    # Return None for unexpected types to avoid Any return
-                    return None
+                return latest_date if isinstance(latest_date, datetime) else None
             return None
 
         except (psycopg2.Error, ValueError, TypeError) as e:
@@ -266,31 +248,42 @@ class DatabaseManager:
             if existing:
                 return True
 
-            # PostgreSQL-specific insert with correct field names matching schema
+            # PostgreSQL-specific insert with upsert functionality
+            from psycopg2.extras import (  # pylint: disable=import-outside-toplevel
+                execute_values,
+            )
+
             date_record = {
                 "date_value": dt.strftime("%Y-%m-%d"),
                 "year": dt.year,
-                "quarter": (dt.month - 1) // 3 + 1,
                 "month": dt.month,
                 "day": dt.day,
-                "day_of_week": dt.weekday() + 1,  # Monday = 1, Sunday = 7
-                "day_of_year": dt.timetuple().tm_yday,
-                "week_of_year": dt.isocalendar()[1],
+                "weekday": dt.weekday() + 1,  # Monday = 1, Sunday = 7
+                "quarter": (dt.month - 1) // 3 + 1,
                 "is_weekend": dt.weekday() >= 5,
-                "is_holiday": False,  # Default to false, can be updated later
             }
 
             query = """
-                INSERT INTO dim_date (date_value, year, quarter, month, day, day_of_week, 
-                                    day_of_year, week_of_year, is_weekend, is_holiday)
-                VALUES (%(date_value)s, %(year)s, %(quarter)s, %(month)s, %(day)s, 
-                        %(day_of_week)s, %(day_of_year)s, %(week_of_year)s, %(is_weekend)s, %(is_holiday)s)
+                INSERT INTO dim_date (date_value, year, month, day, weekday, quarter, is_weekend)
+                VALUES %(values)s
                 ON CONFLICT (date_value) DO NOTHING
             """
 
             with self.connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute(query, date_record)
+                values = [
+                    (
+                        date_record["date_value"],
+                        date_record["year"],
+                        date_record["month"],
+                        date_record["day"],
+                        date_record["weekday"],
+                        date_record["quarter"],
+                        date_record["is_weekend"],
+                    )
+                ]
+
+                execute_values(cursor, query, values, template="(%s,%s,%s,%s,%s,%s,%s)")
                 conn.commit()
 
             return True
@@ -303,7 +296,7 @@ class DatabaseManager:
         """Insert stock data into fact_stock_prices table.
 
         Args:
-            records: List of stock data records with JSON field names
+            records: List of stock data records
 
         Returns:
             Number of records successfully inserted
@@ -316,27 +309,25 @@ class DatabaseManager:
         try:
             # First, ensure all required dates exist in dim_date
             for record in records:
-                date_str = record.get("data_date")  # JSON uses 'data_date'
+                date_str = record.get("date")
                 if date_str and not self.ensure_date_dimension(date_str):
                     self.logger.warning("Failed to ensure date dimension for %s", date_str)
 
             # PostgreSQL-specific bulk insert with conflict resolution
-            # Map JSON field names to database field names
             query = """
-                INSERT INTO fact_stock_prices (stock_id, date_id, opening_price, high_price, low_price, 
-                                             closing_price, volume, adjusted_close)
-                SELECT ds.stock_id, d.date_id, %(open_price)s, %(high_price)s, %(low_price)s, 
-                       %(close_price)s, %(volume)s, %(close_price)s
+                INSERT INTO fact_stock_prices (symbol, date_id, open_price, high_price, low_price, 
+                                             close_price, volume, adj_close_price)
+                SELECT %(symbol)s, d.date_id, %(open_price)s, %(high_price)s, %(low_price)s, 
+                       %(close_price)s, %(volume)s, %(adj_close_price)s
                 FROM dim_date d
-                CROSS JOIN dim_stocks ds
-                WHERE d.date_value = %(data_date)s AND ds.symbol = %(symbol)s
-                ON CONFLICT (stock_id, date_id) DO UPDATE SET
-                    opening_price = EXCLUDED.opening_price,
+                WHERE d.date_value = %(date)s
+                ON CONFLICT (symbol, date_id) DO UPDATE SET
+                    open_price = EXCLUDED.open_price,
                     high_price = EXCLUDED.high_price,
                     low_price = EXCLUDED.low_price,
-                    closing_price = EXCLUDED.closing_price,
+                    close_price = EXCLUDED.close_price,
                     volume = EXCLUDED.volume,
-                    adjusted_close = EXCLUDED.adjusted_close,
+                    adj_close_price = EXCLUDED.adj_close_price,
                     updated_at = CURRENT_TIMESTAMP
             """
 
@@ -344,20 +335,10 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 for record in records:
                     try:
-                        # Map JSON field names to what the query expects
-                        mapped_record = {
-                            "symbol": record["symbol"],
-                            "data_date": record["data_date"],
-                            "open_price": record["open_price"],
-                            "high_price": record["high_price"],
-                            "low_price": record["low_price"],
-                            "close_price": record["close_price"],
-                            "volume": record["volume"],
-                        }
-                        cursor.execute(query, mapped_record)
+                        cursor.execute(query, record)
                         if cursor.rowcount > 0:
                             inserted_count += cursor.rowcount
-                    except (psycopg2.Error, KeyError) as e:
+                    except psycopg2.Error as e:
                         self.logger.warning("Failed to insert stock record %s: %s", record, e)
                         continue
 
@@ -374,7 +355,7 @@ class DatabaseManager:
         """Insert currency data into fact_currency_rates table.
 
         Args:
-            records: List of currency data records with JSON field names
+            records: List of currency data records
 
         Returns:
             Number of records successfully inserted
@@ -387,27 +368,22 @@ class DatabaseManager:
         try:
             # First, ensure all required dates exist in dim_date
             for record in records:
-                date_str = record.get("data_date")  # JSON uses 'data_date'
+                date_str = record.get("date")
                 if date_str and not self.ensure_date_dimension(date_str):
                     self.logger.warning("Failed to ensure date dimension for %s", date_str)
 
             # PostgreSQL-specific bulk insert with conflict resolution
-            # Map JSON field names to database field names using dimension lookups
             query = """
-                INSERT INTO fact_currency_rates (from_currency_id, to_currency_id, date_id, exchange_rate)
-                SELECT 
-                    dc_from.currency_id, 
-                    dc_to.currency_id, 
-                    d.date_id, 
-                    %(exchange_rate)s
+                INSERT INTO fact_currency_rates (base_currency, target_currency, date_id, 
+                                                exchange_rate, bid_rate, ask_rate)
+                SELECT %(base_currency)s, %(target_currency)s, d.date_id, 
+                       %(exchange_rate)s, %(bid_rate)s, %(ask_rate)s
                 FROM dim_date d
-                CROSS JOIN dim_currency dc_from
-                CROSS JOIN dim_currency dc_to
-                WHERE d.date_value = %(data_date)s 
-                  AND dc_from.currency_code = %(from_currency)s
-                  AND dc_to.currency_code = %(to_currency)s
-                ON CONFLICT (from_currency_id, to_currency_id, date_id) DO UPDATE SET
+                WHERE d.date_value = %(date)s
+                ON CONFLICT (base_currency, target_currency, date_id) DO UPDATE SET
                     exchange_rate = EXCLUDED.exchange_rate,
+                    bid_rate = EXCLUDED.bid_rate,
+                    ask_rate = EXCLUDED.ask_rate,
                     updated_at = CURRENT_TIMESTAMP
             """
 
@@ -415,17 +391,10 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 for record in records:
                     try:
-                        # Map JSON field names to what the query expects
-                        mapped_record = {
-                            "from_currency": record["from_currency"],
-                            "to_currency": record["to_currency"],
-                            "data_date": record["data_date"],
-                            "exchange_rate": record["exchange_rate"],
-                        }
-                        cursor.execute(query, mapped_record)
+                        cursor.execute(query, record)
                         if cursor.rowcount > 0:
                             inserted_count += cursor.rowcount
-                    except (psycopg2.Error, KeyError) as e:
+                    except psycopg2.Error as e:
                         self.logger.warning("Failed to insert currency record %s: %s", record, e)
                         continue
 

@@ -11,6 +11,9 @@ import psycopg2
 import pytest
 from psycopg2 import sql
 
+# Mark all tests in this file as integration tests
+pytestmark = pytest.mark.integration
+
 # Load database configuration from environment
 # Integration tests should FAIL if environment variables are not set
 # This ensures the setup process has properly configured the environment

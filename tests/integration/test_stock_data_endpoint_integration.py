@@ -15,6 +15,9 @@ import pytest
 from fastapi.testclient import TestClient
 from psycopg2 import sql
 
+# Mark all tests in this file as integration tests
+pytestmark = pytest.mark.integration
+
 from src.ticker_converter.api.main import app
 from src.ticker_converter.api.models import StockDataWithCurrency
 

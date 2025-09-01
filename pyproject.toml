@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ticker-converter"
-version = "3.2.1"
+version = "3.2.2"
 description = "Stock ticker conversion and analysis pipeline"
 readme = "README.md"
 requires-python = "==3.11.12"
@@ -174,7 +174,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["ticker_converter", "api"]
+source = ["src/ticker_converter"]
 omit = [
     "*/tests/*",
     "*/venv/*",

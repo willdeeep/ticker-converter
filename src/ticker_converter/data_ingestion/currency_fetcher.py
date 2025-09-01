@@ -11,6 +11,7 @@ import pandas as pd
 
 from ..api_clients.constants import OutputSize
 from ..api_clients.exceptions import AlphaVantageAPIError, AlphaVantageRateLimitError
+from ..exceptions import DataIngestionException
 from .base_fetcher import BaseDataFetcher
 
 
@@ -102,7 +103,7 @@ class CurrencyDataFetcher(BaseDataFetcher):
             df = self.api_client.get_forex_daily(self.FROM_CURRENCY, self.TO_CURRENCY, output_size)
 
             if df.empty:
-                self.logger.warning("No FX data returned for {self.FROM_CURRENCY}/%s", self.TO_CURRENCY)
+                self.logger.warning("No FX data returned for %s/%s", self.FROM_CURRENCY, self.TO_CURRENCY)
                 return None
 
             # Limit to requested number of days if specified
@@ -157,9 +158,12 @@ class CurrencyDataFetcher(BaseDataFetcher):
                     **base_record,
                 }
                 records.append(record)
-            except Exception as e:
-                self.logger.warning("Skipping invalid currency row: %s", e)
+            except (ValueError, TypeError, KeyError, AttributeError) as e:
+                self.logger.warning("Skipping invalid currency row due to data error: %s", e)
                 continue
+            except Exception as e:
+                # Wrap unexpected errors in our custom exception for better context
+                raise DataIngestionException(f"Unexpected error processing currency row: {e}") from e
 
         return records
 
