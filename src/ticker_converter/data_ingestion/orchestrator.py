@@ -14,9 +14,9 @@ from typing import Any
 from ..exceptions import (
     APIConnectionException,
     APIRateLimitException,
-    DataIngestionException,
     DatabaseConnectionException,
     DatabaseOperationException,
+    DataIngestionException,
 )
 from .currency_fetcher import CurrencyDataFetcher
 from .database_manager import DatabaseManager
@@ -164,7 +164,11 @@ class DataIngestionOrchestrator:
             "currency_data": {
                 "records_fetched": len(currency_records),
                 "records_inserted": currency_inserted,
-                "currency_pair": "%s/%s" % (self.currency_fetcher.FROM_CURRENCY, self.currency_fetcher.TO_CURRENCY),  # pylint: disable=consider-using-f-string
+                "currency_pair": "%s/%s"
+                % (
+                    self.currency_fetcher.FROM_CURRENCY,
+                    self.currency_fetcher.TO_CURRENCY,
+                ),  # pylint: disable=consider-using-f-string
             },
             "total_records_inserted": currency_inserted,
         }

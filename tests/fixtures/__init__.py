@@ -34,7 +34,7 @@ __all__ = [
     # Data ingestion fixtures
     "MockDataIngestionComponents",
     "mock_api_errors",
-    "mock_components", 
+    "mock_components",
     "mock_database_errors",
     "mock_empty_database",
     "mock_successful_setup",
