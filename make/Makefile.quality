@@ -444,3 +444,29 @@ validate-pre-push: _load_env ## Run pre-push validation
 	@$(MAKE) quality-fix
 	@$(MAKE) test
 	@echo -e "$(GREEN)✓ Pre-push validation completed$(NC)"
+
+act-pr: _load_env ## Run local GitHub Actions workflow using Act (cross-platform)
+	@echo -e "$(BLUE)Running GitHub Actions workflow locally...$(NC)"
+	@if [ "$(HAS_ACT)" != "yes" ]; then \
+		echo -e "$(RED)Error: 'act' is not installed$(NC)"; \
+		echo -e "$(YELLOW)Install instructions:$(NC)"; \
+		echo -e "$(CYAN)  macOS: brew install act$(NC)"; \
+		echo -e "$(CYAN)  Linux: curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash$(NC)"; \
+		echo -e "$(CYAN)  Windows: choco install act-cli$(NC)"; \
+		echo -e "$(CYAN)  Manual: https://github.com/nektos/act$(NC)"; \
+		exit 1; \
+	fi
+	@echo -e "$(YELLOW)Platform: $(PLATFORM_OS)/$(PLATFORM_ARCH)$(NC)"
+ifeq ($(PLATFORM_OS),Darwin)
+ifeq ($(PLATFORM_ARCH),arm64)
+	@echo -e "$(CYAN)Running with linux/amd64 architecture for M-series Mac...$(NC)"
+	@act pull_request --container-architecture linux/amd64
+else
+	@echo -e "$(CYAN)Running with default architecture...$(NC)"
+	@act pull_request
+endif
+else
+	@echo -e "$(CYAN)Running with default architecture...$(NC)"
+	@act pull_request
+endif
+	@echo -e "$(GREEN)✓ GitHub Actions workflow completed$(NC)"
