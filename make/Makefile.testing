@@ -216,7 +216,7 @@ test-watch: _load_env ## 🧪 Execute tests in watch mode (continuous)
 		$(PYTHON) -m pytest_watch $(TEST_DIR) -- $(PYTEST_ARGS); \
 	else \
 		echo -e "$(YELLOW)pytest-watch not available. Install with: pip install pytest-watch$(NC)"; \
-		echo -e "$(CYAN)Alternative: Run 'make install-dev' to get all development tools$(NC)"; \
+		echo -e "$(CYAN)Alternative: Run 'make install-test' to get all development tools$(NC)"; \
 		exit 1; \
 	fi
 

@@ -269,7 +269,7 @@ class MakefileTargetTester:
             print("✅ No fixes needed - all targets are working!")
         else:
             print("1. **Priority 1**: Fix targets mentioned in help documentation")
-            print("2. **Priority 2**: Add missing target definitions")  
+            print("2. **Priority 2**: Add missing target definitions")
             print("3. **Priority 3**: Fix targets with execution errors")
             print("4. **Verification**: Re-run this script after fixes")
         

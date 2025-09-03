@@ -4,7 +4,9 @@
 # This module handles code quality checks, linting, formatting, and validation
 # with comprehensive cross-platform support
 #
-# Dependencies: Makefile.platform, Makefile.env, Makefile.install
+_check_mypy_deps: ## Internal: Check MyPy dependencies
+	@$(PYTHON) -c "import mypy" 2>/dev/null || \
+	(echo -e "$(RED)❌ MyPy not available. Run 'make install-test' first.$(NC)" && exit 1)ependencies: Makefile.platform, Makefile.env, Makefile.install
 # ============================================================================
 
 # Quality configuration
@@ -256,7 +258,7 @@ security-bandit: _load_env ## ⚙️ Execute Bandit security scanner
 		echo -e "$(GREEN)✓ Bandit security scan completed$(NC)"; \
 	else \
 		echo -e "$(YELLOW)⚠ Bandit not available. Install with: pip install bandit$(NC)"; \
-		echo -e "$(CYAN)Run 'make install-dev' to get all development tools$(NC)"; \
+		echo -e "$(CYAN)Run 'make install-test' to get all development tools$(NC)"; \
 	fi
 
 security-safety: _load_env ## ⚙️ Execute Safety dependency vulnerability scanner
@@ -267,7 +269,7 @@ security-safety: _load_env ## ⚙️ Execute Safety dependency vulnerability sca
 		echo -e "$(GREEN)✓ Safety dependency scan completed$(NC)"; \
 	else \
 		echo -e "$(YELLOW)⚠ Safety not available. Install with: pip install safety$(NC)"; \
-		echo -e "$(CYAN)Run 'make install-dev' to get all development tools$(NC)"; \
+		echo -e "$(CYAN)Run 'make install-test' to get all development tools$(NC)"; \
 	fi
 
 # ============================================================================
@@ -294,7 +296,7 @@ pre-commit-install: _load_env ## 📦 Install pre-commit hooks
 		echo -e "$(GREEN)✓ Pre-commit hooks installed$(NC)"; \
 	else \
 		echo -e "$(YELLOW)⚠ pre-commit not available. Install with: pip install pre-commit$(NC)"; \
-		echo -e "$(CYAN)Run 'make install-dev' to get all development tools$(NC)"; \
+		echo -e "$(CYAN)Run 'make install-test' to get all development tools$(NC)"; \
 	fi
 
 pre-commit-run: _load_env ## ⚙️ Execute pre-commit hooks on staged files
@@ -315,11 +317,11 @@ pre-commit-run: _load_env ## ⚙️ Execute pre-commit hooks on staged files
 
 _check_black_deps: ## Internal: Check Black dependencies
 	@$(PYTHON) -c "import black" 2>/dev/null || \
-	(echo -e "$(RED)❌ Black not available. Run 'make install-dev' first.$(NC)" && exit 1)
+	(echo -e "$(RED)❌ Black not available. Run 'make install-test' first.$(NC)" && exit 1)
 
 _check_pylint_deps: ## Internal: Check Pylint dependencies
 	@$(PYTHON) -c "import pylint" 2>/dev/null || \
-	(echo -e "$(RED)❌ Pylint not available. Run 'make install-dev' first.$(NC)" && exit 1)
+	(echo -e "$(RED)❌ Pylint not available. Run 'make install-test' first.$(NC)" && exit 1)
 
 _check_mypy_deps: ## Internal: Check MyPy dependencies
 	@$(PYTHON) -c "import mypy" 2>/dev/null || \

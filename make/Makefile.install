@@ -158,7 +158,7 @@ _suggest_manual_install: ## Internal: Suggest manual installation steps
 # PYTHON PACKAGE INSTALLATION
 # ============================================================================
 
-.PHONY: install install-test install-dev install-all pip-list pip-outdated pip-update
+.PHONY: install install-test install-all pip-list pip-outdated pip-update
 
 install: _load_env _setup_python_environment ## 📦 Install production dependencies
 	@echo -e "$(BLUE)Installing production dependencies...$(NC)"
@@ -172,16 +172,10 @@ install-test: _load_env _setup_python_environment ## 🧪 Install testing depend
 	@$(PIP) install -e ".[test]" --quiet
 	@echo -e "$(GREEN)✓ Testing dependencies installed$(NC)"
 
-install-dev: _load_env _setup_python_environment ## 📦 Install development dependencies
-	@echo -e "$(BLUE)Installing development dependencies...$(NC)"
-	@echo -e "$(YELLOW)Installing all package groups...$(NC)"
-	@$(PIP) install -e ".[dev,test]" --quiet
-	@echo -e "$(GREEN)✓ Development dependencies installed$(NC)"
-
-install-all: _load_env _setup_python_environment ## 📦 Install all dependencies (runtime + test + dev)
+install-all: _load_env _setup_python_environment ## 📦 Install all dependencies (runtime + test)
 	@echo -e "$(BLUE)Installing all dependencies...$(NC)"
 	@echo -e "$(YELLOW)Installing complete package set...$(NC)"
-	@$(PIP) install -e ".[dev,test]" --quiet
+	@$(PIP) install -e ".[test]" --quiet
 	@echo -e "$(GREEN)✓ All dependencies installed$(NC)"
 
 pip-list: ## 📦 List and display installed packages
@@ -221,7 +215,7 @@ validate-install: ## 📦 Comprehensive installation validation with imports
 	@$(PYTHON) -c "import pandas; print('✓ pandas available')"
 	@$(PYTHON) -c "import psycopg2; print('✓ psycopg2 available')" 2>/dev/null || echo -e "$(YELLOW)⚠ psycopg2 not available (install-test or install-dev needed)$(NC)"
 	@$(PYTHON) -c "import pytest; print('✓ pytest available')" 2>/dev/null || echo -e "$(YELLOW)⚠ pytest not available (install-test or install-dev needed)$(NC)"
-	@$(PYTHON) -c "import black; print('✓ black available')" 2>/dev/null || echo -e "$(YELLOW)⚠ black not available (install-dev needed)$(NC)"
+	@$(PYTHON) -c "import black; print('✓ black available')" 2>/dev/null || echo -e "$(YELLOW)⚠ black not available (install-test needed)$(NC)"
 	@echo -e "$(GREEN)✓ Installation validation completed$(NC)"
 
 _check_package_group: ## Internal: Check if package group is installed
@@ -234,7 +228,7 @@ _check_package_group: ## Internal: Check if package group is installed
 			(echo -e "$(RED)❌ Test packages missing. Run 'make install-test'$(NC)" && exit 1) ;; \
 		"dev") \
 			$(PYTHON) -c "import black" 2>/dev/null && echo -e "$(GREEN)✓ Dev packages installed$(NC)" || \
-			(echo -e "$(RED)❌ Dev packages missing. Run 'make install-dev'$(NC)" && exit 1) ;; \
+			(echo -e "$(RED)❌ Dev packages missing. Run 'make install-test'$(NC)" && exit 1) ;; \
 		*) \
 			echo -e "$(RED)Unknown package group: $(GROUP)$(NC)" && exit 1 ;; \
 	esac
@@ -265,7 +259,7 @@ deps-security: ## 📦 Validate for security vulnerabilities in dependencies
 		$(PYTHON) -m safety check; \
 	else \
 		echo -e "$(YELLOW)Safety not available. Install with: pip install safety$(NC)"; \
-		echo -e "$(YELLOW)Alternatively, run: make install-dev$(NC)"; \
+		echo -e "$(YELLOW)Alternatively, run: make install-test$(NC)"; \
 	fi
 
 # ============================================================================
@@ -273,37 +267,6 @@ deps-security: ## 📦 Validate for security vulnerabilities in dependencies
 # ============================================================================
 
 .PHONY: fresh-install quick-install developer-setup
-
-fresh-install: ## 📦 Complete fresh installation from scratch
-	@echo -e "$(BLUE)Performing fresh installation...$(NC)"
-	@$(MAKE) check-tools
-	@$(MAKE) _setup_python_environment
-	@$(MAKE) pip-update
-	@$(MAKE) install-all
-	@$(MAKE) validate-install
-	@echo -e "$(GREEN)✓ Fresh installation completed$(NC)"
-
-quick-install: ## 📦 Quick installation for CI/CD or minimal setup
-	@echo -e "$(BLUE)Performing quick installation...$(NC)"
-	@$(MAKE) _setup_python_environment
-	@$(MAKE) install
-	@echo -e "$(GREEN)✓ Quick installation completed$(NC)"
-
-developer-setup: ## 📦 Complete developer environment setup
-	@echo -e "$(BLUE)Setting up developer environment...$(NC)"
-	@$(MAKE) check-tools
-	@$(MAKE) _setup_python_environment
-	@$(MAKE) pip-update
-	@$(MAKE) install-dev
-	@$(MAKE) validate-install
-	@echo -e "$(CYAN)Optional: Install pre-commit hooks$(NC)"
-	@if $(PYTHON) -c "import pre_commit" 2>/dev/null; then \
-		$(PYTHON) -m pre_commit install; \
-		echo -e "$(GREEN)✓ Pre-commit hooks installed$(NC)"; \
-	else \
-		echo -e "$(YELLOW)⚠ pre-commit not available$(NC)"; \
-	fi
-	@echo -e "$(GREEN)✓ Developer environment setup completed$(NC)"
 
 # ============================================================================
 # INSTALLATION DEBUGGING AND TROUBLESHOOTING
@@ -335,14 +298,14 @@ install-info: ## 📦 Display installation information and recommendations
 	@echo -e "$(YELLOW)Available Installation Commands:$(NC)"
 	@echo -e "  make install          # Production runtime only"
 	@echo -e "  make install-test     # Production + testing tools"
-	@echo -e "  make install-dev      # Production + testing + development tools"
+	@echo -e "  make install-test     # Production + testing + development tools"
 	@echo -e "  make install-all      # Complete installation"
 	@echo ""
 	@echo -e "$(YELLOW)Recommended Workflows:$(NC)"
 	@echo -e "  Production:           make install"
 	@echo -e "  CI/CD:                make install-test"
-	@echo -e "  Development:          make install-dev"
-	@echo -e "  Complete Setup:       make setup && make install-dev"
+	@echo -e "  Development:          make install-test"
+	@echo -e "  Complete Setup:       make setup && make install-test"
 
 install-doctor: ## 📦 Diagnose and suggest fixes for installation problems
 	@echo -e "$(CYAN)Installation Doctor - Diagnosing Issues...$(NC)"

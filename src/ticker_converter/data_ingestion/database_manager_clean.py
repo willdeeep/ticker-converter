@@ -130,9 +130,7 @@ class DatabaseManager:
             cursor = conn.cursor()
 
             # PostgreSQL bulk insert
-            from psycopg2.extras import (
-                execute_values,  # pylint: disable=import-outside-toplevel
-            )
+            from psycopg2.extras import execute_values  # pylint: disable=import-outside-toplevel
 
             # Convert dict records to tuple values
             columns = list(records[0].keys())
@@ -249,9 +247,7 @@ class DatabaseManager:
                 return True
 
             # PostgreSQL-specific insert with upsert functionality
-            from psycopg2.extras import (
-                execute_values,  # pylint: disable=import-outside-toplevel
-            )
+            from psycopg2.extras import execute_values  # pylint: disable=import-outside-toplevel
 
             date_record = {
                 "date_value": dt.strftime("%Y-%m-%d"),

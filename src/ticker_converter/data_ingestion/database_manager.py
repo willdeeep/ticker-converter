@@ -130,9 +130,7 @@ class DatabaseManager:
             cursor = conn.cursor()
 
             # PostgreSQL bulk insert
-            from psycopg2.extras import (
-                execute_values,  # pylint: disable=import-outside-toplevel
-            )
+            from psycopg2.extras import execute_values  # pylint: disable=import-outside-toplevel
 
             # Convert dict records to tuple values
             columns = list(records[0].keys())
