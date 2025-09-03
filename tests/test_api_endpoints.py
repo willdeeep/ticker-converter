@@ -1,7 +1,7 @@
 """Unit tests for Magnificent Seven Stock Performance API."""
 
+from collections.abc import AsyncIterator
 from datetime import date
-from typing import AsyncIterator
 from unittest.mock import AsyncMock
 
 import pytest

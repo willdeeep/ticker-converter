@@ -131,7 +131,7 @@ class TestAirflowDAGValidation:
 
         # Test Python syntax by attempting to compile
         try:
-            with open(test_dag_path, "r", encoding="utf-8") as f:
+            with open(test_dag_path, encoding="utf-8") as f:
                 source_code = f.read()
             compile(source_code, str(test_dag_path), "exec")
         except SyntaxError as e:
@@ -149,7 +149,7 @@ class TestAirflowDAGValidation:
 
         test_dag_path = dags_path / "test_etl_dag.py"
 
-        with open(test_dag_path, "r", encoding="utf-8") as f:
+        with open(test_dag_path, encoding="utf-8") as f:
             content = f.read()
 
         # Check for required components
@@ -209,7 +209,7 @@ class TestAirflowServiceConnectivity:
 
         test_dag_path = dags_path / "test_etl_dag.py"
 
-        with open(test_dag_path, "r", encoding="utf-8") as f:
+        with open(test_dag_path, encoding="utf-8") as f:
             content = f.read()
 
         # Check that environment variables are used
