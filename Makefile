@@ -128,16 +128,16 @@ help-testing: ## 🧪 Display testing and coverage commands
 	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
 
 help-quality: ## ✅ Display code quality and linting commands
-	@echo -e "$(CYAN)Code Quality & Linting:$(NC)"
+	@printf "\\033[0;36mCode Quality & Linting:\\033[0m\\n"
 	@echo ""
 	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.quality | \
-	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}'
 
 help-cleanup: ## 🧹 Display cleanup and teardown commands
-	@echo -e "$(CYAN)Cleanup & Teardown:$(NC)"
+	@printf "\\033[0;36mCleanup & Teardown:\\033[0m\\n"
 	@echo ""
 	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.cleanup | \
-	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # =============================================================================
 # LEGACY COMPATIBILITY ALIASES

@@ -37,6 +37,8 @@ MANIFEST
 .ruff_cache/
 .coverage
 coverage.xml
+quality-report.md
+bandit-report.json
 htmlcov/
 .tox/
 sqlfluff_errors.json

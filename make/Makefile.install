@@ -14,43 +14,43 @@
 .PHONY: check-tools install-system-deps _suggest_system_install
 
 check-tools: ## ⚙️ Verify required system tools availability
-	@echo -e "$(CYAN)Checking system tool availability...$(NC)"
-	@echo -e "$(YELLOW)Required Tools:$(NC)"
-	@echo -e "  Python: $(if $(HAS_PYTHON),$(GREEN)✓ Available,$(RED)❌ Missing) $(if $(PYTHON_CMD),- $(PYTHON_CMD),)$(NC)"
-	@echo -e "  Git: $(if $(HAS_GIT),$(GREEN)✓ Available,$(RED)❌ Missing) $(if $(GIT_CMD),- $(GIT_CMD),)$(NC)"
-	@echo -e "  PostgreSQL: $(if $(HAS_PSQL),$(GREEN)✓ Available,$(RED)❌ Missing) $(if $(PSQL_CMD),- $(PSQL_CMD),)$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Checking system tool availability...$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Required Tools:$(NC)\n"
+	@$(ECHO_CMD) "  Python: $(if $(HAS_PYTHON),$(GREEN)✓ Available,$(RED)❌ Missing) $(if $(PYTHON_CMD),- $(PYTHON_CMD),)$(NC)\n"
+	@$(ECHO_CMD) "  Git: $(if $(HAS_GIT),$(GREEN)✓ Available,$(RED)❌ Missing) $(if $(GIT_CMD),- $(GIT_CMD),)$(NC)\n"
+	@$(ECHO_CMD) "  PostgreSQL: $(if $(HAS_PSQL),$(GREEN)✓ Available,$(RED)❌ Missing) $(if $(PSQL_CMD),- $(PSQL_CMD),)$(NC)\n"
 	@echo ""
-	@echo -e "$(YELLOW)Optional Tools:$(NC)"
-	@echo -e "  pyenv: $(if $(HAS_PYENV),$(GREEN)✓ Available,$(YELLOW)○ Optional) $(if $(PYENV_CMD),- $(PYENV_CMD),)$(NC)"
-	@echo -e "  Docker: $(if $(HAS_DOCKER),$(GREEN)✓ Available,$(YELLOW)○ Optional) $(if $(DOCKER_CMD),- $(DOCKER_CMD),)$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Optional Tools:$(NC)\n"
+	@$(ECHO_CMD) "  pyenv: $(if $(HAS_PYENV),$(GREEN)✓ Available,$(YELLOW)○ Optional) $(if $(PYENV_CMD),- $(PYENV_CMD),)$(NC)\n"
+	@$(ECHO_CMD) "  Docker: $(if $(HAS_DOCKER),$(GREEN)✓ Available,$(YELLOW)○ Optional) $(if $(DOCKER_CMD),- $(DOCKER_CMD),)$(NC)\n"
 	@echo ""
-	@echo -e "$(YELLOW)Package Managers:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Package Managers:$(NC)\n"
 ifeq ($(PLATFORM_OS),macos)
-	@echo -e "  Homebrew: $(if $(HAS_BREW),$(GREEN)✓ Available,$(YELLOW)○ Recommended) $(if $(BREW_CMD),- $(BREW_CMD),)$(NC)"
+	@$(ECHO_CMD) "  Homebrew: $(if $(HAS_BREW),$(GREEN)✓ Available,$(YELLOW)○ Recommended) $(if $(BREW_CMD),- $(BREW_CMD),)$(NC)\n"
 else ifeq ($(PLATFORM_OS),linux)
-	@echo -e "  APT: $(if $(HAS_APT),$(GREEN)✓ Available,$(YELLOW)○ N/A) $(if $(APT_CMD),- $(APT_CMD),)$(NC)"
-	@echo -e "  YUM: $(if $(HAS_YUM),$(GREEN)✓ Available,$(YELLOW)○ N/A) $(if $(YUM_CMD),- $(YUM_CMD),)$(NC)"
+	@$(ECHO_CMD) "  APT: $(if $(HAS_APT),$(GREEN)✓ Available,$(YELLOW)○ N/A) $(if $(APT_CMD),- $(APT_CMD),)$(NC)\n"
+	@$(ECHO_CMD) "  YUM: $(if $(HAS_YUM),$(GREEN)✓ Available,$(YELLOW)○ N/A) $(if $(YUM_CMD),- $(YUM_CMD),)$(NC)\n"
 else ifeq ($(PLATFORM_OS),windows)
-	@echo -e "  Chocolatey: $(if $(HAS_CHOCO),$(GREEN)✓ Available,$(YELLOW)○ Recommended) $(if $(CHOCO_CMD),- $(CHOCO_CMD),)$(NC)"
+	@$(ECHO_CMD) "  Chocolatey: $(if $(HAS_CHOCO),$(GREEN)✓ Available,$(YELLOW)○ Recommended) $(if $(CHOCO_CMD),- $(CHOCO_CMD),)$(NC)\n"
 endif
 ifeq ($(HAS_PYTHON)$(HAS_GIT)$(HAS_PSQL),nonono)
-	@echo -e "$(RED)Error: Critical tools missing. Run 'make install-system-deps' to install.$(NC)"
+	@$(ECHO_CMD) "$(RED)Error: Critical tools missing. Run 'make install-system-deps' to install.$(NC)\n"
 	@exit 1
 else ifeq ($(HAS_PYTHON)$(HAS_GIT),nono)
-	@echo -e "$(RED)Error: Python and Git are required. Run 'make install-system-deps' to install.$(NC)"
+	@$(ECHO_CMD) "$(RED)Error: Python and Git are required. Run 'make install-system-deps' to install.$(NC)\n"
 	@exit 1
 else ifeq ($(HAS_PYTHON),no)
-	@echo -e "$(RED)Error: Python is required. Run 'make install-system-deps' to install.$(NC)"
+	@$(ECHO_CMD) "$(RED)Error: Python is required. Run 'make install-system-deps' to install.$(NC)\n"
 	@exit 1
 else ifeq ($(HAS_GIT),no)
-	@echo -e "$(RED)Error: Git is required. Run 'make install-system-deps' to install.$(NC)"
+	@$(ECHO_CMD) "$(RED)Error: Git is required. Run 'make install-system-deps' to install.$(NC)\n"
 	@exit 1
 else
-	@echo -e "$(GREEN)✓ All critical tools are available$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ All critical tools are available$(NC)\n"
 endif
 
 install-system-deps: ## 📦 Install system-level dependencies
-	@echo -e "$(BLUE)Installing system dependencies...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Installing system dependencies...$(NC)\n"
 ifeq ($(PLATFORM_OS),macos)
 	@$(MAKE) _install_macos_deps
 else ifeq ($(PLATFORM_OS),linux)
@@ -58,50 +58,50 @@ else ifeq ($(PLATFORM_OS),linux)
 else ifeq ($(PLATFORM_OS),windows)
 	@$(MAKE) _install_windows_deps
 else
-	@echo -e "$(RED)Error: Unsupported platform for automatic installation$(NC)"
+	@$(ECHO_CMD) "$(RED)Error: Unsupported platform for automatic installation$(NC)\n"
 	@$(MAKE) _suggest_manual_install
 	@exit 1
 endif
-	@echo -e "$(GREEN)✓ System dependencies installation completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ System dependencies installation completed$(NC)\n"
 
 _install_macos_deps: ## Internal: Install macOS dependencies
-	@echo -e "$(YELLOW)Installing macOS dependencies...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing macOS dependencies...$(NC)\n"
 ifeq ($(HAS_BREW),no)
-	@echo -e "$(YELLOW)Installing Homebrew...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing Homebrew...$(NC)\n"
 	@/bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 endif
 ifeq ($(HAS_PYTHON),no)
-	@echo -e "$(YELLOW)Installing Python...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing Python...$(NC)\n"
 	@$(BREW_CMD) install python@3.11
 endif
 ifeq ($(HAS_GIT),no)
-	@echo -e "$(YELLOW)Installing Git...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing Git...$(NC)\n"
 	@$(BREW_CMD) install git
 endif
 ifeq ($(HAS_PSQL),no)
-	@echo -e "$(YELLOW)Installing PostgreSQL...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing PostgreSQL...$(NC)\n"
 	@$(BREW_CMD) install postgresql@15
 	@$(BREW_CMD) services start postgresql@15
 endif
 ifeq ($(HAS_PYENV),no)
-	@echo -e "$(YELLOW)Installing pyenv (recommended)...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing pyenv (recommended)...$(NC)\n"
 	@$(BREW_CMD) install pyenv
 endif
 
 _install_linux_deps: ## Internal: Install Linux dependencies
-	@echo -e "$(YELLOW)Installing Linux dependencies...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing Linux dependencies...$(NC)\n"
 ifeq ($(HAS_APT),yes)
 	@sudo apt update
 ifeq ($(HAS_PYTHON),no)
-	@echo -e "$(YELLOW)Installing Python...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing Python...$(NC)\n"
 	@sudo apt install -y python3 python3-pip python3-venv python3-dev
 endif
 ifeq ($(HAS_GIT),no)
-	@echo -e "$(YELLOW)Installing Git...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing Git...$(NC)\n"
 	@sudo apt install -y git
 endif
 ifeq ($(HAS_PSQL),no)
-	@echo -e "$(YELLOW)Installing PostgreSQL...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing PostgreSQL...$(NC)\n"
 	@sudo apt install -y postgresql postgresql-contrib
 	@sudo systemctl start postgresql
 	@sudo systemctl enable postgresql
@@ -109,50 +109,50 @@ endif
 else ifeq ($(HAS_YUM),yes)
 	@sudo yum update -y
 ifeq ($(HAS_PYTHON),no)
-	@echo -e "$(YELLOW)Installing Python...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing Python...$(NC)\n"
 	@sudo yum install -y python3 python3-pip python3-devel
 endif
 ifeq ($(HAS_GIT),no)
-	@echo -e "$(YELLOW)Installing Git...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing Git...$(NC)\n"
 	@sudo yum install -y git
 endif
 ifeq ($(HAS_PSQL),no)
-	@echo -e "$(YELLOW)Installing PostgreSQL...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing PostgreSQL...$(NC)\n"
 	@sudo yum install -y postgresql-server postgresql-contrib
 	@sudo postgresql-setup initdb
 	@sudo systemctl start postgresql
 	@sudo systemctl enable postgresql
 endif
 else
-	@echo -e "$(YELLOW)Package manager not detected. Please install manually:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Package manager not detected. Please install manually:$(NC)\n"
 	@$(MAKE) _suggest_manual_install
 endif
 
 _install_windows_deps: ## Internal: Install Windows dependencies
-	@echo -e "$(YELLOW)Installing Windows dependencies...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing Windows dependencies...$(NC)\n"
 ifeq ($(HAS_CHOCO),yes)
 ifeq ($(HAS_PYTHON),no)
-	@echo -e "$(YELLOW)Installing Python...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing Python...$(NC)\n"
 	@choco install python -y
 endif
 ifeq ($(HAS_GIT),no)
-	@echo -e "$(YELLOW)Installing Git...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing Git...$(NC)\n"
 	@choco install git -y
 endif
 ifeq ($(HAS_PSQL),no)
-	@echo -e "$(YELLOW)Installing PostgreSQL...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Installing PostgreSQL...$(NC)\n"
 	@choco install postgresql -y
 endif
 else
-	@echo -e "$(YELLOW)Chocolatey not available. Please install manually:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Chocolatey not available. Please install manually:$(NC)\n"
 	@$(MAKE) _suggest_manual_install
 endif
 
 _suggest_manual_install: ## Internal: Suggest manual installation steps
-	@echo -e "$(CYAN)Manual Installation Guide:$(NC)"
-	@echo -e "$(YELLOW)Python 3.11+:$(NC) https://www.python.org/downloads/"
-	@echo -e "$(YELLOW)Git:$(NC) https://git-scm.com/downloads"
-	@echo -e "$(YELLOW)PostgreSQL:$(NC) https://www.postgresql.org/download/"
+	@$(ECHO_CMD) "$(CYAN)Manual Installation Guide:$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Python 3.11+:$(NC) https://www.python.org/downloads/\n"
+	@$(ECHO_CMD) "$(YELLOW)Git:$(NC) https://git-scm.com/downloads\n"
+	@$(ECHO_CMD) "$(YELLOW)PostgreSQL:$(NC) https://www.postgresql.org/download/\n"
 
 # ============================================================================
 # PYTHON PACKAGE INSTALLATION
@@ -161,35 +161,35 @@ _suggest_manual_install: ## Internal: Suggest manual installation steps
 .PHONY: install install-test install-all pip-list pip-outdated pip-update
 
 install: _load_env _setup_python_environment ## 📦 Install production dependencies
-	@echo -e "$(BLUE)Installing production dependencies...$(NC)"
-	@echo -e "$(YELLOW)Installing core packages from pyproject.toml...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Installing production dependencies...$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Installing core packages from pyproject.toml...$(NC)\n"
 	@$(PIP) install -e . --quiet
-	@echo -e "$(GREEN)✓ Production dependencies installed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Production dependencies installed$(NC)\n"
 
 install-test: _load_env _setup_python_environment ## 🧪 Install testing dependencies
-	@echo -e "$(BLUE)Installing testing dependencies...$(NC)"
-	@echo -e "$(YELLOW)Installing test packages...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Installing testing dependencies...$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Installing test packages...$(NC)\n"
 	@$(PIP) install -e ".[test]" --quiet
-	@echo -e "$(GREEN)✓ Testing dependencies installed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Testing dependencies installed$(NC)\n"
 
 install-all: _load_env _setup_python_environment ## 📦 Install all dependencies (runtime + test)
-	@echo -e "$(BLUE)Installing all dependencies...$(NC)"
-	@echo -e "$(YELLOW)Installing complete package set...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Installing all dependencies...$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Installing complete package set...$(NC)\n"
 	@$(PIP) install -e ".[test]" --quiet
-	@echo -e "$(GREEN)✓ All dependencies installed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ All dependencies installed$(NC)\n"
 
 pip-list: ## 📦 List and display installed packages
-	@echo -e "$(CYAN)Installed Python packages:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Installed Python packages:$(NC)\n"
 	@$(PIP) list
 
 pip-outdated: ## 📦 Validate for package updates
-	@echo -e "$(CYAN)Checking for outdated packages:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Checking for outdated packages:$(NC)\n"
 	@$(PIP) list --outdated
 
 pip-update: ## 📦 Update pip and setuptools
-	@echo -e "$(YELLOW)Updating pip and setuptools...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Updating pip and setuptools...$(NC)\n"
 	@$(PIP) install --upgrade pip setuptools --quiet
-	@echo -e "$(GREEN)✓ Package tools updated$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Package tools updated$(NC)\n"
 
 # ============================================================================
 # INSTALLATION VALIDATION
@@ -198,25 +198,25 @@ pip-update: ## 📦 Update pip and setuptools
 .PHONY: check-install validate-install _check_package_group
 
 check-install: ## 📦 Validate installation completeness
-	@echo -e "$(CYAN)Validating installation...$(NC)"
-	@echo -e "$(YELLOW)Checking Python environment...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Validating installation...$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Checking Python environment...$(NC)\n"
 	@$(PYTHON) --version
-	@echo -e "$(YELLOW)Checking pip functionality...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Checking pip functionality...$(NC)\n"
 	@$(PIP) --version
-	@echo -e "$(YELLOW)Checking core package installation...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Checking core package installation...$(NC)\n"
 	@$(MAKE) _check_package_group GROUP=core
-	@echo -e "$(GREEN)✓ Installation validation completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Installation validation completed$(NC)\n"
 
 validate-install: ## 📦 Comprehensive installation validation with imports
-	@echo -e "$(CYAN)Comprehensive installation validation...$(NC)"
-	@echo -e "$(YELLOW)Testing core imports...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Comprehensive installation validation...$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Testing core imports...$(NC)\n"
 	@$(PYTHON) -c "import ticker_converter; print('✓ ticker_converter module available')"
 	@$(PYTHON) -c "import requests; print('✓ requests available')"
 	@$(PYTHON) -c "import pandas; print('✓ pandas available')"
 	@$(PYTHON) -c "import psycopg2; print('✓ psycopg2 available')" 2>/dev/null || echo -e "$(YELLOW)⚠ psycopg2 not available (install-test or install-dev needed)$(NC)"
 	@$(PYTHON) -c "import pytest; print('✓ pytest available')" 2>/dev/null || echo -e "$(YELLOW)⚠ pytest not available (install-test or install-dev needed)$(NC)"
 	@$(PYTHON) -c "import black; print('✓ black available')" 2>/dev/null || echo -e "$(YELLOW)⚠ black not available (install-test needed)$(NC)"
-	@echo -e "$(GREEN)✓ Installation validation completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Installation validation completed$(NC)\n"
 
 _check_package_group: ## Internal: Check if package group is installed
 	@case "$(GROUP)" in \
@@ -240,7 +240,7 @@ _check_package_group: ## Internal: Check if package group is installed
 .PHONY: deps-tree deps-check deps-security
 
 deps-tree: ## 📦 Display dependency tree
-	@echo -e "$(CYAN)Dependency tree:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Dependency tree:$(NC)\n"
 	@if $(PYTHON) -c "import pipdeptree" 2>/dev/null; then \
 		$(PYTHON) -m pipdeptree; \
 	else \
@@ -249,12 +249,12 @@ deps-tree: ## 📦 Display dependency tree
 	fi
 
 deps-check: ## 📦 Validate for dependency conflicts
-	@echo -e "$(CYAN)Checking for dependency conflicts...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Checking for dependency conflicts...$(NC)\n"
 	@$(PIP) check && echo -e "$(GREEN)✓ No dependency conflicts found$(NC)" || \
 	echo -e "$(RED)❌ Dependency conflicts detected$(NC)"
 
 deps-security: ## 📦 Validate for security vulnerabilities in dependencies
-	@echo -e "$(CYAN)Scanning for security vulnerabilities...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Scanning for security vulnerabilities...$(NC)\n"
 	@if $(PYTHON) -c "import safety" 2>/dev/null; then \
 		$(PYTHON) -m safety check; \
 	else \
@@ -275,45 +275,45 @@ deps-security: ## 📦 Validate for security vulnerabilities in dependencies
 .PHONY: install-debug install-info install-doctor
 
 install-debug: ## 📦 Debug and troubleshoot installation issues
-	@echo -e "$(CYAN)Installation debug information:$(NC)"
-	@echo -e "$(YELLOW)Platform Information:$(NC)"
-	@echo -e "  OS: $(PLATFORM_OS)"
-	@echo -e "  Architecture: $(PLATFORM_ARCH)"
-	@echo -e "  Family: $(PLATFORM_FAMILY)"
+	@$(ECHO_CMD) "$(CYAN)Installation debug information:$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Platform Information:$(NC)\n"
+	@$(ECHO_CMD) "  OS: $(PLATFORM_OS)\n"
+	@$(ECHO_CMD) "  Architecture: $(PLATFORM_ARCH)\n"
+	@$(ECHO_CMD) "  Family: $(PLATFORM_FAMILY)\n"
 	@echo ""
-	@echo -e "$(YELLOW)Python Environment:$(NC)"
-	@echo -e "  Python Command: $(PYTHON)"
-	@echo -e "  Python Version: $(shell $(PYTHON) --version 2>/dev/null || echo 'Not Available')"
-	@echo -e "  Virtual Environment: $(if $(wildcard $(VENV_PYTHON)),Active ($(VENV_PATH)),Not Active)"
-	@echo -e "  Pip Command: $(PIP)"
-	@echo -e "  Pip Version: $(shell $(PIP) --version 2>/dev/null || echo 'Not Available')"
+	@$(ECHO_CMD) "$(YELLOW)Python Environment:$(NC)\n"
+	@$(ECHO_CMD) "  Python Command: $(PYTHON)\n"
+	@$(ECHO_CMD) "  Python Version: $(shell $(PYTHON) --version 2>/dev/null || echo 'Not Available')\n"
+	@$(ECHO_CMD) "  Virtual Environment: $(if $(wildcard $(VENV_PYTHON)),Active ($(VENV_PATH)),Not Active)\n"
+	@$(ECHO_CMD) "  Pip Command: $(PIP)\n"
+	@$(ECHO_CMD) "  Pip Version: $(shell $(PIP) --version 2>/dev/null || echo 'Not Available')\n"
 	@echo ""
-	@echo -e "$(YELLOW)Package Installation Status:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Package Installation Status:$(NC)\n"
 	@$(PYTHON) -c "import ticker_converter; print('✓ Core package installed')" 2>/dev/null || echo "❌ Core package not installed"
 	@$(PYTHON) -c "import pytest; print('✓ Test dependencies installed')" 2>/dev/null || echo "○ Test dependencies not installed"
 	@$(PYTHON) -c "import black; print('✓ Dev dependencies installed')" 2>/dev/null || echo "○ Dev dependencies not installed"
 
 install-info: ## 📦 Display installation information and recommendations
-	@echo -e "$(CYAN)Installation Information:$(NC)"
-	@echo -e "$(YELLOW)Available Installation Commands:$(NC)"
-	@echo -e "  make install          # Production runtime only"
-	@echo -e "  make install-test     # Production + testing tools"
-	@echo -e "  make install-test     # Production + testing + development tools"
-	@echo -e "  make install-all      # Complete installation"
+	@$(ECHO_CMD) "$(CYAN)Installation Information:$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Available Installation Commands:$(NC)\n"
+	@$(ECHO_CMD) "  make install          # Production runtime only\n"
+	@$(ECHO_CMD) "  make install-test     # Production + testing tools\n"
+	@$(ECHO_CMD) "  make install-test     # Production + testing + development tools\n"
+	@$(ECHO_CMD) "  make install-all      # Complete installation\n"
 	@echo ""
-	@echo -e "$(YELLOW)Recommended Workflows:$(NC)"
-	@echo -e "  Production:           make install"
-	@echo -e "  CI/CD:                make install-test"
-	@echo -e "  Development:          make install-test"
-	@echo -e "  Complete Setup:       make setup && make install-test"
+	@$(ECHO_CMD) "$(YELLOW)Recommended Workflows:$(NC)\n"
+	@$(ECHO_CMD) "  Production:           make install\n"
+	@$(ECHO_CMD) "  CI/CD:                make install-test\n"
+	@$(ECHO_CMD) "  Development:          make install-test\n"
+	@$(ECHO_CMD) "  Complete Setup:       make setup && make install-test\n"
 
 install-doctor: ## 📦 Diagnose and suggest fixes for installation problems
-	@echo -e "$(CYAN)Installation Doctor - Diagnosing Issues...$(NC)"
-	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo -e "$(YELLOW)1. Checking system requirements...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Installation Doctor - Diagnosing Issues...$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)1. Checking system requirements...$(NC)\n"
 	@$(MAKE) check-tools 2>/dev/null || echo -e "$(RED)Issue: Missing system tools$(NC)"
 	@echo ""
-	@echo -e "$(YELLOW)2. Checking Python environment...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)2. Checking Python environment...$(NC)\n"
 	@if [ ! -f $(VENV_PYTHON) ]; then \
 		echo -e "$(RED)Issue: Virtual environment not found$(NC)"; \
 		echo -e "$(CYAN)Fix: Run 'make setup' to create virtual environment$(NC)"; \
@@ -321,14 +321,14 @@ install-doctor: ## 📦 Diagnose and suggest fixes for installation problems
 		echo -e "$(GREEN)✓ Virtual environment available$(NC)"; \
 	fi
 	@echo ""
-	@echo -e "$(YELLOW)3. Checking package installation...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)3. Checking package installation...$(NC)\n"
 	@$(MAKE) _check_package_group GROUP=core 2>/dev/null || \
 		echo -e "$(CYAN)Fix: Run 'make install' to install core packages$(NC)"
 	@echo ""
-	@echo -e "$(YELLOW)4. Checking dependency conflicts...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)4. Checking dependency conflicts...$(NC)\n"
 	@$(MAKE) deps-check 2>/dev/null || \
 		echo -e "$(CYAN)Fix: Review conflicts and update packages$(NC)"
-	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)\n"
 
 # Export installation-related variables
 export PYTHON

@@ -18,7 +18,7 @@ AIRFLOW_DAGS_FOLDER := $(shell pwd)/dags
 .PHONY: airflow-start airflow-stop airflow-restart airflow-status _check_airflow_deps
 
 airflow-start: _load_env _check_airflow_deps airflow-init ## 🌊 Start Airflow (scheduler + webserver)
-	@echo -e "$(BLUE)Starting Apache Airflow...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Starting Apache Airflow...$(NC)\n"
 	@set -a && . ./.env && set +a && \
 	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
 	export AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" && \
@@ -38,7 +38,7 @@ airflow-start: _load_env _check_airflow_deps airflow-init ## 🌊 Start Airflow 
 	echo -e "$(CYAN)Logs: airflow/airflow-*.out$(NC)"
 
 airflow-stop: ## 🌊 Stop all Airflow processes
-	@echo -e "$(BLUE)Stopping Apache Airflow...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Stopping Apache Airflow...$(NC)\n"
 	@if [ -f airflow/scheduler.pid ]; then \
 		echo -e "$(YELLOW)Stopping Airflow scheduler...$(NC)"; \
 		kill $$(cat airflow/scheduler.pid) 2>/dev/null || true; \
@@ -51,13 +51,13 @@ airflow-stop: ## 🌊 Stop all Airflow processes
 	fi
 	@pkill -f "airflow scheduler" 2>/dev/null || true
 	@pkill -f "airflow webserver" 2>/dev/null || true
-	@echo -e "$(GREEN)✓ Airflow stopped$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Airflow stopped$(NC)\n"
 
 airflow-restart: airflow-stop airflow-start ## 🌊 Restart Airflow services
-	@echo -e "$(GREEN)✓ Airflow restarted$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Airflow restarted$(NC)\n"
 
 airflow-status: ## 🌊 Validate Airflow process status
-	@echo -e "$(CYAN)Airflow process status:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Airflow process status:$(NC)\n"
 	@if [ -f airflow/scheduler.pid ] && kill -0 $$(cat airflow/scheduler.pid) 2>/dev/null; then \
 		echo -e "$(GREEN)✓ Scheduler running (PID: $$(cat airflow/scheduler.pid))$(NC)"; \
 	else \
@@ -82,7 +82,7 @@ airflow-status: ## 🌊 Validate Airflow process status
 .PHONY: airflow-init airflow-reset airflow-config _setup_airflow_dirs _init_airflow_db
 
 airflow-init: _load_env _setup_airflow_dirs _init_airflow_db ## 🌊 Initialize Airflow database and admin user
-	@echo -e "$(BLUE)Initializing Apache Airflow...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Initializing Apache Airflow...$(NC)\n"
 	@set -a && . ./.env && set +a && \
 	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
 	export AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" && \
@@ -102,17 +102,17 @@ airflow-init: _load_env _setup_airflow_dirs _init_airflow_db ## 🌊 Initialize 
 	echo -e "$(GREEN)✓ Airflow initialization completed$(NC)"
 
 airflow-reset: _load_env ## 🌊 Reset Airflow configuration and database (DESTRUCTIVE)
-	@echo -e "$(RED)WARNING: This will reset all Airflow data!$(NC)"
-	@echo -e "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)"
+	@$(ECHO_CMD) "$(RED)WARNING: This will reset all Airflow data!$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)\n"
 	@read -p ""
 	@$(MAKE) airflow-stop
-	@echo -e "$(YELLOW)Removing Airflow database and logs...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Removing Airflow database and logs...$(NC)\n"
 	@rm -rf airflow/airflow.db airflow/logs/* airflow/airflow-*.out airflow/airflow-*.err
 	@$(MAKE) airflow-init
-	@echo -e "$(GREEN)✓ Airflow reset completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Airflow reset completed$(NC)\n"
 
 airflow-config: _load_env ## 🌊 Display Airflow configuration
-	@echo -e "$(CYAN)Airflow Configuration:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Airflow Configuration:$(NC)\n"
 	@set -a && . ./.env && set +a && \
 	echo -e "$(YELLOW)Environment Variables:$(NC)" && \
 	echo -e "  AIRFLOW_HOME: $(AIRFLOW_HOME)" && \
@@ -126,12 +126,12 @@ airflow-config: _load_env ## 🌊 Display Airflow configuration
 	echo -e "  Last Name: $$AIRFLOW_ADMIN_LASTNAME"
 
 _setup_airflow_dirs: ## Internal: Create Airflow directory structure
-	@echo -e "$(YELLOW)Setting up Airflow directories...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Setting up Airflow directories...$(NC)\n"
 	@mkdir -p airflow/logs airflow/plugins
-	@echo -e "$(GREEN)✓ Airflow directories created$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Airflow directories created$(NC)\n"
 
 _init_airflow_db: _load_env ## Internal: Initialize Airflow database
-	@echo -e "$(YELLOW)Initializing Airflow database...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Initializing Airflow database...$(NC)\n"
 	@set -a && . ./.env && set +a && \
 	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
 	export AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" && \
@@ -148,7 +148,7 @@ _init_airflow_db: _load_env ## Internal: Initialize Airflow database
 .PHONY: airflow-dag-list airflow-dag-test airflow-dag-trigger airflow-dag-info
 
 airflow-dag-list: _load_env ## 🌊 List and display available DAGs
-	@echo -e "$(CYAN)Available DAGs:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Available DAGs:$(NC)\n"
 	@set -a && . ./.env && set +a && \
 	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
 	export AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" && \
@@ -156,9 +156,9 @@ airflow-dag-list: _load_env ## 🌊 List and display available DAGs
 	$(PYTHON) -m airflow dags list
 
 airflow-dag-test: _load_env ## 🧪 Execute tests DAG execution (interactive)
-	@echo -e "$(CYAN)DAG Testing$(NC)"
+	@$(ECHO_CMD) "$(CYAN)DAG Testing$(NC)\n"
 	@$(MAKE) airflow-dag-list
-	@echo -e "$(YELLOW)Enter DAG ID to test:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Enter DAG ID to test:$(NC)\n"
 	@read -p "DAG ID: " dag_id && \
 	echo -e "$(YELLOW)Enter execution date (YYYY-MM-DD) or press Enter for today:$(NC)" && \
 	read -p "Date: " exec_date && \
@@ -170,9 +170,9 @@ airflow-dag-test: _load_env ## 🧪 Execute tests DAG execution (interactive)
 	$(PYTHON) -m airflow dags test $$dag_id $$exec_date
 
 airflow-dag-trigger: _load_env ## 🌊 Manually trigger DAG run (interactive)
-	@echo -e "$(CYAN)DAG Triggering$(NC)"
+	@$(ECHO_CMD) "$(CYAN)DAG Triggering$(NC)\n"
 	@$(MAKE) airflow-dag-list
-	@echo -e "$(YELLOW)Enter DAG ID to trigger:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Enter DAG ID to trigger:$(NC)\n"
 	@read -p "DAG ID: " dag_id && \
 	set -a && . ./.env && set +a && \
 	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
@@ -182,9 +182,9 @@ airflow-dag-trigger: _load_env ## 🌊 Manually trigger DAG run (interactive)
 	echo -e "$(GREEN)✓ DAG $$dag_id triggered$(NC)"
 
 airflow-dag-info: _load_env ## 🌊 Display DAG information (interactive)
-	@echo -e "$(CYAN)DAG Information$(NC)"
+	@$(ECHO_CMD) "$(CYAN)DAG Information$(NC)\n"
 	@$(MAKE) airflow-dag-list
-	@echo -e "$(YELLOW)Enter DAG ID for information:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Enter DAG ID for information:$(NC)\n"
 	@read -p "DAG ID: " dag_id && \
 	set -a && . ./.env && set +a && \
 	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
@@ -199,7 +199,7 @@ airflow-dag-info: _load_env ## 🌊 Display DAG information (interactive)
 .PHONY: airflow-shell airflow-logs airflow-debug airflow-webui
 
 airflow-shell: _load_env ## 🌊 Open and display Airflow shell for debugging
-	@echo -e "$(CYAN)Opening Airflow shell...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Opening Airflow shell...$(NC)\n"
 	@set -a && . ./.env && set +a && \
 	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
 	export AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" && \
@@ -208,17 +208,17 @@ airflow-shell: _load_env ## 🌊 Open and display Airflow shell for debugging
 	$(PYTHON) -c "import airflow; from airflow import settings; print('Airflow shell ready. Use settings object for configuration.')"
 
 airflow-logs: ## 🌊 View Airflow logs
-	@echo -e "$(CYAN)Airflow logs:$(NC)"
-	@echo -e "$(YELLOW)Recent scheduler logs:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Airflow logs:$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Recent scheduler logs:$(NC)\n"
 	@tail -n 20 airflow/airflow-scheduler.out 2>/dev/null || echo -e "$(YELLOW)No scheduler logs found$(NC)"
-	@echo -e "$(YELLOW)Recent webserver logs:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Recent webserver logs:$(NC)\n"
 	@tail -n 20 airflow/airflow-webserver.out 2>/dev/null || echo -e "$(YELLOW)No webserver logs found$(NC)"
-	@echo -e "$(YELLOW)Recent error logs:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Recent error logs:$(NC)\n"
 	@tail -n 10 airflow/airflow-scheduler.err 2>/dev/null || echo -e "$(YELLOW)No scheduler errors$(NC)"
 	@tail -n 10 airflow/airflow-webserver.err 2>/dev/null || echo -e "$(YELLOW)No webserver errors$(NC)"
 
 airflow-debug: _load_env ## 🌊 Debug and troubleshoot Airflow configuration and setup
-	@echo -e "$(CYAN)Airflow Debug Information:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Airflow Debug Information:$(NC)\n"
 	@set -a && . ./.env && set +a && \
 	echo -e "$(YELLOW)Environment Configuration:$(NC)" && \
 	echo -e "  AIRFLOW_HOME: $(AIRFLOW_HOME)" && \
@@ -236,7 +236,7 @@ airflow-debug: _load_env ## 🌊 Debug and troubleshoot Airflow configuration an
 	echo -e "  Airflow not available"
 
 airflow-webui: ## 🌊 Open and display Airflow web interface in browser
-	@echo -e "$(CYAN)Opening Airflow web interface...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Opening Airflow web interface...$(NC)\n"
 	@if $(MAKE) airflow-status | grep -q "Webserver running"; then \
 		echo -e "$(GREEN)Airflow webserver is running$(NC)"; \
 		echo -e "$(CYAN)Opening http://localhost:8080 in browser...$(NC)"; \
@@ -261,7 +261,7 @@ airflow-webui: ## 🌊 Open and display Airflow web interface in browser
 .PHONY: airflow-test-connection airflow-validate-dags airflow-test-task
 
 airflow-test-connection: _load_env ## 🧪 Execute tests Airflow database connection
-	@echo -e "$(CYAN)Testing Airflow database connection...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Testing Airflow database connection...$(NC)\n"
 	@set -a && . ./.env && set +a && \
 	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
@@ -269,7 +269,7 @@ airflow-test-connection: _load_env ## 🧪 Execute tests Airflow database connec
 	echo -e "$(RED)❌ Airflow database connection failed$(NC)"
 
 airflow-validate-dags: _load_env ## 🌊 Validate all DAGs for syntax errors
-	@echo -e "$(CYAN)Validating DAG syntax...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Validating DAG syntax...$(NC)\n"
 	@set -a && . ./.env && set +a && \
 	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
 	export AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" && \
@@ -288,9 +288,9 @@ airflow-validate-dags: _load_env ## 🌊 Validate all DAGs for syntax errors
 	fi
 
 airflow-test-task: _load_env ## 🧪 Execute tests specific task execution (interactive)
-	@echo -e "$(CYAN)Task Testing$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Task Testing$(NC)\n"
 	@$(MAKE) airflow-dag-list
-	@echo -e "$(YELLOW)Enter DAG ID:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Enter DAG ID:$(NC)\n"
 	@read -p "DAG ID: " dag_id && \
 	echo -e "$(YELLOW)Enter Task ID:$(NC)" && \
 	read -p "Task ID: " task_id && \
@@ -310,16 +310,16 @@ airflow-test-task: _load_env ## 🧪 Execute tests specific task execution (inte
 .PHONY: airflow-clean-logs airflow-clean-all
 
 airflow-clean-logs: ## 🌊 Clean Airflow log files
-	@echo -e "$(YELLOW)Cleaning Airflow logs...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cleaning Airflow logs...$(NC)\n"
 	@rm -rf airflow/logs/*
 	@rm -f airflow/airflow-*.out airflow/airflow-*.err
-	@echo -e "$(GREEN)✓ Airflow logs cleaned$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Airflow logs cleaned$(NC)\n"
 
 airflow-clean-all: airflow-stop ## 🌊 Clean all Airflow data (DESTRUCTIVE)
-	@echo -e "$(RED)WARNING: This will remove all Airflow data!$(NC)"
-	@echo -e "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)"
+	@$(ECHO_CMD) "$(RED)WARNING: This will remove all Airflow data!$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)\n"
 	@read -p ""
-	@echo -e "$(YELLOW)Removing all Airflow data...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Removing all Airflow data...$(NC)\n"
 	@rm -rf airflow/
-	@echo -e "$(GREEN)✓ All Airflow data removed$(NC)"
-	@echo -e "$(CYAN)Run 'make airflow-init' to reinitialize$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ All Airflow data removed$(NC)\n"
+	@$(ECHO_CMD) "$(CYAN)Run 'make airflow-init' to reinitialize$(NC)\n"

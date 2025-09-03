@@ -23,45 +23,45 @@ RUFF_CONFIG := pyproject.toml
 .PHONY: quality quality-fix quality-check quality-report
 
 quality: _load_env ## ✅ Execute all code quality checks
-	@echo -e "$(BLUE)Running comprehensive code quality suite...$(NC)"
-	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Running comprehensive code quality suite...$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)\n"
 	@$(MAKE) _check_quality_deps
-	@echo -e "$(CYAN)STEP 1: Code Formatting Check$(NC)"
+	@$(ECHO_CMD) "$(CYAN)STEP 1: Code Formatting Check$(NC)\n"
 	@$(MAKE) black-check
-	@echo -e "$(CYAN)STEP 2: Import Sorting Check$(NC)"
+	@$(ECHO_CMD) "$(CYAN)STEP 2: Import Sorting Check$(NC)\n"
 	@$(MAKE) isort-check 2>/dev/null || echo -e "$(YELLOW)⚠ isort not available$(NC)"
-	@echo -e "$(CYAN)STEP 3: Linting Analysis$(NC)"
+	@$(ECHO_CMD) "$(CYAN)STEP 3: Linting Analysis$(NC)\n"
 	@$(MAKE) pylint
-	@echo -e "$(CYAN)STEP 4: Type Checking$(NC)"
+	@$(ECHO_CMD) "$(CYAN)STEP 4: Type Checking$(NC)\n"
 	@$(MAKE) mypy
-	@echo -e "$(CYAN)STEP 5: Security Scanning$(NC)"
+	@$(ECHO_CMD) "$(CYAN)STEP 5: Security Scanning$(NC)\n"
 	@$(MAKE) security-scan
-	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo -e "$(GREEN)✓ Code quality suite completed$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)\n"
+	@$(ECHO_CMD) "$(GREEN)✓ Code quality suite completed$(NC)\n"
 
 quality-fix: _load_env ## ✅ Auto-fix code quality issues where possible
-	@echo -e "$(BLUE)Auto-fixing code quality issues...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Auto-fixing code quality issues...$(NC)\n"
 	@$(MAKE) _check_quality_deps
-	@echo -e "$(YELLOW)Running Black formatter...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Running Black formatter...$(NC)\n"
 	@$(MAKE) black
-	@echo -e "$(YELLOW)Running import sorting...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Running import sorting...$(NC)\n"
 	@$(MAKE) isort 2>/dev/null || echo -e "$(YELLOW)⚠ isort not available$(NC)"
-	@echo -e "$(YELLOW)Running Ruff auto-fixes...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Running Ruff auto-fixes...$(NC)\n"
 	@$(MAKE) ruff-fix 2>/dev/null || echo -e "$(YELLOW)⚠ ruff not available$(NC)"
-	@echo -e "$(GREEN)✓ Auto-fixes completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Auto-fixes completed$(NC)\n"
 
 quality-check: _load_env ## ✅ Validate code quality without making changes
-	@echo -e "$(BLUE)Checking code quality (no modifications)...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Checking code quality (no modifications)...$(NC)\n"
 	@$(MAKE) _check_quality_deps
 	@$(MAKE) black-check
 	@$(MAKE) pylint
 	@$(MAKE) mypy
-	@echo -e "$(GREEN)✓ Quality check completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Quality check completed$(NC)\n"
 
 quality-report: _load_env ## ✅ Generate comprehensive quality report
-	@echo -e "$(BLUE)Generating code quality report...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Generating code quality report...$(NC)\n"
 	@$(MAKE) _check_quality_deps
-	@echo -e "$(YELLOW)Creating quality report...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Creating quality report...$(NC)\n"
 	@echo "# Code Quality Report" > quality-report.md
 	@echo "Generated on: $$(date)" >> quality-report.md
 	@echo "" >> quality-report.md
@@ -73,7 +73,7 @@ quality-report: _load_env ## ✅ Generate comprehensive quality report
 	@echo "" >> quality-report.md
 	@echo "## MyPy Type Checking" >> quality-report.md
 	@$(MAKE) mypy >> quality-report.md 2>&1 || echo "MyPy check failed" >> quality-report.md
-	@echo -e "$(GREEN)✓ Quality report generated: quality-report.md$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Quality report generated: quality-report.md$(NC)\n"
 
 # ============================================================================
 # BLACK CODE FORMATTING
@@ -82,15 +82,15 @@ quality-report: _load_env ## ✅ Generate comprehensive quality report
 .PHONY: black black-check black-diff
 
 black: _load_env ## ✅ Format code with Black
-	@echo -e "$(BLUE)Formatting code with Black...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Formatting code with Black...$(NC)\n"
 	@$(MAKE) _check_black_deps
-	@echo -e "$(YELLOW)Running Black formatter on source code...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Running Black formatter on source code...$(NC)\n"
 	@$(PYTHON) -m black $(SRC_DIR) $(TEST_DIR) --config=$(BLACK_CONFIG) 2>/dev/null || \
 	$(PYTHON) -m black $(SRC_DIR) $(TEST_DIR)
-	@echo -e "$(GREEN)✓ Code formatting completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Code formatting completed$(NC)\n"
 
 black-check: _load_env ## ✅ Validate Black formatting without changes
-	@echo -e "$(CYAN)Checking Black formatting...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Checking Black formatting...$(NC)\n"
 	@$(MAKE) _check_black_deps
 	@$(PYTHON) -m black --check $(SRC_DIR) $(TEST_DIR) --config=$(BLACK_CONFIG) 2>/dev/null || \
 	$(PYTHON) -m black --check $(SRC_DIR) $(TEST_DIR) && \
@@ -99,7 +99,7 @@ black-check: _load_env ## ✅ Validate Black formatting without changes
 	 echo -e "$(CYAN)Fix with: make black$(NC)" && exit 1)
 
 black-diff: _load_env ## ✅ Display Black formatting differences
-	@echo -e "$(CYAN)Showing Black formatting differences...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Showing Black formatting differences...$(NC)\n"
 	@$(MAKE) _check_black_deps
 	@$(PYTHON) -m black --diff $(SRC_DIR) $(TEST_DIR) --config=$(BLACK_CONFIG) 2>/dev/null || \
 	$(PYTHON) -m black --diff $(SRC_DIR) $(TEST_DIR)
@@ -111,7 +111,7 @@ black-diff: _load_env ## ✅ Display Black formatting differences
 .PHONY: pylint pylint-report pylint-config
 
 pylint: _load_env ## ✅ Execute Pylint static analysis
-	@echo -e "$(CYAN)Running Pylint static analysis...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Running Pylint static analysis...$(NC)\n"
 	@$(MAKE) _check_pylint_deps
 	@if [ -f $(PYLINT_CONFIG) ]; then \
 		echo -e "$(YELLOW)Using Pylint configuration: $(PYLINT_CONFIG)$(NC)"; \
@@ -124,17 +124,17 @@ pylint: _load_env ## ✅ Execute Pylint static analysis
 	(echo -e "$(RED)❌ Pylint issues found$(NC)" && exit 1)
 
 pylint-report: _load_env ## ✅ Generate detailed Pylint report
-	@echo -e "$(BLUE)Generating detailed Pylint report...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Generating detailed Pylint report...$(NC)\n"
 	@$(MAKE) _check_pylint_deps
 	@if [ -f $(PYLINT_CONFIG) ]; then \
 		$(PYTHON) -m pylint $(SRC_DIR) --rcfile=$(PYLINT_CONFIG) --output-format=text > pylint-report.txt 2>&1; \
 	else \
 		$(PYTHON) -m pylint $(SRC_DIR) --output-format=text > pylint-report.txt 2>&1; \
 	fi
-	@echo -e "$(GREEN)✓ Pylint report generated: pylint-report.txt$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Pylint report generated: pylint-report.txt$(NC)\n"
 
 pylint-config: ## ✅ Display Pylint configuration
-	@echo -e "$(CYAN)Pylint Configuration:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Pylint Configuration:$(NC)\n"
 	@if [ -f $(PYLINT_CONFIG) ]; then \
 		echo -e "$(GREEN)✓ Configuration file: $(PYLINT_CONFIG)$(NC)"; \
 		echo -e "$(YELLOW)Key settings:$(NC)"; \
@@ -151,7 +151,7 @@ pylint-config: ## ✅ Display Pylint configuration
 .PHONY: mypy mypy-report mypy-config
 
 mypy: _load_env ## ✅ Execute MyPy type checking
-	@echo -e "$(CYAN)Running MyPy type checking...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Running MyPy type checking...$(NC)\n"
 	@$(MAKE) _check_mypy_deps
 	@if [ -f $(MYPY_CONFIG) ]; then \
 		echo -e "$(YELLOW)Using MyPy configuration: $(MYPY_CONFIG)$(NC)"; \
@@ -164,17 +164,17 @@ mypy: _load_env ## ✅ Execute MyPy type checking
 	(echo -e "$(RED)❌ MyPy type issues found$(NC)" && exit 1)
 
 mypy-report: _load_env ## ✅ Generate MyPy report
-	@echo -e "$(BLUE)Generating MyPy type checking report...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Generating MyPy type checking report...$(NC)\n"
 	@$(MAKE) _check_mypy_deps
 	@if [ -f $(MYPY_CONFIG) ]; then \
 		$(PYTHON) -m mypy $(SRC_DIR) --config-file=$(MYPY_CONFIG) > mypy-report.txt 2>&1; \
 	else \
 		$(PYTHON) -m mypy $(SRC_DIR) > mypy-report.txt 2>&1; \
 	fi
-	@echo -e "$(GREEN)✓ MyPy report generated: mypy-report.txt$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ MyPy report generated: mypy-report.txt$(NC)\n"
 
 mypy-config: ## ✅ Display MyPy configuration
-	@echo -e "$(CYAN)MyPy Configuration:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)MyPy Configuration:$(NC)\n"
 	@if [ -f $(MYPY_CONFIG) ] && grep -q "\[tool.mypy\]" $(MYPY_CONFIG); then \
 		echo -e "$(GREEN)✓ Configuration found in: $(MYPY_CONFIG)$(NC)"; \
 		echo -e "$(YELLOW)MyPy settings:$(NC)"; \
@@ -191,7 +191,7 @@ mypy-config: ## ✅ Display MyPy configuration
 .PHONY: ruff ruff-check ruff-fix
 
 ruff: _load_env ## ✅ Execute Ruff linting
-	@echo -e "$(CYAN)Running Ruff linting...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Running Ruff linting...$(NC)\n"
 	@$(MAKE) _check_ruff_deps
 	@$(PYTHON) -m ruff check $(SRC_DIR) $(TEST_DIR) && \
 	echo -e "$(GREEN)✓ Ruff linting completed$(NC)" || \
@@ -199,15 +199,15 @@ ruff: _load_env ## ✅ Execute Ruff linting
 	 echo -e "$(CYAN)Fix with: make ruff-fix$(NC)" && exit 1)
 
 ruff-check: _load_env ## ✅ Validate with Ruff without fixing
-	@echo -e "$(CYAN)Checking code with Ruff...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Checking code with Ruff...$(NC)\n"
 	@$(MAKE) _check_ruff_deps
 	@$(PYTHON) -m ruff check $(SRC_DIR) $(TEST_DIR) --no-fix
 
 ruff-fix: _load_env ## ✅ Auto-fix Ruff issues
-	@echo -e "$(BLUE)Auto-fixing Ruff issues...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Auto-fixing Ruff issues...$(NC)\n"
 	@$(MAKE) _check_ruff_deps
 	@$(PYTHON) -m ruff check $(SRC_DIR) $(TEST_DIR) --fix
-	@echo -e "$(GREEN)✓ Ruff auto-fixes completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Ruff auto-fixes completed$(NC)\n"
 
 # ============================================================================
 # IMPORT SORTING
@@ -216,13 +216,13 @@ ruff-fix: _load_env ## ✅ Auto-fix Ruff issues
 .PHONY: isort isort-check isort-diff
 
 isort: _load_env ## ✅ Sort imports with isort
-	@echo -e "$(BLUE)Sorting imports with isort...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Sorting imports with isort...$(NC)\n"
 	@$(MAKE) _check_isort_deps
 	@$(PYTHON) -m isort $(SRC_DIR) $(TEST_DIR) --profile black
-	@echo -e "$(GREEN)✓ Import sorting completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Import sorting completed$(NC)\n"
 
 isort-check: _load_env ## ✅ Validate import sorting without changes
-	@echo -e "$(CYAN)Checking import sorting...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Checking import sorting...$(NC)\n"
 	@$(MAKE) _check_isort_deps
 	@$(PYTHON) -m isort $(SRC_DIR) $(TEST_DIR) --profile black --check-only && \
 	echo -e "$(GREEN)✓ Import sorting check passed$(NC)" || \
@@ -230,7 +230,7 @@ isort-check: _load_env ## ✅ Validate import sorting without changes
 	 echo -e "$(CYAN)Fix with: make isort$(NC)" && exit 1)
 
 isort-diff: _load_env ## ✅ Display import sorting differences
-	@echo -e "$(CYAN)Showing import sorting differences...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Showing import sorting differences...$(NC)\n"
 	@$(MAKE) _check_isort_deps
 	@$(PYTHON) -m isort $(SRC_DIR) $(TEST_DIR) --profile black --diff
 
@@ -241,15 +241,15 @@ isort-diff: _load_env ## ✅ Display import sorting differences
 .PHONY: security-scan security-bandit security-safety
 
 security-scan: _load_env ## ⚙️ Execute comprehensive security scanning
-	@echo -e "$(BLUE)Running security vulnerability scanning...$(NC)"
-	@echo -e "$(YELLOW)Running Bandit security scanner...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Running security vulnerability scanning...$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Running Bandit security scanner...$(NC)\n"
 	@$(MAKE) security-bandit
-	@echo -e "$(YELLOW)Running Safety dependency scanner...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Running Safety dependency scanner...$(NC)\n"
 	@$(MAKE) security-safety
-	@echo -e "$(GREEN)✓ Security scanning completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Security scanning completed$(NC)\n"
 
 security-bandit: _load_env ## ⚙️ Execute Bandit security scanner
-	@echo -e "$(CYAN)Running Bandit security analysis...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Running Bandit security analysis...$(NC)\n"
 	@if $(PYTHON) -c "import bandit" 2>/dev/null; then \
 		$(PYTHON) -m bandit -r $(SRC_DIR) -f json -o bandit-report.json 2>/dev/null || \
 		$(PYTHON) -m bandit -r $(SRC_DIR); \
@@ -260,7 +260,7 @@ security-bandit: _load_env ## ⚙️ Execute Bandit security scanner
 	fi
 
 security-safety: _load_env ## ⚙️ Execute Safety dependency vulnerability scanner
-	@echo -e "$(CYAN)Running Safety dependency scan...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Running Safety dependency scan...$(NC)\n"
 	@if $(PYTHON) -c "import safety" 2>/dev/null; then \
 		$(PYTHON) -m safety check --json --output safety-report.json 2>/dev/null || \
 		$(PYTHON) -m safety check; \
@@ -277,7 +277,7 @@ security-safety: _load_env ## ⚙️ Execute Safety dependency vulnerability sca
 .PHONY: pre-commit pre-commit-install pre-commit-run
 
 pre-commit: _load_env ## ⚙️ Execute pre-commit hooks on all files
-	@echo -e "$(CYAN)Running pre-commit hooks...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Running pre-commit hooks...$(NC)\n"
 	@if $(PYTHON) -c "import pre_commit" 2>/dev/null; then \
 		$(PYTHON) -m pre_commit run --all-files; \
 		echo -e "$(GREEN)✓ Pre-commit hooks completed$(NC)"; \
@@ -288,7 +288,7 @@ pre-commit: _load_env ## ⚙️ Execute pre-commit hooks on all files
 	fi
 
 pre-commit-install: _load_env ## 📦 Install pre-commit hooks
-	@echo -e "$(BLUE)Installing pre-commit hooks...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Installing pre-commit hooks...$(NC)\n"
 	@if $(PYTHON) -c "import pre_commit" 2>/dev/null; then \
 		$(PYTHON) -m pre_commit install; \
 		echo -e "$(GREEN)✓ Pre-commit hooks installed$(NC)"; \
@@ -298,7 +298,7 @@ pre-commit-install: _load_env ## 📦 Install pre-commit hooks
 	fi
 
 pre-commit-run: _load_env ## ⚙️ Execute pre-commit hooks on staged files
-	@echo -e "$(CYAN)Running pre-commit on staged files...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Running pre-commit on staged files...$(NC)\n"
 	@if $(PYTHON) -c "import pre_commit" 2>/dev/null; then \
 		$(PYTHON) -m pre_commit run; \
 	else \
@@ -340,12 +340,12 @@ _check_isort_deps: ## Internal: Check isort dependencies
 .PHONY: quality-info quality-config quality-deps-install
 
 quality-info: ## ✅ Display code quality tool information
-	@echo -e "$(CYAN)Code Quality Tools Information:$(NC)"
-	@echo -e "$(YELLOW)Core Quality Tools:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Code Quality Tools Information:$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Core Quality Tools:$(NC)\n"
 	@$(PYTHON) -c "import black; print(f'  ✓ Black {black.__version__}')" 2>/dev/null || echo "  ❌ Black not available"
 	@$(PYTHON) -c "import pylint; print(f'  ✓ Pylint {pylint.__version__}')" 2>/dev/null || echo "  ❌ Pylint not available"
 	@$(PYTHON) -c "import mypy; print(f'  ✓ MyPy {mypy.__version__}')" 2>/dev/null || echo "  ❌ MyPy not available"
-	@echo -e "$(YELLOW)Optional Quality Tools:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Optional Quality Tools:$(NC)\n"
 	@$(PYTHON) -c "import ruff; print(f'  ✓ Ruff {ruff.__version__}')" 2>/dev/null || echo "  ○ Ruff not available"
 	@$(PYTHON) -c "import isort; print(f'  ✓ isort {isort.__version__}')" 2>/dev/null || echo "  ○ isort not available"
 	@$(PYTHON) -c "import bandit; print(f'  ✓ Bandit {bandit.__version__}')" 2>/dev/null || echo "  ○ Bandit not available"
@@ -353,13 +353,13 @@ quality-info: ## ✅ Display code quality tool information
 	@$(PYTHON) -c "import pre_commit; print(f'  ✓ pre-commit {pre_commit.__version__}')" 2>/dev/null || echo "  ○ pre-commit not available"
 
 quality-config: ## ✅ Display quality tool configuration files
-	@echo -e "$(CYAN)Quality Tool Configuration:$(NC)"
-	@echo -e "$(YELLOW)Configuration Files:$(NC)"
-	@echo -e "  pyproject.toml: $(if $(wildcard pyproject.toml),✓ Present,❌ Missing)"
-	@echo -e "  .pylintrc: $(if $(wildcard .pylintrc),✓ Present,○ Optional)"
-	@echo -e "  .pre-commit-config.yaml: $(if $(wildcard .pre-commit-config.yaml),✓ Present,○ Optional)"
-	@echo -e "  setup.cfg: $(if $(wildcard setup.cfg),✓ Present,○ Optional)"
-	@echo -e "$(YELLOW)Tool Configurations:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Quality Tool Configuration:$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Configuration Files:$(NC)\n"
+	@$(ECHO_CMD) "  pyproject.toml: $(if $(wildcard pyproject.toml),✓ Present,❌ Missing)\n"
+	@$(ECHO_CMD) "  .pylintrc: $(if $(wildcard .pylintrc),✓ Present,○ Optional)\n"
+	@$(ECHO_CMD) "  .pre-commit-config.yaml: $(if $(wildcard .pre-commit-config.yaml),✓ Present,○ Optional)\n"
+	@$(ECHO_CMD) "  setup.cfg: $(if $(wildcard setup.cfg),✓ Present,○ Optional)\n"
+	@$(ECHO_CMD) "$(YELLOW)Tool Configurations:$(NC)\n"
 	@if grep -q "\[tool.black\]" pyproject.toml 2>/dev/null; then \
 		echo -e "  Black: ✓ Configured in pyproject.toml"; \
 	else \
@@ -377,10 +377,10 @@ quality-config: ## ✅ Display quality tool configuration files
 	fi
 
 quality-deps-install: ## ✅ Install additional quality dependencies
-	@echo -e "$(BLUE)Installing additional quality dependencies...$(NC)"
-	@echo -e "$(YELLOW)Installing optional quality tools...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Installing additional quality dependencies...$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Installing optional quality tools...$(NC)\n"
 	@$(PIP) install ruff isort bandit safety pre-commit --quiet
-	@echo -e "$(GREEN)✓ Additional quality dependencies installed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Additional quality dependencies installed$(NC)\n"
 
 # ============================================================================
 # QUALITY CLEANUP AND MAINTENANCE
@@ -389,27 +389,27 @@ quality-deps-install: ## ✅ Install additional quality dependencies
 .PHONY: quality-clean quality-clean-reports quality-clean-cache
 
 quality-clean: ## ✅ Clean quality tool artifacts and reports
-	@echo -e "$(YELLOW)Cleaning quality artifacts...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cleaning quality artifacts...$(NC)\n"
 	@$(MAKE) quality-clean-reports
 	@$(MAKE) quality-clean-cache
-	@echo -e "$(GREEN)✓ Quality cleanup completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Quality cleanup completed$(NC)\n"
 
 quality-clean-reports: ## ✅ Clean quality reports
-	@echo -e "$(YELLOW)Cleaning quality reports...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cleaning quality reports...$(NC)\n"
 	@rm -f quality-report.md
 	@rm -f pylint-report.txt
 	@rm -f mypy-report.txt
 	@rm -f bandit-report.json
 	@rm -f safety-report.json
-	@echo -e "$(GREEN)✓ Quality reports cleaned$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Quality reports cleaned$(NC)\n"
 
 quality-clean-cache: ## ✅ Clean quality tool cache
-	@echo -e "$(YELLOW)Cleaning quality tool cache...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cleaning quality tool cache...$(NC)\n"
 	@rm -rf .mypy_cache
 	@rm -rf .ruff_cache
 	@find . -name "*.pyc" -delete 2>/dev/null || true
 	@find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-	@echo -e "$(GREEN)✓ Quality cache cleaned$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Quality cache cleaned$(NC)\n"
 
 # ============================================================================
 # VALIDATION WORKFLOWS
@@ -418,29 +418,29 @@ quality-clean-cache: ## ✅ Clean quality tool cache
 .PHONY: validate-all validate-ci validate-pre-push
 
 validate-all: _load_env ## ⚙️ Execute complete validation pipeline
-	@echo -e "$(BLUE)Running complete validation pipeline...$(NC)"
-	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Running complete validation pipeline...$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)\n"
 	@$(MAKE) quality
 	@$(MAKE) test-coverage
 	@$(MAKE) security-scan
-	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo -e "$(GREEN)✓ Complete validation pipeline passed$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)\n"
+	@$(ECHO_CMD) "$(GREEN)✓ Complete validation pipeline passed$(NC)\n"
 
 validate-ci: _load_env ## ⚙️ Execute CI/CD validation checks
-	@echo -e "$(BLUE)Running CI/CD validation...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Running CI/CD validation...$(NC)\n"
 	@$(MAKE) quality-check
 	@$(MAKE) test-coverage
 	@$(MAKE) security-scan
-	@echo -e "$(GREEN)✓ CI/CD validation completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ CI/CD validation completed$(NC)\n"
 
 validate-pre-push: _load_env ## ⚙️ Execute pre-push validation
-	@echo -e "$(BLUE)Running pre-push validation...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Running pre-push validation...$(NC)\n"
 	@$(MAKE) quality-fix
 	@$(MAKE) test
-	@echo -e "$(GREEN)✓ Pre-push validation completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Pre-push validation completed$(NC)\n"
 
 act-pr: _load_env ## ⚙️ Execute local GitHub Actions workflow using Act (cross-platform)
-	@echo -e "$(BLUE)Running GitHub Actions workflow locally...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Running GitHub Actions workflow locally...$(NC)\n"
 	@if [ "$(HAS_ACT)" != "yes" ]; then \
 		echo -e "$(RED)Error: 'act' is not installed$(NC)"; \
 		echo -e "$(YELLOW)Install instructions:$(NC)"; \
@@ -450,17 +450,17 @@ act-pr: _load_env ## ⚙️ Execute local GitHub Actions workflow using Act (cro
 		echo -e "$(CYAN)  Manual: https://github.com/nektos/act$(NC)"; \
 		exit 1; \
 	fi
-	@echo -e "$(YELLOW)Platform: $(PLATFORM_OS)/$(PLATFORM_ARCH)$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Platform: $(PLATFORM_OS)/$(PLATFORM_ARCH)$(NC)\n"
 ifeq ($(PLATFORM_OS),Darwin)
 ifeq ($(PLATFORM_ARCH),arm64)
-	@echo -e "$(CYAN)Running with linux/amd64 architecture for M-series Mac...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Running with linux/amd64 architecture for M-series Mac...$(NC)\n"
 	@act pull_request --container-architecture linux/amd64
 else
-	@echo -e "$(CYAN)Running with default architecture...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Running with default architecture...$(NC)\n"
 	@act pull_request
 endif
 else
-	@echo -e "$(CYAN)Running with default architecture...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Running with default architecture...$(NC)\n"
 	@act pull_request
 endif
-	@echo -e "$(GREEN)✓ GitHub Actions workflow completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ GitHub Actions workflow completed$(NC)\n"

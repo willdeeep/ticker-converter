@@ -22,16 +22,16 @@ TEMP_DIRS := .tmp temp tmp
 .PHONY: clean clean-build clean-cache clean-coverage clean-logs clean-env clean-temp
 
 clean: ## 🧹 Remove all build artifacts and cache (comprehensive)
-	@echo -e "$(BLUE)Performing comprehensive cleanup...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Performing comprehensive cleanup...$(NC)\n"
 	@$(MAKE) clean-build
 	@$(MAKE) clean-cache
 	@$(MAKE) clean-coverage
 	@$(MAKE) clean-logs
 	@$(MAKE) clean-temp
-	@echo -e "$(GREEN)✓ Comprehensive cleanup completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Comprehensive cleanup completed$(NC)\n"
 
 clean-build: ## 🧹 Remove build directories and artifacts
-	@echo -e "$(YELLOW)Cleaning build artifacts...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cleaning build artifacts...$(NC)\n"
 	@for dir in $(BUILD_DIRS); do \
 		if [ -d "$$dir" ] || [ -f "$$dir" ]; then \
 			echo -e "$(CYAN)  Removing: $$dir$(NC)"; \
@@ -42,10 +42,10 @@ clean-build: ## 🧹 Remove build directories and artifacts
 	@find . -name "*.pyo" -type f -delete 2>/dev/null || true
 	@find . -name "*.so" -type f -delete 2>/dev/null || true
 	@find . -name "*.egg" -type f -delete 2>/dev/null || true
-	@echo -e "$(GREEN)✓ Build artifacts cleaned$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Build artifacts cleaned$(NC)\n"
 
 clean-cache: ## 🧹 Remove Python and tool cache directories
-	@echo -e "$(YELLOW)Cleaning cache directories...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cleaning cache directories...$(NC)\n"
 	@for dir in $(CACHE_DIRS); do \
 		if [ -d "$$dir" ]; then \
 			echo -e "$(CYAN)  Removing: $$dir$(NC)"; \
@@ -54,10 +54,10 @@ clean-cache: ## 🧹 Remove Python and tool cache directories
 	done
 	@find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 	@find . -name "*.pyc" -type f -delete 2>/dev/null || true
-	@echo -e "$(GREEN)✓ Cache directories cleaned$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Cache directories cleaned$(NC)\n"
 
 clean-coverage: ## 🧪 Remove coverage reports and data
-	@echo -e "$(YELLOW)Cleaning coverage data...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cleaning coverage data...$(NC)\n"
 	@for file in $(COVERAGE_FILES); do \
 		if [ -f "$$file" ] || [ -d "$$file" ]; then \
 			echo -e "$(CYAN)  Removing: $$file$(NC)"; \
@@ -65,10 +65,10 @@ clean-coverage: ## 🧪 Remove coverage reports and data
 		fi; \
 	done
 	@rm -f test-report.xml test-report.html 2>/dev/null || true
-	@echo -e "$(GREEN)✓ Coverage data cleaned$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Coverage data cleaned$(NC)\n"
 
 clean-logs: ## 🧹 Remove log files and directories
-	@echo -e "$(YELLOW)Cleaning log files...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cleaning log files...$(NC)\n"
 	@for pattern in $(LOG_FILES); do \
 		for file in $$pattern; do \
 			if [ -f "$$file" ] || [ -d "$$file" ]; then \
@@ -78,12 +78,12 @@ clean-logs: ## 🧹 Remove log files and directories
 		done 2>/dev/null || true; \
 	done
 	@find . -name "*.log" -type f -delete 2>/dev/null || true
-	@echo -e "$(GREEN)✓ Log files cleaned$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Log files cleaned$(NC)\n"
 
 clean-env: ## 🧹 Remove virtual environment (DESTRUCTIVE)
-	@echo -e "$(RED)WARNING: This will remove the virtual environment!$(NC)"
-	@echo -e "$(YELLOW)Virtual environment path: $(VENV_PATH)$(NC)"
-	@echo -e "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)"
+	@$(ECHO_CMD) "$(RED)WARNING: This will remove the virtual environment!$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Virtual environment path: $(VENV_PATH)$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)\n"
 	@read -p ""
 	@if [ -d "$(VENV_PATH)" ]; then \
 		echo -e "$(YELLOW)Removing virtual environment...$(NC)"; \
@@ -94,7 +94,7 @@ clean-env: ## 🧹 Remove virtual environment (DESTRUCTIVE)
 	fi
 
 clean-temp: ## 🧹 Remove temporary directories and files
-	@echo -e "$(YELLOW)Cleaning temporary files...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cleaning temporary files...$(NC)\n"
 	@for dir in $(TEMP_DIRS); do \
 		if [ -d "$$dir" ]; then \
 			echo -e "$(CYAN)  Removing: $$dir$(NC)"; \
@@ -104,7 +104,7 @@ clean-temp: ## 🧹 Remove temporary directories and files
 	@find . -name "*.tmp" -type f -delete 2>/dev/null || true
 	@find . -name ".DS_Store" -type f -delete 2>/dev/null || true
 	@find . -name "Thumbs.db" -type f -delete 2>/dev/null || true
-	@echo -e "$(GREEN)✓ Temporary files cleaned$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Temporary files cleaned$(NC)\n"
 
 # ============================================================================
 # SERVICE-SPECIFIC CLEANUP
@@ -113,49 +113,49 @@ clean-temp: ## 🧹 Remove temporary directories and files
 .PHONY: clean-db clean-airflow clean-docker clean-git
 
 clean-db: ## 🗄️ Remove database data and logs (DESTRUCTIVE)
-	@echo -e "$(RED)WARNING: This will remove all database data!$(NC)"
-	@echo -e "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)"
+	@$(ECHO_CMD) "$(RED)WARNING: This will remove all database data!$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)\n"
 	@read -p ""
-	@echo -e "$(YELLOW)Cleaning database files...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cleaning database files...$(NC)\n"
 	@rm -f data/*.db 2>/dev/null || true
 	@rm -f *.db 2>/dev/null || true
 	@rm -f backup_*.sql 2>/dev/null || true
 	@$(MAKE) db-clean-logs 2>/dev/null || echo -e "$(YELLOW)Database log cleanup not available$(NC)"
-	@echo -e "$(GREEN)✓ Database data cleaned$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Database data cleaned$(NC)\n"
 
 clean-airflow: ## 🌊 Remove Airflow data and logs (DESTRUCTIVE)
-	@echo -e "$(RED)WARNING: This will remove all Airflow data!$(NC)"
-	@echo -e "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)"
+	@$(ECHO_CMD) "$(RED)WARNING: This will remove all Airflow data!$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)\n"
 	@read -p ""
-	@echo -e "$(YELLOW)Stopping Airflow services...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Stopping Airflow services...$(NC)\n"
 	@$(MAKE) airflow-stop 2>/dev/null || echo -e "$(YELLOW)Airflow services not running$(NC)"
-	@echo -e "$(YELLOW)Cleaning Airflow data...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cleaning Airflow data...$(NC)\n"
 	@rm -rf airflow/logs/* 2>/dev/null || true
 	@rm -f airflow/*.db 2>/dev/null || true
 	@rm -f airflow/*.out airflow/*.err 2>/dev/null || true
 	@rm -f airflow/*.pid 2>/dev/null || true
-	@echo -e "$(GREEN)✓ Airflow data cleaned$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Airflow data cleaned$(NC)\n"
 
 clean-docker: ## 🧹 Remove Docker containers and images (if Docker is available)
-	@echo -e "$(YELLOW)Cleaning Docker resources...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cleaning Docker resources...$(NC)\n"
 ifeq ($(HAS_DOCKER),yes)
-	@echo -e "$(CYAN)Stopping and removing containers...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Stopping and removing containers...$(NC)\n"
 	@$(DOCKER_CMD) container prune -f 2>/dev/null || true
-	@echo -e "$(CYAN)Removing unused images...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Removing unused images...$(NC)\n"
 	@$(DOCKER_CMD) image prune -f 2>/dev/null || true
-	@echo -e "$(CYAN)Removing unused volumes...$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Removing unused volumes...$(NC)\n"
 	@$(DOCKER_CMD) volume prune -f 2>/dev/null || true
-	@echo -e "$(GREEN)✓ Docker resources cleaned$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Docker resources cleaned$(NC)\n"
 else
-	@echo -e "$(YELLOW)⚠ Docker not available$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)⚠ Docker not available$(NC)\n"
 endif
 
 clean-git: ## 🧹 Clean Git repository (remove untracked files)
-	@echo -e "$(YELLOW)Cleaning Git repository...$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cleaning Git repository...$(NC)\n"
 ifeq ($(HAS_GIT),yes)
-	@echo -e "$(CYAN)Showing untracked files:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Showing untracked files:$(NC)\n"
 	@$(GIT_CMD) status --porcelain | grep "^??" || echo -e "$(GREEN)No untracked files$(NC)"
-	@echo -e "$(YELLOW)Remove untracked files? (y/N):$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Remove untracked files? (y/N):$(NC)\n"
 	@read -p "" confirm && \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
 		$(GIT_CMD) clean -fd; \
@@ -164,7 +164,7 @@ ifeq ($(HAS_GIT),yes)
 		echo -e "$(YELLOW)Skipped cleaning untracked files$(NC)"; \
 	fi
 else
-	@echo -e "$(YELLOW)⚠ Git not available$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)⚠ Git not available$(NC)\n"
 endif
 
 # ============================================================================
@@ -174,14 +174,14 @@ endif
 .PHONY: clean-all clean-reset clean-development clean-production
 
 clean-all: ## 🧹 Complete cleanup (DESTRUCTIVE - removes everything)
-	@echo -e "$(RED)WARNING: This will remove ALL data, environments, and artifacts!$(NC)"
-	@echo -e "$(RED)This includes:$(NC)"
-	@echo -e "$(YELLOW)  • Virtual environment$(NC)"
-	@echo -e "$(YELLOW)  • Database data$(NC)"
-	@echo -e "$(YELLOW)  • Airflow data$(NC)"
-	@echo -e "$(YELLOW)  • All build artifacts$(NC)"
-	@echo -e "$(YELLOW)  • All cache and logs$(NC)"
-	@echo -e "$(RED)Type 'DELETE' to confirm, or Ctrl+C to cancel:$(NC)"
+	@$(ECHO_CMD) "$(RED)WARNING: This will remove ALL data, environments, and artifacts!$(NC)\n"
+	@$(ECHO_CMD) "$(RED)This includes:$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)  • Virtual environment$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)  • Database data$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)  • Airflow data$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)  • All build artifacts$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)  • All cache and logs$(NC)\n"
+	@$(ECHO_CMD) "$(RED)Type 'DELETE' to confirm, or Ctrl+C to cancel:$(NC)\n"
 	@read -p "" confirm && \
 	if [ "$$confirm" = "DELETE" ]; then \
 		echo -e "$(YELLOW)Performing complete cleanup...$(NC)"; \
@@ -196,25 +196,25 @@ clean-all: ## 🧹 Complete cleanup (DESTRUCTIVE - removes everything)
 	fi
 
 clean-reset: clean-all ## 🧹 Complete cleanup and prepare for fresh setup
-	@echo -e "$(BLUE)Preparing for fresh setup...$(NC)"
-	@echo -e "$(CYAN)Run 'make setup' to reinitialize the project$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Preparing for fresh setup...$(NC)\n"
+	@$(ECHO_CMD) "$(CYAN)Run 'make setup' to reinitialize the project$(NC)\n"
 
 clean-development: ## 🧹 Clean development-related artifacts only
-	@echo -e "$(BLUE)Cleaning development artifacts...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Cleaning development artifacts...$(NC)\n"
 	@$(MAKE) clean-build
 	@$(MAKE) clean-cache
 	@$(MAKE) clean-coverage
 	@$(MAKE) clean-temp
 	@rm -f quality-report.md pylint-report.txt mypy-report.txt 2>/dev/null || true
 	@rm -f bandit-report.json safety-report.json 2>/dev/null || true
-	@echo -e "$(GREEN)✓ Development cleanup completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Development cleanup completed$(NC)\n"
 
 clean-production: ## 🧹 Clean production deployment artifacts
-	@echo -e "$(BLUE)Cleaning production artifacts...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Cleaning production artifacts...$(NC)\n"
 	@$(MAKE) clean-build
 	@$(MAKE) clean-logs
 	@$(MAKE) clean-temp
-	@echo -e "$(GREEN)✓ Production cleanup completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Production cleanup completed$(NC)\n"
 
 # ============================================================================
 # CLEANUP INFORMATION AND ANALYSIS
@@ -223,23 +223,23 @@ clean-production: ## 🧹 Clean production deployment artifacts
 .PHONY: clean-info clean-size clean-preview
 
 clean-info: ## 🧹 Display cleanup targets and current disk usage
-	@echo -e "$(CYAN)Cleanup Information:$(NC)"
-	@echo -e "$(YELLOW)Cleanup Targets:$(NC)"
-	@echo -e "$(YELLOW)Build Artifacts:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Cleanup Information:$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Cleanup Targets:$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Build Artifacts:$(NC)\n"
 	@for dir in $(BUILD_DIRS); do \
 		if [ -d "$$dir" ] || [ -f "$$dir" ]; then \
 			size=$$(du -sh "$$dir" 2>/dev/null | cut -f1 || echo "?"); \
 			echo -e "  $$dir ($$size)"; \
 		fi; \
 	done
-	@echo -e "$(YELLOW)Cache Directories:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cache Directories:$(NC)\n"
 	@for dir in $(CACHE_DIRS); do \
 		if [ -d "$$dir" ]; then \
 			size=$$(du -sh "$$dir" 2>/dev/null | cut -f1 || echo "?"); \
 			echo -e "  $$dir ($$size)"; \
 		fi; \
 	done
-	@echo -e "$(YELLOW)Virtual Environment:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Virtual Environment:$(NC)\n"
 	@if [ -d "$(VENV_PATH)" ]; then \
 		size=$$(du -sh "$(VENV_PATH)" 2>/dev/null | cut -f1 || echo "?"); \
 		echo -e "  $(VENV_PATH) ($$size)"; \
@@ -248,7 +248,7 @@ clean-info: ## 🧹 Display cleanup targets and current disk usage
 	fi
 
 clean-size: ## 🧹 Display disk space that would be freed by cleanup
-	@echo -e "$(CYAN)Disk Space Analysis:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Disk Space Analysis:$(NC)\n"
 	@total_size=0; \
 	echo -e "$(YELLOW)Space to be freed:$(NC)"; \
 	for dir in $(BUILD_DIRS) $(CACHE_DIRS); do \
@@ -271,27 +271,27 @@ clean-size: ## 🧹 Display disk space that would be freed by cleanup
 	echo -e "$(GREEN)Total reclaimable space: $${total_size}MB$(NC)"
 
 clean-preview: ## 🧹 Preview what would be cleaned without actually cleaning
-	@echo -e "$(CYAN)Cleanup Preview (no files will be removed):$(NC)"
-	@echo -e "$(YELLOW)Files and directories that would be removed:$(NC)"
-	@echo -e "$(YELLOW)Build artifacts:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Cleanup Preview (no files will be removed):$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Files and directories that would be removed:$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Build artifacts:$(NC)\n"
 	@for dir in $(BUILD_DIRS); do \
 		if [ -d "$$dir" ] || [ -f "$$dir" ]; then \
 			echo -e "  ✓ $$dir"; \
 		fi; \
 	done
-	@echo -e "$(YELLOW)Cache directories:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Cache directories:$(NC)\n"
 	@for dir in $(CACHE_DIRS); do \
 		if [ -d "$$dir" ]; then \
 			echo -e "  ✓ $$dir"; \
 		fi; \
 	done
-	@echo -e "$(YELLOW)Coverage files:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Coverage files:$(NC)\n"
 	@for file in $(COVERAGE_FILES); do \
 		if [ -f "$$file" ] || [ -d "$$file" ]; then \
 			echo -e "  ✓ $$file"; \
 		fi; \
 	done
-	@echo -e "$(YELLOW)Python cache files:$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Python cache files:$(NC)\n"
 	@find . -name "*.pyc" -type f 2>/dev/null | head -5 | sed 's/^/  ✓ /' || echo "  (none found)"
 	@pyc_count=$$(find . -name "*.pyc" -type f 2>/dev/null | wc -l); \
 	if [ $$pyc_count -gt 5 ]; then \
@@ -305,42 +305,42 @@ clean-preview: ## 🧹 Preview what would be cleaned without actually cleaning
 .PHONY: clean-safe clean-interactive clean-minimal
 
 clean-safe: ## 🧹 Safe cleanup (only cache and build artifacts)
-	@echo -e "$(BLUE)Performing safe cleanup...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Performing safe cleanup...$(NC)\n"
 	@$(MAKE) clean-build
 	@$(MAKE) clean-cache
 	@$(MAKE) clean-temp
-	@echo -e "$(GREEN)✓ Safe cleanup completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Safe cleanup completed$(NC)\n"
 
 clean-interactive: ## 🧹 Interactive cleanup with confirmation for each step
-	@echo -e "$(CYAN)Interactive Cleanup$(NC)"
-	@echo -e "$(YELLOW)Clean build artifacts? (y/N):$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Interactive Cleanup$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Clean build artifacts? (y/N):$(NC)\n"
 	@read -p "" confirm && \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
 		$(MAKE) clean-build; \
 	fi
-	@echo -e "$(YELLOW)Clean cache directories? (y/N):$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Clean cache directories? (y/N):$(NC)\n"
 	@read -p "" confirm && \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
 		$(MAKE) clean-cache; \
 	fi
-	@echo -e "$(YELLOW)Clean coverage data? (y/N):$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Clean coverage data? (y/N):$(NC)\n"
 	@read -p "" confirm && \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
 		$(MAKE) clean-coverage; \
 	fi
-	@echo -e "$(YELLOW)Clean log files? (y/N):$(NC)"
+	@$(ECHO_CMD) "$(YELLOW)Clean log files? (y/N):$(NC)\n"
 	@read -p "" confirm && \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
 		$(MAKE) clean-logs; \
 	fi
-	@echo -e "$(GREEN)✓ Interactive cleanup completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Interactive cleanup completed$(NC)\n"
 
 clean-minimal: ## 🧹 Minimal cleanup (only Python cache)
-	@echo -e "$(BLUE)Performing minimal cleanup...$(NC)"
-	@echo -e "$(YELLOW)Removing Python cache files...$(NC)"
+	@$(ECHO_CMD) "$(BLUE)Performing minimal cleanup...$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Removing Python cache files...$(NC)\n"
 	@find . -name "*.pyc" -type f -delete 2>/dev/null || true
 	@find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-	@echo -e "$(GREEN)✓ Minimal cleanup completed$(NC)"
+	@$(ECHO_CMD) "$(GREEN)✓ Minimal cleanup completed$(NC)\n"
 
 # ============================================================================
 # CLEANUP UTILITIES
@@ -349,32 +349,32 @@ clean-minimal: ## 🧹 Minimal cleanup (only Python cache)
 .PHONY: clean-help clean-status
 
 clean-help: ## 🧹 Display detailed cleanup help and options
-	@echo -e "$(CYAN)Cleanup Help and Options:$(NC)"
-	@echo -e "$(YELLOW)Safe Cleanup Commands:$(NC)"
-	@echo -e "  make clean-safe        # Only cache and build artifacts"
-	@echo -e "  make clean-minimal     # Only Python cache files"
-	@echo -e "  make clean-development # Development artifacts only"
-	@echo -e ""
-	@echo -e "$(YELLOW)Selective Cleanup Commands:$(NC)"
-	@echo -e "  make clean-build       # Build directories and artifacts"
-	@echo -e "  make clean-cache       # Python and tool cache directories"
-	@echo -e "  make clean-coverage    # Coverage reports and data"
-	@echo -e "  make clean-logs        # Log files and directories"
-	@echo -e "  make clean-temp        # Temporary files and directories"
-	@echo -e ""
-	@echo -e "$(RED)Destructive Cleanup Commands:$(NC)"
-	@echo -e "  make clean-env         # Virtual environment (requires confirmation)"
-	@echo -e "  make clean-db          # Database data (requires confirmation)"
-	@echo -e "  make clean-airflow     # Airflow data (requires confirmation)"
-	@echo -e "  make clean-all         # Everything (requires 'DELETE' confirmation)"
-	@echo -e ""
-	@echo -e "$(YELLOW)Information Commands:$(NC)"
-	@echo -e "  make clean-info        # Show cleanup targets and disk usage"
-	@echo -e "  make clean-preview     # Preview what would be cleaned"
-	@echo -e "  make clean-size        # Show disk space that would be freed"
+	@$(ECHO_CMD) "$(CYAN)Cleanup Help and Options:$(NC)\n"
+	@$(ECHO_CMD) "$(YELLOW)Safe Cleanup Commands:$(NC)\n"
+	@$(ECHO_CMD) "  make clean-safe        # Only cache and build artifacts\n"
+	@$(ECHO_CMD) "  make clean-minimal     # Only Python cache files\n"
+	@$(ECHO_CMD) "  make clean-development # Development artifacts only\n"
+	@$(ECHO_CMD) "\n"
+	@$(ECHO_CMD) "$(YELLOW)Selective Cleanup Commands:$(NC)\n"
+	@$(ECHO_CMD) "  make clean-build       # Build directories and artifacts\n"
+	@$(ECHO_CMD) "  make clean-cache       # Python and tool cache directories\n"
+	@$(ECHO_CMD) "  make clean-coverage    # Coverage reports and data\n"
+	@$(ECHO_CMD) "  make clean-logs        # Log files and directories\n"
+	@$(ECHO_CMD) "  make clean-temp        # Temporary files and directories\n"
+	@$(ECHO_CMD) "\n"
+	@$(ECHO_CMD) "$(RED)Destructive Cleanup Commands:$(NC)\n"
+	@$(ECHO_CMD) "  make clean-env         # Virtual environment (requires confirmation)\n"
+	@$(ECHO_CMD) "  make clean-db          # Database data (requires confirmation)\n"
+	@$(ECHO_CMD) "  make clean-airflow     # Airflow data (requires confirmation)\n"
+	@$(ECHO_CMD) "  make clean-all         # Everything (requires 'DELETE' confirmation)\n"
+	@$(ECHO_CMD) "\n"
+	@$(ECHO_CMD) "$(YELLOW)Information Commands:$(NC)\n"
+	@$(ECHO_CMD) "  make clean-info        # Show cleanup targets and disk usage\n"
+	@$(ECHO_CMD) "  make clean-preview     # Preview what would be cleaned\n"
+	@$(ECHO_CMD) "  make clean-size        # Show disk space that would be freed\n"
 
 clean-status: ## 🧹 Display current cleanup status and recommendations
-	@echo -e "$(CYAN)Cleanup Status:$(NC)"
+	@$(ECHO_CMD) "$(CYAN)Cleanup Status:$(NC)\n"
 	@artifact_count=0; \
 	for dir in $(BUILD_DIRS) $(CACHE_DIRS); do \
 		if [ -d "$$dir" ]; then \
