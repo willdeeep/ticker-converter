@@ -312,10 +312,6 @@ _check_test_deps: ## Internal: Check test dependencies
 	@$(PYTHON) -c "import pytest" 2>/dev/null || \
 	(echo -e "$(RED)❌ pytest not available. Run 'make install-test' first.$(NC)" && exit 1)
 
-_check_coverage_deps: ## Internal: Check coverage dependencies
-	@$(PYTHON) -c "import coverage" 2>/dev/null || \
-	(echo -e "$(RED)❌ coverage not available. Run 'make install-test' first.$(NC)" && exit 1)
-
 test-deps-info: ## 🧪 Display test dependency information
 	@echo -e "$(CYAN)Test Dependencies Information:$(NC)"
 	@echo -e "$(YELLOW)Core Testing:$(NC)"

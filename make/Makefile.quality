@@ -8,8 +8,6 @@
 # ============================================================================
 
 # Quality configuration
-SRC_DIR := src
-TEST_DIR := tests
 QUALITY_CONFIG_DIR := .
 
 # Quality tool configuration files
@@ -312,12 +310,7 @@ pre-commit-run: _load_env ## ⚙️ Execute pre-commit hooks on staged files
 # QUALITY TOOL DEPENDENCY CHECKS
 # ============================================================================
 
-.PHONY: _check_quality_deps _check_black_deps _check_pylint_deps _check_mypy_deps _check_ruff_deps _check_isort_deps
-
-_check_quality_deps: ## Internal: Check all quality tool dependencies
-	@$(MAKE) _check_black_deps
-	@$(MAKE) _check_pylint_deps
-	@$(MAKE) _check_mypy_deps
+.PHONY: _check_black_deps _check_pylint_deps _check_mypy_deps _check_ruff_deps _check_isort_deps
 
 _check_black_deps: ## Internal: Check Black dependencies
 	@$(PYTHON) -c "import black" 2>/dev/null || \

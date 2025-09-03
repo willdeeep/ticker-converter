@@ -16,112 +16,98 @@ DETECTED_ARCH := $(shell uname -m 2>/dev/null || echo "unknown")
 
 # Normalize OS names for consistent conditional logic
 ifeq ($(DETECTED_OS),Darwin)
-    PLATFORM_OS := macos
-    PLATFORM_FAMILY := unix
+    PLATFORM_OS ?= macos
+    PLATFORM_FAMILY ?= unix
 else ifeq ($(DETECTED_OS),Linux)
-    PLATFORM_OS := linux
-    PLATFORM_FAMILY := unix
+    PLATFORM_OS ?= linux
+    PLATFORM_FAMILY ?= unix
 else ifeq ($(findstring CYGWIN,$(DETECTED_OS)),CYGWIN)
-    PLATFORM_OS := windows
-    PLATFORM_FAMILY := windows
+    PLATFORM_OS ?= windows
+    PLATFORM_FAMILY ?= windows
 else ifeq ($(findstring MINGW,$(DETECTED_OS)),MINGW)
-    PLATFORM_OS := windows
-    PLATFORM_FAMILY := windows
+    PLATFORM_OS ?= windows
+    PLATFORM_FAMILY ?= windows
 else ifeq ($(findstring MSYS,$(DETECTED_OS)),MSYS)
-    PLATFORM_OS := windows
-    PLATFORM_FAMILY := windows
+    PLATFORM_OS ?= windows
+    PLATFORM_FAMILY ?= windows
 else
-    PLATFORM_OS := windows
-    PLATFORM_FAMILY := windows
+    PLATFORM_OS ?= windows
+    PLATFORM_FAMILY ?= windows
 endif
 
-# Architecture normalization
+# Architecture normalization (conditional assignment)
 ifeq ($(DETECTED_ARCH),x86_64)
-    PLATFORM_ARCH := x64
+    PLATFORM_ARCH ?= x64
 else ifeq ($(DETECTED_ARCH),amd64)
-    PLATFORM_ARCH := x64
+    PLATFORM_ARCH ?= x64
 else ifeq ($(DETECTED_ARCH),arm64)
-    PLATFORM_ARCH := arm64
+    PLATFORM_ARCH ?= arm64
 else ifeq ($(DETECTED_ARCH),aarch64)
-    PLATFORM_ARCH := arm64
+    PLATFORM_ARCH ?= arm64
 else
-    PLATFORM_ARCH := $(DETECTED_ARCH)
+    PLATFORM_ARCH ?= $(DETECTED_ARCH)
 endif
 
 # ============================================================================
 # PLATFORM-SPECIFIC TOOL PATHS AND COMMANDS
 # ============================================================================
 
-# Shell configuration
+# Shell and path configuration (conditional assignment)
 ifeq ($(PLATFORM_FAMILY),unix)
-    SHELL := /bin/bash
-    PATH_SEP := /
-    NULL_DEVICE := /dev/null
+    SHELL ?= /bin/bash
+    PATH_SEP ?= /
+    NULL_DEVICE ?= /dev/null
 else
-    SHELL := cmd.exe
-    PATH_SEP := \\
-    NULL_DEVICE := nul
+    SHELL ?= cmd.exe
+    PATH_SEP ?= \\
+    NULL_DEVICE ?= nul
 endif
 
-# Python command detection
+# Python command detection (conditional assignment)
 ifeq ($(PLATFORM_OS),macos)
-    PYTHON_CMD := python3
-    PIP_CMD := pip3
+    PYTHON_CMD ?= python3
+    PIP_CMD ?= pip3
 else ifeq ($(PLATFORM_OS),linux)
-    PYTHON_CMD := python3
-    PIP_CMD := pip3
+    PYTHON_CMD ?= python3
+    PIP_CMD ?= pip3
 else
-    PYTHON_CMD := python
-    PIP_CMD := pip
+    PYTHON_CMD ?= python
+    PIP_CMD ?= pip
 endif
 
-# Package manager detection and configuration
+# Package manager detection and configuration (conditional assignment)
 ifeq ($(PLATFORM_OS),macos)
-    PACKAGE_MANAGER := brew
-    PACKAGE_INSTALL := brew install
-    PACKAGE_UPDATE := brew update && brew upgrade
-    SERVICE_MANAGER := brew services
-    SERVICE_START := brew services start
-    SERVICE_STOP := brew services stop
-    SERVICE_STATUS := brew services list
+    PACKAGE_MANAGER ?= brew
+    PACKAGE_INSTALL_CMD ?= $(PACKAGE_MANAGER) install
+    PACKAGE_UPDATE_CMD ?= $(PACKAGE_MANAGER) update
 else ifeq ($(PLATFORM_OS),linux)
     # Detect Linux distribution and package manager
-    DISTRO := $(shell lsb_release -si 2>/dev/null || echo "Unknown")
-    ifeq ($(findstring Ubuntu,$(DISTRO)),Ubuntu)
-        PACKAGE_MANAGER := apt
-        PACKAGE_INSTALL := sudo apt install -y
-        PACKAGE_UPDATE := sudo apt update && sudo apt upgrade -y
-    else ifeq ($(findstring Debian,$(DISTRO)),Debian)
-        PACKAGE_MANAGER := apt
-        PACKAGE_INSTALL := sudo apt install -y
-        PACKAGE_UPDATE := sudo apt update && sudo apt upgrade -y
-    else ifeq ($(findstring CentOS,$(DISTRO)),CentOS)
-        PACKAGE_MANAGER := yum
-        PACKAGE_INSTALL := sudo yum install -y
-        PACKAGE_UPDATE := sudo yum update -y
-    else ifeq ($(findstring RedHat,$(DISTRO)),RedHat)
-        PACKAGE_MANAGER := dnf
-        PACKAGE_INSTALL := sudo dnf install -y
-        PACKAGE_UPDATE := sudo dnf update -y
+    DISTRO ?= $(shell lsb_release -i -s 2>$(NULL_DEVICE) || echo "unknown")
+    ifeq ($(DISTRO),Ubuntu)
+        PACKAGE_MANAGER ?= apt
+        PACKAGE_INSTALL_CMD ?= sudo $(PACKAGE_MANAGER) install -y
+        PACKAGE_UPDATE_CMD ?= sudo $(PACKAGE_MANAGER) update
+    else ifeq ($(DISTRO),Debian)
+        PACKAGE_MANAGER ?= apt
+        PACKAGE_INSTALL_CMD ?= sudo $(PACKAGE_MANAGER) install -y
+        PACKAGE_UPDATE_CMD ?= sudo $(PACKAGE_MANAGER) update
+    else ifeq ($(DISTRO),CentOS)
+        PACKAGE_MANAGER ?= yum
+        PACKAGE_INSTALL_CMD ?= sudo $(PACKAGE_MANAGER) install -y
+        PACKAGE_UPDATE_CMD ?= sudo $(PACKAGE_MANAGER) update -y
+    else ifeq ($(DISTRO),Fedora)
+        PACKAGE_MANAGER ?= dnf
+        PACKAGE_INSTALL_CMD ?= sudo $(PACKAGE_MANAGER) install -y
+        PACKAGE_UPDATE_CMD ?= sudo $(PACKAGE_MANAGER) update -y
     else
-        # Default to apt for unknown Linux distributions
-        PACKAGE_MANAGER := apt
-        PACKAGE_INSTALL := sudo apt install -y
-        PACKAGE_UPDATE := sudo apt update && sudo apt upgrade -y
+        PACKAGE_MANAGER ?= apt
+        PACKAGE_INSTALL_CMD ?= sudo $(PACKAGE_MANAGER) install -y
+        PACKAGE_UPDATE_CMD ?= sudo $(PACKAGE_MANAGER) update
     endif
-    SERVICE_MANAGER := systemctl
-    SERVICE_START := sudo systemctl start
-    SERVICE_STOP := sudo systemctl stop
-    SERVICE_STATUS := sudo systemctl status
 else
-    # Windows (planned)
-    PACKAGE_MANAGER := choco
-    PACKAGE_INSTALL := choco install -y
-    PACKAGE_UPDATE := choco upgrade all -y
-    SERVICE_MANAGER := sc
-    SERVICE_START := sc start
-    SERVICE_STOP := sc stop
-    SERVICE_STATUS := sc query
+    PACKAGE_MANAGER ?= choco
+    PACKAGE_INSTALL_CMD ?= $(PACKAGE_MANAGER) install -y
+    PACKAGE_UPDATE_CMD ?= $(PACKAGE_MANAGER) upgrade
 endif
 
 # ============================================================================
@@ -158,46 +144,47 @@ HAS_ACT := $(shell command -v act >/dev/null 2>&1 && echo "yes" || echo "no")
 # ============================================================================
 
 ifeq ($(PLATFORM_OS),macos)
-    # macOS PostgreSQL configuration
-    PG_SERVICE_NAME := postgresql@15
-    PG_DEFAULT_VERSION := 15
-    PG_BIN_PATH := /opt/homebrew/bin
+    # macOS PostgreSQL configuration (conditional assignment)
+    PG_SERVICE_NAME ?= postgresql@15
+    PG_DEFAULT_VERSION ?= 15
+    PG_BIN_PATH ?= /opt/homebrew/bin
     ifeq ($(PLATFORM_ARCH),x64)
-        PG_BIN_PATH := /usr/local/bin
+        PG_BIN_PATH ?= /usr/local/bin
     endif
-    PG_START_CMD := $(SERVICE_START) $(PG_SERVICE_NAME)
-    PG_STOP_CMD := $(SERVICE_STOP) $(PG_SERVICE_NAME)
-    PG_STATUS_CMD := $(SERVICE_STATUS) | grep postgresql
+    PG_START_CMD ?= $(SERVICE_START) $(PG_SERVICE_NAME)
+    PG_STOP_CMD ?= $(SERVICE_STOP) $(PG_SERVICE_NAME)
+    PG_STATUS_CMD ?= $(SERVICE_STATUS) | grep postgresql
 else ifeq ($(PLATFORM_OS),linux)
-    # Linux PostgreSQL configuration
-    PG_SERVICE_NAME := postgresql
-    PG_DEFAULT_VERSION := 14
-    PG_BIN_PATH := /usr/bin
-    PG_START_CMD := $(SERVICE_START) $(PG_SERVICE_NAME)
-    PG_STOP_CMD := $(SERVICE_STOP) $(PG_SERVICE_NAME)
-    PG_STATUS_CMD := $(SERVICE_STATUS) $(PG_SERVICE_NAME)
+    # Linux PostgreSQL configuration (conditional assignment)
+    PG_SERVICE_NAME ?= postgresql
+    PG_DEFAULT_VERSION ?= 14
+    PG_BIN_PATH ?= /usr/bin
+    PG_START_CMD ?= $(SERVICE_START) $(PG_SERVICE_NAME)
+    PG_STOP_CMD ?= $(SERVICE_STOP) $(PG_SERVICE_NAME)
+    PG_STATUS_CMD ?= $(SERVICE_STATUS) $(PG_SERVICE_NAME)
 else
-    # Windows PostgreSQL configuration (planned)
-    PG_SERVICE_NAME := postgresql-x64-14
-    PG_DEFAULT_VERSION := 14
-    PG_BIN_PATH := C:\\Program Files\\PostgreSQL\\14\\bin
-    PG_START_CMD := $(SERVICE_START) $(PG_SERVICE_NAME)
-    PG_STOP_CMD := $(SERVICE_STOP) $(PG_SERVICE_NAME)
-    PG_STATUS_CMD := $(SERVICE_STATUS) $(PG_SERVICE_NAME)
+    # Windows PostgreSQL configuration (conditional assignment)
+    PG_SERVICE_NAME ?= postgresql-x64-14
+    PG_DEFAULT_VERSION ?= 14
+    PG_BIN_PATH ?= C:\\Program Files\\PostgreSQL\\14\\bin
+    PG_START_CMD ?= $(SERVICE_START) $(PG_SERVICE_NAME)
+    PG_STOP_CMD ?= $(SERVICE_STOP) $(PG_SERVICE_NAME)
+    PG_STATUS_CMD ?= $(SERVICE_STATUS) $(PG_SERVICE_NAME)
 endif
 
 # ============================================================================
 # AIRFLOW PLATFORM CONFIGURATION
 # ============================================================================
 
+# Airflow platform configuration (conditional assignment)
 ifeq ($(PLATFORM_FAMILY),unix)
-    AIRFLOW_HOME_DEFAULT := $(shell pwd)/airflow
-    AIRFLOW_DAGS_FOLDER_DEFAULT := $(shell pwd)/dags
-    AIRFLOW_LOG_FOLDER_DEFAULT := $(shell pwd)/airflow/logs
+    AIRFLOW_HOME_DEFAULT ?= $(shell pwd)/airflow
+    AIRFLOW_DAGS_FOLDER_DEFAULT ?= $(shell pwd)/dags
+    AIRFLOW_LOG_FOLDER_DEFAULT ?= $(shell pwd)/airflow/logs
 else
-    AIRFLOW_HOME_DEFAULT := $(shell cd)/airflow
-    AIRFLOW_DAGS_FOLDER_DEFAULT := $(shell cd)/dags
-    AIRFLOW_LOG_FOLDER_DEFAULT := $(shell cd)/airflow/logs
+    AIRFLOW_HOME_DEFAULT ?= $(shell cd)/airflow
+    AIRFLOW_DAGS_FOLDER_DEFAULT ?= $(shell cd)/dags
+    AIRFLOW_LOG_FOLDER_DEFAULT ?= $(shell cd)/airflow/logs
 endif
 
 # ============================================================================

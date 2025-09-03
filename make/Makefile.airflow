@@ -75,12 +75,6 @@ airflow-status: ## 🌊 Validate Airflow process status
 		echo -e "$(YELLOW)⚠ No Airflow processes found$(NC)"; \
 	fi
 
-_check_airflow_deps: ## Internal: Check Airflow dependencies
-	@echo -e "$(YELLOW)Checking Airflow dependencies...$(NC)"
-	@$(PYTHON) -c "import airflow" 2>/dev/null || \
-	(echo -e "$(RED)❌ Airflow not installed. Run 'make install-dev' first.$(NC)" && exit 1)
-	@echo -e "$(GREEN)✓ Airflow dependencies available$(NC)"
-
 # ============================================================================
 # AIRFLOW INITIALIZATION AND CONFIGURATION
 # ============================================================================
