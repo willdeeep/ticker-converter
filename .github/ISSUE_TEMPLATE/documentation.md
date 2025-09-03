@@ -85,7 +85,7 @@ data_point = MarketDataPoint(
 ### SQL Examples (if applicable)
 ```sql
 -- SQL queries that should be documented
-SELECT 
+SELECT
     ds.symbol,
     fs.closing_price,
     fs.volume

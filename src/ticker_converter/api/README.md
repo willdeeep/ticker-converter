@@ -1,6 +1,6 @@
 # `/api/` Directory
 
-**Git Status**: Tracked  
+**Git Status**: Tracked
 **Use Case**: FastAPI application and HTTP interface definitions
 
 This directory contains FastAPI application setup, route definitions, and HTTP-specific components.

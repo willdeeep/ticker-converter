@@ -21,7 +21,7 @@ Financial applications require **reliable, real-time access to processed market 
 Our data pipeline addresses these challenges through a **two-layer approach**:
 
 1. **Ingestion Layer (Python)**: Lightweight API clients fetch data and load directly into fact tables
-2. **Analytics Layer (SQL)**: All business logic implemented in PostgreSQL for optimal performance  
+2. **Analytics Layer (SQL)**: All business logic implemented in PostgreSQL for optimal performance
 3. **Serving Layer (FastAPI)**: Direct SQL execution provides sub-second analytical responses
 
 ## End-to-End Data Flow
@@ -60,7 +60,7 @@ Our data pipeline addresses these challenges through a **two-layer approach**:
 │  ┌─────────────────────────────────────────┐ │
 │  │              Views Layer                │ │
 │  │ • v_stock_performance (daily returns)  │ │
-│  │ • v_stocks_gbp (currency conversion)   │ │  
+│  │ • v_stocks_gbp (currency conversion)   │ │
 │  │ • v_top_performers (ranking analysis)  │ │
 │  └─────────────────────────────────────────┘ │
 └─────────────────┬───────────────────────────┘
@@ -78,7 +78,7 @@ Our data pipeline addresses these challenges through a **two-layer approach**:
 ## Data Ingestion Architecture
 
 ### Alpha Vantage Integration
-**Purpose**: Primary source for NYSE stock market data  
+**Purpose**: Primary source for NYSE stock market data
 **Implementation**: `src/ticker_converter/data_ingestion/nyse_fetcher.py`
 
 ```python
@@ -176,7 +176,7 @@ CREATE TABLE raw_stock_data (
     symbol VARCHAR(10) NOT NULL,
     timestamp TIMESTAMP NOT NULL,
     open_price DECIMAL(10,4) NOT NULL,
-    high_price DECIMAL(10,4) NOT NULL, 
+    high_price DECIMAL(10,4) NOT NULL,
     low_price DECIMAL(10,4) NOT NULL,
     close_price DECIMAL(10,4) NOT NULL,
     volume BIGINT NOT NULL,
@@ -190,9 +190,9 @@ CREATE TABLE raw_stock_data (
 ```sql
 -- Populate dimension tables from raw data
 INSERT INTO dim_stocks (symbol, company_name, sector, exchange)
-SELECT DISTINCT 
+SELECT DISTINCT
     symbol,
-    CASE symbol 
+    CASE symbol
         WHEN 'AAPL' THEN 'Apple Inc.'
         WHEN 'MSFT' THEN 'Microsoft Corporation'
         WHEN 'GOOGL' THEN 'Alphabet Inc.'
@@ -212,14 +212,14 @@ SELECT DISTINCT
     EXTRACT(QUARTER FROM timestamp) as quarter,
     CASE EXTRACT(DOW FROM timestamp)
         WHEN 0 THEN FALSE  -- Sunday
-        WHEN 6 THEN FALSE  -- Saturday  
+        WHEN 6 THEN FALSE  -- Saturday
         ELSE TRUE
     END as is_trading_day
 FROM raw_stock_data
 WHERE DATE(timestamp) NOT IN (SELECT date FROM dim_dates);
 ```
 
-#### Stage 3: Fact Table Population  
+#### Stage 3: Fact Table Population
 **File**: `dags/sql/etl/daily_transforms.sql`
 ```sql
 -- Load fact tables with business logic calculations
@@ -227,7 +227,7 @@ INSERT INTO fact_stock_prices (
     stock_id, date_id, open_usd, high_usd, low_usd, close_usd, volume,
     daily_return_pct, price_change_usd
 )
-SELECT 
+SELECT
     ds.stock_id,
     dd.date_id,
     rsd.open_price,
@@ -244,7 +244,7 @@ SELECT
         )) * 100, 4
     ) as daily_return_pct,
     rsd.close_price - LAG(rsd.close_price) OVER (
-        PARTITION BY rsd.symbol ORDER BY rsd.timestamp  
+        PARTITION BY rsd.symbol ORDER BY rsd.timestamp
     ) as price_change_usd
 FROM raw_stock_data rsd
 JOIN dim_stocks ds ON rsd.symbol = ds.symbol
@@ -257,7 +257,7 @@ WHERE DATE(rsd.timestamp) >= CURRENT_DATE - INTERVAL '1 day';
 ```sql
 -- High-performance analytical views for API endpoints
 CREATE OR REPLACE VIEW v_stock_performance AS
-SELECT 
+SELECT
     s.symbol,
     s.company_name,
     d.date,
@@ -269,14 +269,14 @@ SELECT
     RANK() OVER (PARTITION BY d.date ORDER BY p.daily_return_pct DESC) as daily_rank,
     -- Moving averages using window functions
     AVG(p.close_usd) OVER (
-        PARTITION BY s.symbol 
-        ORDER BY d.date 
+        PARTITION BY s.symbol
+        ORDER BY d.date
         ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
     ) as ma_7_day,
     AVG(p.close_usd) OVER (
-        PARTITION BY s.symbol 
-        ORDER BY d.date 
-        ROWS BETWEEN 29 PRECEDING AND CURRENT ROW  
+        PARTITION BY s.symbol
+        ORDER BY d.date
+        ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
     ) as ma_30_day
 FROM fact_stock_prices p
 JOIN dim_stocks s ON p.stock_id = s.stock_id
@@ -285,7 +285,7 @@ WHERE d.is_trading_day = TRUE;
 
 -- Currency conversion view for international users
 CREATE OR REPLACE VIEW v_stocks_gbp AS
-SELECT 
+SELECT
     sp.symbol,
     sp.company_name,
     sp.date,
@@ -330,7 +330,7 @@ def market_data_pipeline():
         orchestrator = Orchestrator()
         return orchestrator.run_stock_data_ingestion()
 
-    @task(task_id='extract_currency_rates')  
+    @task(task_id='extract_currency_rates')
     def fetch_currency_data():
         """Python task: Currency API ingestion only."""
         from ticker_converter.data_ingestion.orchestrator import Orchestrator
@@ -346,14 +346,14 @@ def market_data_pipeline():
     )
 
     daily_transform = PostgresOperator(
-        task_id='daily_transform', 
+        task_id='daily_transform',
         postgres_conn_id='postgres_default',
         sql='sql/etl/daily_transform.sql'
     )
 
     data_quality_checks = PostgresOperator(
         task_id='data_quality_checks',
-        postgres_conn_id='postgres_default', 
+        postgres_conn_id='postgres_default',
         sql='sql/etl/data_quality_checks.sql'
     )
 
@@ -376,20 +376,20 @@ dag_instance = market_data_pipeline()
 ```sql
 -- Comprehensive data quality validation
 WITH quality_metrics AS (
-    SELECT 
+    SELECT
         COUNT(*) as total_records,
         COUNT(DISTINCT stock_id) as unique_stocks,
         MIN(date_id) as min_date,
         MAX(date_id) as max_date,
         COUNT(CASE WHEN daily_return_pct IS NULL THEN 1 END) as null_returns,
         COUNT(CASE WHEN volume = 0 THEN 1 END) as zero_volume_records
-    FROM fact_stock_prices 
+    FROM fact_stock_prices
     WHERE date_id = (
         SELECT date_id FROM dim_dates WHERE date = CURRENT_DATE - INTERVAL '1 day'
     )
 )
-SELECT 
-    CASE 
+SELECT
+    CASE
         WHEN unique_stocks < 7 THEN 'FAIL: Missing stock data'
         WHEN total_records < 7 THEN 'FAIL: Insufficient records'
         WHEN null_returns > 1 THEN 'WARN: High null return rate'
@@ -443,11 +443,11 @@ async def get_performance_details(
     """Get detailed performance metrics for a specific stock."""
 
     query = """
-        SELECT 
+        SELECT
             symbol, company_name, date, close_usd, daily_return_pct,
             ma_7_day, ma_30_day, daily_rank, volume
         FROM v_stock_performance
-        WHERE symbol = $1 
+        WHERE symbol = $1
           AND date >= CURRENT_DATE - INTERVAL '%s days'
         ORDER BY date DESC;
     """
@@ -462,13 +462,13 @@ async def get_performance_details(
 **Indexing Strategy**:
 ```sql
 -- Optimized indexes for analytical queries
-CREATE INDEX idx_fact_stock_prices_symbol_date 
+CREATE INDEX idx_fact_stock_prices_symbol_date
 ON fact_stock_prices(stock_id, date_id);
 
-CREATE INDEX idx_fact_stock_prices_date_return 
+CREATE INDEX idx_fact_stock_prices_date_return
 ON fact_stock_prices(date_id, daily_return_pct DESC);
 
-CREATE INDEX idx_dim_dates_trading_day 
+CREATE INDEX idx_dim_dates_trading_day
 ON dim_dates(date) WHERE is_trading_day = TRUE;
 ```
 
@@ -485,7 +485,7 @@ ON dim_dates(date) WHERE is_trading_day = TRUE;
 - **Result Streaming**: Efficient handling of large result sets
 - **Response Caching**: Application-level caching for frequently accessed endpoints
 
-### ETL Performance  
+### ETL Performance
 **Bulk Operations**:
 - **COPY Commands**: Use PostgreSQL's COPY for fast bulk data loading
 - **Upsert Pattern**: ON CONFLICT DO UPDATE for idempotent operations
@@ -542,7 +542,7 @@ ON dim_dates(date) WHERE is_trading_day = TRUE;
 ## Related Documentation
 
 - [Database Design](database_design.md) - Detailed schema design and optimization
-- [Airflow Setup](airflow_setup.md) - Apache Airflow 3.0.4 configuration guide  
+- [Airflow Setup](airflow_setup.md) - Apache Airflow 3.0.4 configuration guide
 - [API Design](api_design.md) - FastAPI implementation and endpoint specifications
 - [Local Setup](../deployment/local_setup.md) - Development environment configuration
 

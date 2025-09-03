@@ -19,7 +19,7 @@ This directory contains all SQL files for the ticker-converter project. All SQL 
 ```
 dags/sql/
 ├── ddl/          # Data Definition Language (Schema Creation)
-├── etl/          # Extract, Transform, Load Operations  
+├── etl/          # Extract, Transform, Load Operations
 ├── queries/      # Business Logic Queries
 └── README.md     # This documentation
 ```
@@ -35,7 +35,7 @@ dags/sql/
 - `daily_transforms.sql` - Daily data transformation processes
 - `load_dimensions.sql` - Load dimension table data
 - `load_stock_dimension.sql` - Load stock dimension specifically
-- `load_currency_dimension.sql` - Load currency dimension specifically  
+- `load_currency_dimension.sql` - Load currency dimension specifically
 - `load_date_dimension.sql` - Load date dimension specifically
 - `data_quality_checks.sql` - Data validation and quality checks
 - `cleanup_old_data.sql` - Remove outdated data

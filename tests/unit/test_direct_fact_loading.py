@@ -223,7 +223,6 @@ class TestDirectFactTableLoadingUnit:
                 patch("dags.helpers.load_raw_to_db.RAW_STOCKS_DIR", stocks_dir),
                 patch("dags.helpers.load_raw_to_db.RAW_EXCHANGE_DIR", exchange_dir),
             ):
-
                 result = load_raw_to_db()
 
                 # Verify results match our mocked return values

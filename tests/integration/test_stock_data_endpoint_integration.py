@@ -200,8 +200,8 @@ class TestStockDataEndpointIntegration:
             # Insert USD currency
             cur.execute(
                 """
-                INSERT INTO dim_currency (currency_code, currency_name) 
-                VALUES ('USD', 'US Dollar') 
+                INSERT INTO dim_currency (currency_code, currency_name)
+                VALUES ('USD', 'US Dollar')
                 ON CONFLICT (currency_code) DO UPDATE SET currency_name = EXCLUDED.currency_name
                 RETURNING currency_id;
             """
@@ -211,8 +211,8 @@ class TestStockDataEndpointIntegration:
             # Insert GBP currency
             cur.execute(
                 """
-                INSERT INTO dim_currency (currency_code, currency_name) 
-                VALUES ('GBP', 'British Pound') 
+                INSERT INTO dim_currency (currency_code, currency_name)
+                VALUES ('GBP', 'British Pound')
                 ON CONFLICT (currency_code) DO UPDATE SET currency_name = EXCLUDED.currency_name
                 RETURNING currency_id;
             """
@@ -227,8 +227,8 @@ class TestStockDataEndpointIntegration:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO dim_date (date_value, year, month, day, quarter, day_of_week) 
-                VALUES (%s, %s, %s, %s, %s, %s) 
+                INSERT INTO dim_date (date_value, year, month, day, quarter, day_of_week)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (date_value) DO UPDATE SET year = EXCLUDED.year
                 RETURNING date_id;
             """,
@@ -259,8 +259,8 @@ class TestStockDataEndpointIntegration:
             for symbol, (company_name, sector) in stock_data.items():
                 cur.execute(
                     """
-                    INSERT INTO dim_stocks (symbol, company_name, sector, is_active) 
-                    VALUES (%s, %s, %s, %s) 
+                    INSERT INTO dim_stocks (symbol, company_name, sector, is_active)
+                    VALUES (%s, %s, %s, %s)
                     ON CONFLICT (symbol) DO UPDATE SET company_name = EXCLUDED.company_name
                     RETURNING stock_id;
                 """,
@@ -278,9 +278,9 @@ class TestStockDataEndpointIntegration:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO fact_currency_rates (date_id, from_currency_id, to_currency_id, exchange_rate) 
-                VALUES (%s, %s, %s, %s) 
-                ON CONFLICT (date_id, from_currency_id, to_currency_id) 
+                INSERT INTO fact_currency_rates (date_id, from_currency_id, to_currency_id, exchange_rate)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (date_id, from_currency_id, to_currency_id)
                 DO UPDATE SET exchange_rate = EXCLUDED.exchange_rate;
             """,
                 (date_id, usd_id, gbp_id, self.test_exchange_rate),
@@ -302,10 +302,10 @@ class TestStockDataEndpointIntegration:
             for symbol, data in price_data.items():
                 cur.execute(
                     """
-                    INSERT INTO fact_stock_prices (date_id, stock_id, closing_price, volume, daily_return) 
-                    VALUES (%s, %s, %s, %s, %s) 
-                    ON CONFLICT (date_id, stock_id) 
-                    DO UPDATE SET 
+                    INSERT INTO fact_stock_prices (date_id, stock_id, closing_price, volume, daily_return)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (date_id, stock_id)
+                    DO UPDATE SET
                         closing_price = EXCLUDED.closing_price,
                         volume = EXCLUDED.volume,
                         daily_return = EXCLUDED.daily_return;
@@ -386,7 +386,7 @@ class TestStockDataEndpointIntegration:
                     cur.execute(
                         """
                         SELECT EXISTS (
-                            SELECT FROM information_schema.tables 
+                            SELECT FROM information_schema.tables
                             WHERE table_name = %s
                         );
                     """,
@@ -504,9 +504,9 @@ class TestStockDataEndpointIntegration:
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    INSERT INTO fact_stock_prices (date_id, stock_id, closing_price, volume, daily_return) 
-                    VALUES (%s, %s, %s, %s, %s) 
-                    ON CONFLICT (date_id, stock_id) 
+                    INSERT INTO fact_stock_prices (date_id, stock_id, closing_price, volume, daily_return)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (date_id, stock_id)
                     DO UPDATE SET closing_price = EXCLUDED.closing_price;
                 """,
                     (yesterday_date_id, stock_ids["AAPL"], 140.00, 900000, 1.5),

@@ -148,7 +148,7 @@ Issue content structure:
 - [ ] Add comprehensive unit tests with >90% coverage
 
 ### Implementation Notes
-- **Files to modify**: 
+- **Files to modify**:
   - `src/ticker_converter/data_models/currency.py`
   - `tests/unit/data_models/test_currency.py`
 - **Reference documentation**: `my_docs/guides/python_refactoring_guide.md`

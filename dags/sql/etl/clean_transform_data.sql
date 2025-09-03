@@ -11,30 +11,30 @@ SELECT 'Data cleaning handled during direct fact loading...' AS status;
 
 -- Example of post-processing transformations that could be added:
 -- WITH stock_metrics AS (
---   SELECT 
+--   SELECT
 --     fsp.stock_id,
 --     fsp.date_id,
 --     fsp.closing_price,
 --     AVG(fsp.closing_price) OVER (
---       PARTITION BY fsp.stock_id 
---       ORDER BY dd.date_value 
+--       PARTITION BY fsp.stock_id
+--       ORDER BY dd.date_value
 --       ROWS BETWEEN 19 PRECEDING AND CURRENT ROW
 --     ) AS moving_avg_20d,
 --     AVG(fsp.volume) OVER (
---       PARTITION BY fsp.stock_id 
---       ORDER BY dd.date_value 
+--       PARTITION BY fsp.stock_id
+--       ORDER BY dd.date_value
 --       ROWS BETWEEN 9 PRECEDING AND CURRENT ROW
 --     ) AS avg_volume_10d
 --   FROM fact_stock_prices fsp
 --   JOIN dim_date dd ON fsp.date_id = dd.date_id
 --   WHERE dd.date_value = '{{ ds }}'
 -- )
--- UPDATE fact_stock_prices 
--- SET 
+-- UPDATE fact_stock_prices
+-- SET
 --   additional_metrics = jsonb_build_object(
 --     'moving_avg_20d', sm.moving_avg_20d,
 --     'avg_volume_10d', sm.avg_volume_10d
 --   )
 -- FROM stock_metrics sm
--- WHERE fact_stock_prices.stock_id = sm.stock_id 
+-- WHERE fact_stock_prices.stock_id = sm.stock_id
 -- AND fact_stock_prices.date_id = sm.date_id;

@@ -313,7 +313,7 @@ make run
 - `make install-dev` - Install development dependencies and quality tools
 - `make install-quality` - Install quality assurance tools only
 
-### Database Commands  
+### Database Commands
 - `make init-db` - Initialize database using environment configuration
 - `make _validate_env` - Validate all required environment variables
 

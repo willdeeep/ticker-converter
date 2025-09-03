@@ -130,8 +130,8 @@ class DatabaseManager:
             cursor = conn.cursor()
 
             # PostgreSQL bulk insert
-            from psycopg2.extras import (  # pylint: disable=import-outside-toplevel
-                execute_values,
+            from psycopg2.extras import (
+                execute_values,  # pylint: disable=import-outside-toplevel
             )
 
             # Convert dict records to tuple values
@@ -178,7 +178,7 @@ class DatabaseManager:
         try:
             if symbol:
                 query = """
-                    SELECT MAX(d.date_value) as latest_date 
+                    SELECT MAX(d.date_value) as latest_date
                     FROM fact_stock_prices fsp
                     JOIN dim_date d ON fsp.date_id = d.date_id
                     WHERE fsp.symbol = %s
@@ -186,7 +186,7 @@ class DatabaseManager:
                 result = self.execute_query(query, (symbol,))
             else:
                 query = """
-                    SELECT MAX(d.date_value) as latest_date 
+                    SELECT MAX(d.date_value) as latest_date
                     FROM fact_stock_prices fsp
                     JOIN dim_date d ON fsp.date_id = d.date_id
                 """
@@ -209,7 +209,7 @@ class DatabaseManager:
         """
         try:
             query = """
-                SELECT MAX(d.date_value) as latest_date 
+                SELECT MAX(d.date_value) as latest_date
                 FROM fact_currency_rates fcr
                 JOIN dim_date d ON fcr.date_id = d.date_id
             """
@@ -249,8 +249,8 @@ class DatabaseManager:
                 return True
 
             # PostgreSQL-specific insert with upsert functionality
-            from psycopg2.extras import (  # pylint: disable=import-outside-toplevel
-                execute_values,
+            from psycopg2.extras import (
+                execute_values,  # pylint: disable=import-outside-toplevel
             )
 
             date_record = {
@@ -315,9 +315,9 @@ class DatabaseManager:
 
             # PostgreSQL-specific bulk insert with conflict resolution
             query = """
-                INSERT INTO fact_stock_prices (symbol, date_id, open_price, high_price, low_price, 
+                INSERT INTO fact_stock_prices (symbol, date_id, open_price, high_price, low_price,
                                              close_price, volume, adj_close_price)
-                SELECT %(symbol)s, d.date_id, %(open_price)s, %(high_price)s, %(low_price)s, 
+                SELECT %(symbol)s, d.date_id, %(open_price)s, %(high_price)s, %(low_price)s,
                        %(close_price)s, %(volume)s, %(adj_close_price)s
                 FROM dim_date d
                 WHERE d.date_value = %(date)s
@@ -374,9 +374,9 @@ class DatabaseManager:
 
             # PostgreSQL-specific bulk insert with conflict resolution
             query = """
-                INSERT INTO fact_currency_rates (base_currency, target_currency, date_id, 
+                INSERT INTO fact_currency_rates (base_currency, target_currency, date_id,
                                                 exchange_rate, bid_rate, ask_rate)
-                SELECT %(base_currency)s, %(target_currency)s, d.date_id, 
+                SELECT %(base_currency)s, %(target_currency)s, d.date_id,
                        %(exchange_rate)s, %(bid_rate)s, %(ask_rate)s
                 FROM dim_date d
                 WHERE d.date_value = %(date)s
@@ -428,8 +428,8 @@ class DatabaseManager:
                 WHERE d.date_value BETWEEN %s AND %s
                   AND d.is_weekend = false
                   AND NOT EXISTS (
-                      SELECT 1 
-                      FROM fact_stock_prices fsp 
+                      SELECT 1
+                      FROM fact_stock_prices fsp
                       WHERE fsp.date_id = d.date_id AND fsp.symbol = %s
                   )
                 ORDER BY d.date_value
@@ -462,9 +462,9 @@ class DatabaseManager:
 
                 # Check if required tables exist
                 table_check_query = """
-                    SELECT table_name 
-                    FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
+                    SELECT table_name
+                    FROM information_schema.tables
+                    WHERE table_schema = 'public'
                     AND table_name IN ('fact_stock_prices', 'fact_currency_rates', 'dim_date')
                 """
 

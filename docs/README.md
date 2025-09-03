@@ -1,6 +1,6 @@
 # `/docs/` Directory
 
-**Git Status**: Tracked  
+**Git Status**: Tracked
 **Use Case**: Project documentation and guides
 
 This directory contains comprehensive project documentation organized by audience and purpose.

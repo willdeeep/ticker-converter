@@ -140,7 +140,7 @@ _load_env: ## Internal: Load and export environment variables
 		exit 1; \
 	fi
 
-_validate_env: _load_env ## Internal: Validate required environment variables  
+_validate_env: _load_env ## Internal: Validate required environment variables
 	@echo -e "$(YELLOW)Validating environment variables...$(NC)"
 	@set -a && . ./.env && set +a && \
 	$(call check_var,POSTGRES_HOST) && \
@@ -395,7 +395,7 @@ lint: _validate_env ## Run comprehensive linting (black, isort, pylint, mypy)
 
 _lint_pipeline: ## Internal: Execute all linting steps
 	@$(MAKE) lint-black
-	@$(MAKE) lint-isort  
+	@$(MAKE) lint-isort
 	@$(MAKE) lint-pylint
 	@$(MAKE) lint-mypy
 	@echo "✓ All linting checks passed"

@@ -17,7 +17,7 @@ Based on the comprehensive deduplication analysis, here's the systematic optimiz
 3. `run` → `airflow-dag-trigger` (too generic)
 4. `inspect` → `airflow-status` (unclear purpose)
 5. `teardown-cache` → `clean-cache` (inconsistent naming)
-6. `teardown-env` → `clean-env` (inconsistent naming)  
+6. `teardown-env` → `clean-env` (inconsistent naming)
 7. `teardown-airflow` → `airflow-stop` (inconsistent naming)
 
 **Action**: Remove these aliases and update documentation to use modern equivalents.
@@ -60,7 +60,7 @@ Based on the comprehensive deduplication analysis, here's the systematic optimiz
 
 ### Extract Common Functions:
 1. **Output Formatting**: 17 commands use similar echo patterns
-2. **PostgreSQL Operations**: 13 commands repeat psql patterns  
+2. **PostgreSQL Operations**: 13 commands repeat psql patterns
 3. **Python File Finding**: 9 commands use identical find patterns
 4. **Pip Operations**: 8 commands repeat pip install patterns
 

@@ -82,7 +82,7 @@ make init-db
 # 4. Create database 'ticker_converter'
 # 5. Execute DDL scripts in order:
 #    - 001_create_dimensions.sql
-#    - 002_create_facts.sql  
+#    - 002_create_facts.sql
 #    - 003_create_views.sql
 #    - 004_create_indexes.sql
 # 6. Verify database connectivity
@@ -425,7 +425,7 @@ git push origin feature-branch
 ```bash
 # Local CI/CD testing
 make act-pr         # Test GitHub Actions locally
-make test-ci        # CI-compatible test execution  
+make test-ci        # CI-compatible test execution
 make quality        # Complete 7-stage quality pipeline
 
 # Production deployment preparation
@@ -457,7 +457,7 @@ python -c "import os; print(f'Environment: {os.getenv(\"ENVIRONMENT\", \"develop
 make setup                    # Creates .env
 make install-dev             # Full development tools
 
-# Testing environment  
+# Testing environment
 cp .env .env.test            # Copy and modify for testing
 make install-test            # Testing dependencies only
 

@@ -210,7 +210,7 @@ The database includes **materialized view candidates** designed for common analy
 ```sql
 -- Combines facts with dimensions for daily analytics
 CREATE VIEW vw_daily_performance AS
-SELECT 
+SELECT
     s.symbol,
     s.company_name,
     s.sector,
@@ -254,17 +254,17 @@ ORDER BY s.stock_id, d.date DESC;
 
 ```sql
 -- Fact table performance indexes
-CREATE INDEX idx_fact_stock_prices_date_stock 
+CREATE INDEX idx_fact_stock_prices_date_stock
 ON fact_stock_prices(date_id, stock_id);
 
-CREATE INDEX idx_fact_stock_prices_stock_date 
+CREATE INDEX idx_fact_stock_prices_stock_date
 ON fact_stock_prices(stock_id, date_id DESC); -- Time-series optimization
 
 -- Dimension table performance indexes
-CREATE INDEX idx_dim_stocks_symbol 
+CREATE INDEX idx_dim_stocks_symbol
 ON dim_stocks(symbol); -- Natural key lookup
 
-CREATE INDEX idx_dim_dates_date 
+CREATE INDEX idx_dim_dates_date
 ON dim_dates(date); -- Date range queries
 ```
 
@@ -302,7 +302,7 @@ ON dim_dates(date); -- Date range queries
 # Optimized for PostgreSQL bulk loading
 def bulk_insert_stock_prices(self, price_data):
     insert_query = """
-    INSERT INTO fact_stock_prices 
+    INSERT INTO fact_stock_prices
     (stock_id, date_id, open_usd, high_usd, low_usd, close_usd, volume)
     VALUES %s
     ON CONFLICT (stock_id, date_id) DO UPDATE SET
@@ -448,7 +448,7 @@ All SQL files are organized under `dags/sql/` for unified access by Airflow DAGs
 #### DDL (Data Definition Language) - `dags/sql/ddl/`
 ```
 001_create_dimensions.sql    # Database dimension tables
-002_create_facts.sql         # Database fact tables  
+002_create_facts.sql         # Database fact tables
 003_create_views.sql         # Database views
 004_create_indexes.sql       # Database indexes
 ```

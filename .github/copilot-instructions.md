@@ -161,7 +161,7 @@ git push -u origin feature/issue-[number]-[brief-description]
 ### Branch Naming Convention
 
 - **Format**: `feature/issue-[number]-[brief-description]`
-- **Examples**: 
+- **Examples**:
   - `feature/issue-42-add-currency-validation`
   - `feature/issue-73-refactor-database-manager`
   - `feature/issue-15-implement-error-handling`

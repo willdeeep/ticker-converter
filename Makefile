@@ -7,7 +7,7 @@
 # Module Structure:
 #   make/Makefile.common       - Shared functions and utility patterns
 #   make/Makefile.platform     - OS detection and platform configurations
-#   make/Makefile.env          - Environment setup and validation  
+#   make/Makefile.env          - Environment setup and validation
 #   make/Makefile.install      - Installation and dependency management
 #   make/Makefile.database     - PostgreSQL operations and data management
 #   make/Makefile.airflow      - Airflow orchestration and management
@@ -146,7 +146,7 @@ help-cleanup: ## 🧹 Display cleanup and teardown commands
 # These legacy aliases have been removed for clarity and consistency.
 # Use the modern equivalent commands instead:
 #   help-all → help
-#   airflow → airflow-start  
+#   airflow → airflow-start
 #   run → airflow-dag-trigger
 #   inspect → airflow-status
 #   teardown-cache → clean-cache
@@ -156,7 +156,7 @@ help-cleanup: ## 🧹 Display cleanup and teardown commands
 # =============================================================================
 
 # =============================================================================
-# LEGACY COMMAND IMPLEMENTATIONS 
+# LEGACY COMMAND IMPLEMENTATIONS
 # Note: Commands that exist in modules are removed to avoid duplication
 # =============================================================================
 
@@ -166,7 +166,7 @@ init-db: ## 🗄️ Initialize database (legacy command)
 	@$(MAKE) db-init-schema
 
 # Note: Removed duplicate commands that exist in modules:
-# - act-pr (exists in Makefile.quality)  
+# - act-pr (exists in Makefile.quality)
 # - airflow-config (exists in Makefile.airflow)
 # - install (exists in Makefile.install)
 # - install-test (exists in Makefile.install)
@@ -294,3 +294,91 @@ benchmark: ## 🧪 Compare performance of modular vs monolithic Makefile
 	else \
 		echo -e "$(YELLOW)No backup Makefile found for comparison$(NC)"; \
 	fi
+
+# ============================================================================
+# HELP SYSTEM EXTENSIONS
+# ============================================================================
+
+info-platform: platform-info ## 📊 Show platform information (alias)
+
+# Help targets for documented sections
+help-setup: ## 📖 Show setup and installation help
+	@echo -e "$(BLUE)📖 Setup and Installation Help$(NC)"
+	@echo ""
+	@echo -e "$(YELLOW)Essential Setup Commands:$(NC)"
+	@echo "  make setup              - Complete environment setup"
+	@echo "  make setup-full         - Full setup (same as setup)"
+	@echo "  make install            - Install Python dependencies"
+	@echo "  make install-all        - Install all dependencies"
+	@echo "  make fresh-install      - Clean install from scratch"
+	@echo ""
+	@echo -e "$(YELLOW)Quick Start:$(NC)"
+	@echo "  make all                - Setup + test + quality check"
+	@echo "  make dev-ready          - Fast development readiness check"
+	@echo ""
+	@echo "For more help: make help"
+
+help-examples: ## 📖 Show common usage examples
+	@echo -e "$(BLUE)📖 Common Usage Examples$(NC)"
+	@echo ""
+	@echo -e "$(YELLOW)Development Workflow:$(NC)"
+	@echo "  make setup              # Initial setup"
+	@echo "  make test               # Run tests"
+	@echo "  make quality            # Check code quality"
+	@echo "  make clean              # Clean temporary files"
+	@echo ""
+	@echo -e "$(YELLOW)Database Operations:$(NC)"
+	@echo "  make init-db            # Initialize database"
+	@echo "  make db-status          # Check database status"
+	@echo "  make db-reset           # Reset database"
+	@echo ""
+	@echo -e "$(YELLOW)Airflow Workflow:$(NC)"
+	@echo "  make airflow-init       # Initialize Airflow"
+	@echo "  make airflow-start      # Start Airflow services"
+	@echo "  make airflow-status     # Check Airflow status"
+	@echo ""
+	@echo "For more help: make help"
+
+help-troubleshooting: ## 📖 Show troubleshooting guide
+	@echo -e "$(BLUE)📖 Troubleshooting Guide$(NC)"
+	@echo ""
+	@echo -e "$(YELLOW)Common Issues:$(NC)"
+	@echo "  • Permission errors     → Check file permissions"
+	@echo "  • Package conflicts     → make clean && make install"
+	@echo "  • Database issues       → make db-status, make db-reset"
+	@echo "  • Environment issues    → make env-debug"
+	@echo ""
+	@echo -e "$(YELLOW)Diagnostic Commands:$(NC)"
+	@echo "  make platform-info      # Check platform detection"
+	@echo "  make env-debug          # Debug environment setup"
+	@echo "  make install-doctor     # Check installation health"
+	@echo "  make db-debug           # Debug database issues"
+	@echo ""
+	@echo -e "$(YELLOW)Reset Commands:$(NC)"
+	@echo "  make clean-all          # Clean everything"
+	@echo "  make fresh-install      # Reinstall from scratch"
+	@echo ""
+	@echo "For more help: make help"
+
+help-workflows: ## 📖 Show workflow guides
+	@echo -e "$(BLUE)📖 Workflow Guides$(NC)"
+	@echo ""
+	@echo -e "$(YELLOW)Development Workflow:$(NC)"
+	@echo "  1. make setup           # Initial setup"
+	@echo "  2. make test-fast       # Quick test"
+	@echo "  3. make quality-fix     # Fix code issues"
+	@echo "  4. make test            # Full test suite"
+	@echo ""
+	@echo -e "$(YELLOW)CI/CD Workflow:$(NC)"
+	@echo "  1. make validate-ci     # Validate CI readiness"
+	@echo "  2. make test            # Run all tests"
+	@echo "  3. make quality         # Full quality check"
+	@echo "  4. make security-scan   # Security analysis"
+	@echo ""
+	@echo -e "$(YELLOW)Data Pipeline Workflow:$(NC)"
+	@echo "  1. make init-db         # Setup database"
+	@echo "  2. make airflow-init    # Setup Airflow"
+	@echo "  3. make airflow-start   # Start services"
+	@echo "  4. make airflow-dag-test # Test DAGs"
+	@echo ""
+	@echo "For more help: make help"

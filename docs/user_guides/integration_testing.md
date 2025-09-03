@@ -58,7 +58,7 @@ Run specific integration test categories:
 # API integration tests only
 python -m pytest tests/integration/test_api_integration.py -v
 
-# Database integration tests only  
+# Database integration tests only
 python -m pytest tests/integration/test_db_integration.py -v
 
 # Airflow integration tests only

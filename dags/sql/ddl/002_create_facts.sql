@@ -30,5 +30,3 @@ CREATE TABLE IF NOT EXISTS fact_currency_rates (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (from_currency_id, to_currency_id, date_id)
 );
-
-

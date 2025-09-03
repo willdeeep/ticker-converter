@@ -14,10 +14,7 @@ import pandas as pd
 import pytest
 import requests
 
-from src.ticker_converter.api_clients import (
-    AlphaVantageAPIError,
-    AlphaVantageClient,
-)
+from src.ticker_converter.api_clients import AlphaVantageAPIError, AlphaVantageClient
 
 # Mark all tests in this file as integration tests
 pytestmark = pytest.mark.integration

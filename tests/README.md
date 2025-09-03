@@ -1,6 +1,6 @@
 # `/tests/` Directory
 
-**Git Status**: Tracked  
+**Git Status**: Tracked
 **Use Case**: Comprehensive test suite with 69% coverage and 245+ passing tests
 
 This directory contains all testing infrastructure organized by test type and scope, achieving professional-grade quality standards with 100% test success rate.
@@ -81,7 +81,7 @@ tests/
 ### `/tests/fixtures/`
 - **Use Case**: Test data fixtures and mock objects
 - **Git Status**: Tracked
-- **Contents**: 
+- **Contents**:
   - `sample_responses.py`: Mock API responses
   - Mock data files and variables
   - Reusable test fixtures

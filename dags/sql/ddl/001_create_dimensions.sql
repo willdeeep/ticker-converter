@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS dim_stocks (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Dimension: Date 
+-- Dimension: Date
 CREATE TABLE IF NOT EXISTS dim_date (
     date_id SERIAL PRIMARY KEY,
     date_value DATE NOT NULL UNIQUE,

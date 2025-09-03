@@ -130,8 +130,8 @@ class DatabaseManager:
             cursor = conn.cursor()
 
             # PostgreSQL bulk insert
-            from psycopg2.extras import (  # pylint: disable=import-outside-toplevel
-                execute_values,
+            from psycopg2.extras import (
+                execute_values,  # pylint: disable=import-outside-toplevel
             )
 
             # Convert dict records to tuple values
@@ -178,7 +178,7 @@ class DatabaseManager:
         try:
             if symbol:
                 query = """
-                    SELECT MAX(d.date_value) as latest_date 
+                    SELECT MAX(d.date_value) as latest_date
                     FROM fact_stock_prices fsp
                     JOIN dim_date d ON fsp.date_id = d.date_id
                     WHERE fsp.symbol = %s
@@ -186,7 +186,7 @@ class DatabaseManager:
                 result = self.execute_query(query, (symbol,))
             else:
                 query = """
-                    SELECT MAX(d.date_value) as latest_date 
+                    SELECT MAX(d.date_value) as latest_date
                     FROM fact_stock_prices fsp
                     JOIN dim_date d ON fsp.date_id = d.date_id
                 """
@@ -217,7 +217,7 @@ class DatabaseManager:
         """
         try:
             query = """
-                SELECT MAX(d.date_value) as latest_date 
+                SELECT MAX(d.date_value) as latest_date
                 FROM fact_currency_rates fcr
                 JOIN dim_date d ON fcr.date_id = d.date_id
             """
@@ -279,9 +279,9 @@ class DatabaseManager:
             }
 
             query = """
-                INSERT INTO dim_date (date_value, year, quarter, month, day, day_of_week, 
+                INSERT INTO dim_date (date_value, year, quarter, month, day, day_of_week,
                                     day_of_year, week_of_year, is_weekend, is_holiday)
-                VALUES (%(date_value)s, %(year)s, %(quarter)s, %(month)s, %(day)s, 
+                VALUES (%(date_value)s, %(year)s, %(quarter)s, %(month)s, %(day)s,
                         %(day_of_week)s, %(day_of_year)s, %(week_of_year)s, %(is_weekend)s, %(is_holiday)s)
                 ON CONFLICT (date_value) DO NOTHING
             """
@@ -321,9 +321,9 @@ class DatabaseManager:
             # PostgreSQL-specific bulk insert with conflict resolution
             # Map JSON field names to database field names
             query = """
-                INSERT INTO fact_stock_prices (stock_id, date_id, opening_price, high_price, low_price, 
+                INSERT INTO fact_stock_prices (stock_id, date_id, opening_price, high_price, low_price,
                                              closing_price, volume, adjusted_close)
-                SELECT ds.stock_id, d.date_id, %(open_price)s, %(high_price)s, %(low_price)s, 
+                SELECT ds.stock_id, d.date_id, %(open_price)s, %(high_price)s, %(low_price)s,
                        %(close_price)s, %(volume)s, %(close_price)s
                 FROM dim_date d
                 CROSS JOIN dim_stocks ds
@@ -393,15 +393,15 @@ class DatabaseManager:
             # Map JSON field names to database field names using dimension lookups
             query = """
                 INSERT INTO fact_currency_rates (from_currency_id, to_currency_id, date_id, exchange_rate)
-                SELECT 
-                    dc_from.currency_id, 
-                    dc_to.currency_id, 
-                    d.date_id, 
+                SELECT
+                    dc_from.currency_id,
+                    dc_to.currency_id,
+                    d.date_id,
                     %(exchange_rate)s
                 FROM dim_date d
                 CROSS JOIN dim_currency dc_from
                 CROSS JOIN dim_currency dc_to
-                WHERE d.date_value = %(data_date)s 
+                WHERE d.date_value = %(data_date)s
                   AND dc_from.currency_code = %(from_currency)s
                   AND dc_to.currency_code = %(to_currency)s
                 ON CONFLICT (from_currency_id, to_currency_id, date_id) DO UPDATE SET
@@ -457,8 +457,8 @@ class DatabaseManager:
                 WHERE d.date_value BETWEEN %s AND %s
                   AND d.is_weekend = false
                   AND NOT EXISTS (
-                      SELECT 1 
-                      FROM fact_stock_prices fsp 
+                      SELECT 1
+                      FROM fact_stock_prices fsp
                       WHERE fsp.date_id = d.date_id AND fsp.symbol = %s
                   )
                 ORDER BY d.date_value
@@ -491,9 +491,9 @@ class DatabaseManager:
 
                 # Check if required tables exist
                 table_check_query = """
-                    SELECT table_name 
-                    FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
+                    SELECT table_name
+                    FROM information_schema.tables
+                    WHERE table_schema = 'public'
                     AND table_name IN ('fact_stock_prices', 'fact_currency_rates', 'dim_date')
                 """
 

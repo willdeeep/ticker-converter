@@ -304,7 +304,8 @@ pre-commit-run: _load_env ## ⚙️ Execute pre-commit hooks on staged files
 	else \
 		echo -e "$(YELLOW)⚠ pre-commit not available, running quality checks...$(NC)"; \
 		$(MAKE) quality-check; \
-	fi
+	fi; \
+	echo -e "$(GREEN)✓ Pre-commit workflow completed$(NC)"
 
 # ============================================================================
 # QUALITY TOOL DEPENDENCY CHECKS

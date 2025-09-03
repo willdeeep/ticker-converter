@@ -369,7 +369,7 @@ For teams working across different platforms:
 We welcome contributions for additional platform support:
 
 - **FreeBSD/OpenBSD**: Unix-like system support
-- **Alpine Linux**: Lightweight container environments  
+- **Alpine Linux**: Lightweight container environments
 - **ARM Linux**: Raspberry Pi and ARM server support
 
 ---

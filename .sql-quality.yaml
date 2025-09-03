@@ -12,7 +12,7 @@ SQL_FILE_PATTERNS = [
 QUALITY_RULES = {
     "naming_conventions": {
         "tables": "snake_case",
-        "columns": "snake_case", 
+        "columns": "snake_case",
         "views": "snake_case",
         "functions": "snake_case"
     },

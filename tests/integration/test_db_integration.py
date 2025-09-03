@@ -161,8 +161,8 @@ class TestDatabaseSchema:
             # Check if any tables exist in the database
             cursor.execute(
                 """
-                SELECT table_name 
-                FROM information_schema.tables 
+                SELECT table_name
+                FROM information_schema.tables
                 WHERE table_schema = 'public';
             """
             )
@@ -212,7 +212,7 @@ class TestDatabaseSchema:
             # Test inserting ticker-like data
             cursor.execute(
                 """
-                INSERT INTO test_ticker_data 
+                INSERT INTO test_ticker_data
                 (symbol, date, open_price, high_price, low_price, close_price, volume)
                 VALUES (%s, %s, %s, %s, %s, %s, %s);
             """,
@@ -251,9 +251,9 @@ class TestDatabaseDataQuality:
             # Get list of all tables
             cursor.execute(
                 """
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
                 AND table_type = 'BASE TABLE';
             """
             )
@@ -299,9 +299,9 @@ class TestDatabaseDataQuality:
             # Look for tables that might contain ticker data
             cursor.execute(
                 """
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
                 AND table_type = 'BASE TABLE'
                 AND table_name LIKE ANY(ARRAY['%ticker%', '%stock%', '%price%', '%market%']);
             """
@@ -320,9 +320,9 @@ class TestDatabaseDataQuality:
                 cursor.execute(
                     sql.SQL(
                         """
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name = %s 
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name = %s
                     AND column_name IN ('symbol', 'date', 'close_price');
                 """
                     ),

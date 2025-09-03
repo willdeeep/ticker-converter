@@ -49,7 +49,7 @@ make setup
 
 **Helper Functions Used**:
 - `_setup_header`: Display setup introduction
-- `_setup_steps`: Execute configuration steps  
+- `_setup_steps`: Execute configuration steps
 - `_setup_footer`: Display completion summary
 
 **Process**:
@@ -110,7 +110,7 @@ make init-db
 
 **Environment Variables Required**:
 - `POSTGRES_HOST`
-- `POSTGRES_PORT` 
+- `POSTGRES_PORT`
 - `POSTGRES_DB`
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
@@ -183,7 +183,7 @@ make inspect JSON=1
 
 ## Testing and Quality
 
-### `make quality` 
+### `make quality`
 Run the comprehensive 7-stage quality validation pipeline using helper functions.
 
 ```bash
@@ -229,7 +229,7 @@ make lint
 
 **Quality Tools Executed**:
 - Black formatting verification
-- isort import sorting validation  
+- isort import sorting validation
 - Pylint static analysis (10.00/10 target)
 - MyPy type checking with strict mode
 
@@ -251,7 +251,7 @@ make lint-fix
 make lint-makefile  # Makefile structure validation with checkmake
 make lint-sql       # SQL quality with sqlfluff (PostgreSQL dialect)
 make lint-black     # Black formatting check only
-make lint-isort     # Import sorting check only  
+make lint-isort     # Import sorting check only
 make lint-pylint    # Pylint analysis only (10.00/10 target)
 make lint-mypy      # MyPy type checking only
 ```
@@ -290,7 +290,7 @@ make clean
 
 **Files Removed**:
 - Python cache files (`__pycache__`, `*.pyc`)
-- Test artifacts (`.pytest_cache`, `.coverage`)  
+- Test artifacts (`.pytest_cache`, `.coverage`)
 - Build artifacts (`*.egg-info`, `dist/`)
 - MyPy cache (`.mypy_cache`)
 - HTML coverage reports (`htmlcov/`)
@@ -319,7 +319,7 @@ make db-close
 
 **Platform Support**:
 - macOS: `brew services stop postgresql`
-- Linux: `systemctl stop postgresql` 
+- Linux: `systemctl stop postgresql`
 - Manual process termination as fallback
 
 ---

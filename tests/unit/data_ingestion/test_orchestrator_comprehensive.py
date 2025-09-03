@@ -21,7 +21,6 @@ class TestDataIngestionOrchestratorInitialization:
             patch("src.ticker_converter.data_ingestion.orchestrator.NYSEDataFetcher") as mock_nyse_cls,
             patch("src.ticker_converter.data_ingestion.orchestrator.CurrencyDataFetcher") as mock_currency_cls,
         ):
-
             orchestrator = DataIngestionOrchestrator()
 
             # Verify default instances are created
@@ -56,7 +55,6 @@ class TestDataIngestionOrchestratorInitialization:
             patch("src.ticker_converter.data_ingestion.orchestrator.NYSEDataFetcher") as mock_nyse_cls,
             patch("src.ticker_converter.data_ingestion.orchestrator.CurrencyDataFetcher") as mock_currency_cls,
         ):
-
             orchestrator = DataIngestionOrchestrator(db_manager=mock_db)
 
             assert orchestrator.db_manager is mock_db

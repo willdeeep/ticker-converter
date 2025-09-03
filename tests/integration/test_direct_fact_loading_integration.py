@@ -135,8 +135,8 @@ class TestDirectFactTableLoadingIntegration:
             result = test_database_manager.execute_query(
                 """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
+                    SELECT FROM information_schema.tables
+                    WHERE table_schema = 'public'
                     AND table_name = %s
                 )
                 """,
@@ -242,12 +242,12 @@ class TestDirectFactTableLoadingIntegration:
         # Check that dimensional lookups work correctly
         result = test_database_manager.execute_query(
             """
-            SELECT 
+            SELECT
                 fsp.closing_price,
                 ds.symbol,
                 dd.date_value
             FROM fact_stock_prices fsp
-            JOIN dim_stocks ds ON fsp.stock_id = ds.stock_id  
+            JOIN dim_stocks ds ON fsp.stock_id = ds.stock_id
             JOIN dim_date dd ON fsp.date_id = dd.date_id
             WHERE ds.symbol IN ('AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META')
             AND dd.date_value >= '2025-08-18'

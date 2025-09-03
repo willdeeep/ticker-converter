@@ -7,7 +7,7 @@ Contains all Python source code for the ticker-converter application, organized 
 
 ### `/src/` Directory
 
-**Git Status**: Tracked  
+**Git Status**: Tracked
 **Use Case**: Core application code with 69% test coverage and production-ready modules
 
 This directory contains the main application source code organized for scalability and maintainability.

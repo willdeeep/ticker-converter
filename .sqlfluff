@@ -10,7 +10,7 @@ templater = jinja
 
 # Rules to exclude globally (comma-separated)
 # L003: Indentation length (handled by our custom settings)
-# L012: Trailing operators (we prefer leading)  
+# L012: Trailing operators (we prefer leading)
 # L016: Long lines (handled by max_line_length)
 # ST09: Joins should list the table referenced earlier first (can cause irresolvable issues)
 # LT01: Layout spacing (auto-fixable whitespace issues)
@@ -20,7 +20,7 @@ templater = jinja
 # AL08: Unique column aliases (conflicts with ETL patterns)
 # CP01: Keyword capitalization (causes parsing issues with templates)
 # CP02: Identifier capitalization (style preference)
-# CP03: Function capitalization (style preference)  
+# CP03: Function capitalization (style preference)
 # CP05: Type capitalization (style preference)
 # LT14: Keyword newlines (overly restrictive layout)
 # RF04: Keywords as identifiers (conflicts with standard column names)
@@ -50,7 +50,7 @@ next_ds = "2024-01-02"
 # Execution context
 execution_date = "2024-01-01"
 dag_run = {"conf": {}}
-# Common macro outputs  
+# Common macro outputs
 macros = {"datetime": {"now": "2024-01-01T00:00:00"}, "ds_add": "2024-01-01"}
 # Task instance context
 ti = {"xcom_pull": "dummy_value"}

@@ -9,13 +9,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any, Generic, Literal, TypeVar
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # Generic type for API responses
 T = TypeVar("T")

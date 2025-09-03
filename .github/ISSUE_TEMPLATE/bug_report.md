@@ -125,5 +125,5 @@ Add any other context about the problem here. This might include:
 
 ## Related Issues
 - Similar to: #XXX
-- Blocks: #XXX  
+- Blocks: #XXX
 - Blocked by: #XXX

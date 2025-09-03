@@ -204,7 +204,7 @@ class DatabaseManager:
         try:
             if symbol:
                 query = """
-                SELECT MAX(dd.date_value) as latest_date 
+                SELECT MAX(dd.date_value) as latest_date
                 FROM fact_stock_prices fsp
                 JOIN dim_stocks ds ON fsp.stock_id = ds.stock_id
                 JOIN dim_date dd ON fsp.date_id = dd.date_id
@@ -213,7 +213,7 @@ class DatabaseManager:
                 params = (symbol,)
             else:
                 query = """
-                SELECT MAX(dd.date_value) as latest_date 
+                SELECT MAX(dd.date_value) as latest_date
                 FROM fact_stock_prices fsp
                 JOIN dim_date dd ON fsp.date_id = dd.date_id
                 """
@@ -240,7 +240,7 @@ class DatabaseManager:
         """
         try:
             query = """
-            SELECT MAX(dd.date_value) as latest_date 
+            SELECT MAX(dd.date_value) as latest_date
             FROM fact_currency_rates fcr
             JOIN dim_date dd ON fcr.date_id = dd.date_id
             """
@@ -276,7 +276,7 @@ class DatabaseManager:
 
             insert_query = """
             INSERT INTO dim_date (
-                date_value, year, quarter, month, day, day_of_week, 
+                date_value, year, quarter, month, day, day_of_week,
                 day_of_year, week_of_year, is_weekend
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (date_value) DO NOTHING
@@ -285,7 +285,7 @@ class DatabaseManager:
             if not self.is_sqlite:
                 insert_query = """
                 INSERT INTO dim_date (
-                    date_value, year, quarter, month, day, day_of_week, 
+                    date_value, year, quarter, month, day, day_of_week,
                     day_of_year, week_of_year, is_weekend
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (date_value) DO NOTHING
@@ -349,9 +349,9 @@ class DatabaseManager:
 
         # Insert directly into fact_stock_prices table with dimensional lookups
         insert_query = """
-        INSERT INTO fact_stock_prices 
+        INSERT INTO fact_stock_prices
         (stock_id, date_id, opening_price, high_price, low_price, closing_price, volume, created_at)
-        SELECT 
+        SELECT
             ds.stock_id,
             dd.date_id,
             ?,  -- opening_price
@@ -369,9 +369,9 @@ class DatabaseManager:
         if not self.is_sqlite:
             # PostgreSQL syntax - need to handle bulk inserts differently
             insert_query = """
-            INSERT INTO fact_stock_prices 
+            INSERT INTO fact_stock_prices
             (stock_id, date_id, opening_price, high_price, low_price, closing_price, volume, created_at)
-            SELECT 
+            SELECT
                 ds.stock_id,
                 dd.date_id,
                 vals.opening_price,
@@ -466,9 +466,9 @@ class DatabaseManager:
 
         # Insert directly into fact_currency_rates table with dimensional lookups
         insert_query = """
-        INSERT INTO fact_currency_rates 
+        INSERT INTO fact_currency_rates
         (from_currency_id, to_currency_id, date_id, exchange_rate, created_at)
-        SELECT 
+        SELECT
             dc_from.currency_id,
             dc_to.currency_id,
             dd.date_id,
@@ -477,7 +477,7 @@ class DatabaseManager:
         FROM dim_currency dc_from
         CROSS JOIN dim_currency dc_to
         CROSS JOIN dim_date dd
-        WHERE dc_from.currency_code = ? 
+        WHERE dc_from.currency_code = ?
           AND dc_to.currency_code = ?
           AND dd.date_value = ?
         ON CONFLICT (from_currency_id, to_currency_id, date_id) DO NOTHING
@@ -486,9 +486,9 @@ class DatabaseManager:
         if not self.is_sqlite:
             # PostgreSQL syntax - need to handle bulk inserts differently
             insert_query = """
-            INSERT INTO fact_currency_rates 
+            INSERT INTO fact_currency_rates
             (from_currency_id, to_currency_id, date_id, exchange_rate, created_at)
-            SELECT 
+            SELECT
                 dc_from.currency_id,
                 dc_to.currency_id,
                 dd.date_id,

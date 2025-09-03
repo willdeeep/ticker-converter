@@ -13,15 +13,15 @@
 -- Update daily return calculations for newly inserted stock prices
 -- This runs after direct fact loading to calculate performance metrics
 WITH daily_returns AS (
-    SELECT 
+    SELECT
         fsp.stock_id,
         fsp.date_id,
         fsp.closing_price,
         LAG(fsp.closing_price) OVER (
-            PARTITION BY fsp.stock_id 
+            PARTITION BY fsp.stock_id
             ORDER BY dd.date_value
         ) AS prev_close,
-        CASE 
+        CASE
             WHEN LAG(fsp.closing_price) OVER (PARTITION BY fsp.stock_id ORDER BY dd.date_value) IS NOT NULL
             THEN ROUND(
                 ((fsp.closing_price - LAG(fsp.closing_price) OVER (PARTITION BY fsp.stock_id ORDER BY dd.date_value))
@@ -33,10 +33,10 @@ WITH daily_returns AS (
     JOIN dim_date dd ON fsp.date_id = dd.date_id
     WHERE fsp.daily_return IS NULL  -- Only calculate for records without daily_return
 )
-UPDATE fact_stock_prices 
+UPDATE fact_stock_prices
 SET daily_return = dr.calculated_daily_return
 FROM daily_returns dr
-WHERE fact_stock_prices.stock_id = dr.stock_id 
+WHERE fact_stock_prices.stock_id = dr.stock_id
 AND fact_stock_prices.date_id = dr.date_id
 AND dr.calculated_daily_return IS NOT NULL;
 

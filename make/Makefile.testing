@@ -173,7 +173,7 @@ coverage-open-only: coverage-html-only ## Internal: Generate and open HTML cover
 coverage-all-formats: _load_env ## Internal: Generate all coverage report formats
 	@echo -e "$(BLUE)Generating all coverage report formats...$(NC)"
 	@$(MAKE) coverage-report-only
-	@$(MAKE) coverage-html-only  
+	@$(MAKE) coverage-html-only
 	@$(MAKE) coverage-xml-only
 	@echo -e "$(GREEN)✓ All coverage reports generated$(NC)"
 
@@ -181,7 +181,7 @@ coverage-all-formats: _load_env ## Internal: Generate all coverage report format
 coverage-report: coverage-report-only ## ⚠️ DEPRECATED: Use 'make coverage report' instead
 	@echo -e "$(YELLOW)⚠️ Deprecated: Use 'make coverage report' instead$(NC)"
 
-coverage-html: coverage-html-only ## ⚠️ DEPRECATED: Use 'make coverage html' instead  
+coverage-html: coverage-html-only ## ⚠️ DEPRECATED: Use 'make coverage html' instead
 	@echo -e "$(YELLOW)⚠️ Deprecated: Use 'make coverage html' instead$(NC)"
 
 coverage-xml: coverage-xml-only ## ⚠️ DEPRECATED: Use 'make coverage xml' instead
@@ -203,7 +203,7 @@ coverage-open: coverage-open-only ## ⚠️ DEPRECATED: Use 'make coverage open'
 	fi
 
 # ============================================================================
-# SPECIALIZED TEST MODES  
+# SPECIALIZED TEST MODES
 # ============================================================================
 
 .PHONY: test-watch test-debug test-profile test-benchmark

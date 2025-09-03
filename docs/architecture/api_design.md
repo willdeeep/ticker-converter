@@ -6,9 +6,9 @@ The ticker-converter FastAPI application provides REST endpoints for NYSE stock 
 
 ## Base Configuration
 
-**Base URL**: `http://localhost:8000`  
-**API Version**: v1  
-**Response Format**: JSON  
+**Base URL**: `http://localhost:8000`
+**API Version**: v1
+**Response Format**: JSON
 **Database**: Direct SQL query execution (PostgreSQL)
 
 ## Authentication
@@ -26,10 +26,10 @@ Returns the top 5 performing stocks by daily return percentage.
 
 **Query Execution**:
 ```sql
-SELECT symbol, daily_return_pct, close_usd, date 
-FROM v_top_performers 
-WHERE daily_return_pct IS NOT NULL 
-ORDER BY daily_return_pct DESC 
+SELECT symbol, daily_return_pct, close_usd, date
+FROM v_top_performers
+WHERE daily_return_pct IS NOT NULL
+ORDER BY daily_return_pct DESC
 LIMIT 5;
 ```
 
@@ -146,7 +146,7 @@ Returns daily summary statistics for all tracked stocks.
 
 **Query Execution**:
 ```sql
-SELECT 
+SELECT
     COUNT(*) as total_stocks,
     AVG(close_usd) as avg_price_usd,
     MAX(close_usd) as max_price_usd,

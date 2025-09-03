@@ -20,11 +20,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from .constants import (
-    AlphaVantageFunction,
-    AlphaVantageResponseKey,
-    OutputSize,
-)
+from .constants import AlphaVantageFunction, AlphaVantageResponseKey, OutputSize
 from .data_processors import (
     convert_time_series_to_dataframe,
     process_digital_currency_time_series,

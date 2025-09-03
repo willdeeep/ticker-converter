@@ -62,7 +62,7 @@ All SQL files are centralized under `dags/sql/` for unified access by DAG templa
 ```
 dags/sql/
 ├── ddl/                    # Database schema creation
-├── etl/                    # ETL pipeline operations  
+├── etl/                    # ETL pipeline operations
 └── queries/                # Analytical query templates
 ```
 
@@ -170,7 +170,7 @@ load_dimensions = PostgresOperator(
 
 daily_transform = PostgresOperator(
     task_id='daily_transform',
-    postgres_conn_id='postgres_default', 
+    postgres_conn_id='postgres_default',
     sql='dags/sql/etl/daily_transforms.sql',
     hook_params={'application_name': 'airflow_etl'}
 )
@@ -271,7 +271,7 @@ AIRFLOW__CORE__EXECUTOR=LocalExecutor
 # Database Configuration
 AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql://airflow_user:password@localhost/airflow_db
 
-# Security Configuration  
+# Security Configuration
 AIRFLOW__WEBSERVER__SECRET_KEY=your-secret-key-here
 AIRFLOW__WEBSERVER__AUTHENTICATE=True
 

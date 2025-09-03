@@ -6,7 +6,7 @@ CREATE TEMP TABLE IF NOT EXISTS historical_stock_staging (
     symbol VARCHAR(10),
     date DATE,
     open_price DECIMAL(10,2),
-    high_price DECIMAL(10,2), 
+    high_price DECIMAL(10,2),
     low_price DECIMAL(10,2),
     close_price DECIMAL(10,2),
     volume BIGINT,
@@ -15,7 +15,7 @@ CREATE TEMP TABLE IF NOT EXISTS historical_stock_staging (
     source_file VARCHAR(255)
 );
 
--- Note: The actual JSON file processing would need to be implemented 
+-- Note: The actual JSON file processing would need to be implemented
 -- using a Python task or COPY command depending on the PostgreSQL setup
 -- This is a template for the SQL operations needed
 
@@ -25,14 +25,14 @@ INSERT INTO stock_prices (
     date,
     open_price,
     high_price,
-    low_price, 
+    low_price,
     close_price,
     volume,
     adjusted_close,
     created_at,
     updated_at
 )
-SELECT 
+SELECT
     symbol,
     date,
     open_price,
@@ -63,13 +63,13 @@ INSERT INTO etl_logs (
     status,
     details
 )
-SELECT 
+SELECT
     'BACKFILL' as operation_type,
     'stock_prices' as table_name,
     NOW() as operation_timestamp,
     COUNT(*) as records_affected,
     'COMPLETED' as status,
-    FORMAT('Historical stock data backfill for %s to %s', 
-           '{{ params.start_date }}', 
+    FORMAT('Historical stock data backfill for %s to %s',
+           '{{ params.start_date }}',
            '{{ params.end_date }}') as details
 FROM historical_stock_staging;

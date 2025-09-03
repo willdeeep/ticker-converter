@@ -58,7 +58,7 @@ List any dependencies on:
 
 ## Estimated Effort
 - [ ] Small (< 1 day)
-- [ ] Medium (1-3 days)  
+- [ ] Medium (1-3 days)
 - [ ] Large (3-5 days)
 - [ ] Extra Large (> 5 days)
 

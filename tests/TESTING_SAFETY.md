@@ -189,7 +189,7 @@ If the safety mechanism isn't working:
 ### Best Practices
 1. **Develop with unit tests only** (unlimited)
 2. **Run integration tests sparingly** (quota-limited)
-3. **Use mock data for development** 
+3. **Use mock data for development**
 4. **Only test real API before deployment**
 
 ## Emergency Stop

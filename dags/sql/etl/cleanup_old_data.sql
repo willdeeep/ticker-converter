@@ -6,8 +6,8 @@
 
 -- Archive old fact data (optional) - Keep 2 years of fact data
 -- Example: Move data older than 2 years to archive tables
--- CREATE TABLE fact_stock_prices_archive AS 
--- SELECT * FROM fact_stock_prices 
+-- CREATE TABLE fact_stock_prices_archive AS
+-- SELECT * FROM fact_stock_prices
 -- WHERE date_id IN (SELECT date_id FROM dim_date WHERE date_value < CURRENT_DATE - INTERVAL '2 years');
 
 -- Clean up dimension dates older than 5 years (keep only recent history)

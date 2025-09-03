@@ -36,7 +36,7 @@ pytest --cov=ticker_converter --cov-report=term-missing
 
 ### Test Files Affected
 - `tests/test_api_endpoints.py`
-- `tests/test_database.py` 
+- `tests/test_database.py`
 - `tests/test_etl_pipeline.py`
 - `tests/integration/test_alpha_vantage.py`
 
