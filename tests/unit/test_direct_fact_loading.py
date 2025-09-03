@@ -124,10 +124,7 @@ class TestDirectFactTableLoadingUnit:
 
     def test_json_validation_integration(self):
         """Test validation integration with helper functions."""
-        from dags.helpers.load_raw_to_db import (
-            _validate_currency_record,
-            _validate_stock_record,
-        )
+        from dags.helpers.load_raw_to_db import _validate_currency_record, _validate_stock_record
 
         # Valid stock record
         valid_stock = {

@@ -15,18 +15,18 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 help-common: ## 🔧 Show common functions available across modules
-	@$(ECHO_CMD) "$(HEADER_COLOR)╔══════════════════════════════════════════════════════════════════════════════╗$(NC)\n"
-	@$(ECHO_CMD) "$(HEADER_COLOR)║                            COMMON FUNCTIONS                                 ║$(NC)\n"
-	@$(ECHO_CMD) "$(HEADER_COLOR)╚══════════════════════════════════════════════════════════════════════════════╝$(NC)\n"
+	@printf "\\033[0;35m╔══════════════════════════════════════════════════════════════════════════════╗\\033[0m\\n"
+	@printf "\\033[0;35m║                            COMMON FUNCTIONS                                 ║\\033[0m\\n"
+	@printf "\\033[0;35m╚══════════════════════════════════════════════════════════════════════════════╝\\033[0m\\n"
 	@echo ""
-	@$(ECHO_CMD) "$(INFO_COLOR)Shared Utility Functions:$(NC)\n"
-	@$(ECHO_CMD) "  $(YELLOW)• pip_operation$(NC)      - Standardized pip operations with error handling\n"
-	@$(ECHO_CMD) "  $(YELLOW)• postgres_operation$(NC) - Common PostgreSQL database operations\n"
-	@$(ECHO_CMD) "  $(YELLOW)• find_python_files$(NC) - Intelligent Python file discovery\n"
-	@$(ECHO_CMD) "  $(YELLOW)• validate_command$(NC)   - Command existence validation\n"
-	@$(ECHO_CMD) "  $(YELLOW)• progress_indicator$(NC) - Consistent progress indication\n"
+	@printf "\\033[0;36mShared Utility Functions:\\033[0m\\n"
+	@printf "  \\033[0;33m• pip_operation\\033[0m      - Standardized pip operations with error handling\\n"
+	@printf "  \\033[0;33m• postgres_operation\\033[0m - Common PostgreSQL database operations\\n"
+	@printf "  \\033[0;33m• find_python_files\\033[0m - Intelligent Python file discovery\\n"
+	@printf "  \\033[0;33m• validate_command\\033[0m   - Command existence validation\\n"
+	@printf "  \\033[0;33m• progress_indicator\\033[0m - Consistent progress indication\\n"
 	@echo ""
-	@$(ECHO_CMD) "$(SUCCESS_COLOR)✓ All functions include error handling and consistent output formatting$(NC)\n"
+	@printf "\\033[0;32m✓ All functions include error handling and consistent output formatting\\033[0m\\n"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # COMMON FUNCTION DEFINITIONS
@@ -34,32 +34,32 @@ help-common: ## 🔧 Show common functions available across modules
 
 # Standardized pip operations (used in 8+ commands)
 define pip_operation
-	@$(ECHO_CMD) "$(BLUE)Running pip operation: $(1)$(NC)\n"
+	@printf "\\033[0;34mRunning pip operation: $(1)\\033[0m\\n"
 	@if ! command -v pip >/dev/null 2>&1; then \
-		echo -e "$(ERROR_COLOR)✗ pip not found. Please install Python and pip first.$(NC)"; \
+		printf "\\033[0;31m✗ pip not found. Please install Python and pip first.\\033[0m\\n"; \
 		exit 1; \
 	fi
-	@$(ECHO_CMD) "$(YELLOW)Using pip: $$(which pip)$(NC)\n"
-	@pip $(1) || { echo -e "$(ERROR_COLOR)✗ Pip operation failed: $(1)$(NC)"; exit 1; }
-	@$(ECHO_CMD) "$(SUCCESS_COLOR)✓ Pip operation completed successfully$(NC)\n"
+	@printf "\\033[0;33mUsing pip: $$(which pip)\\033[0m\\n"
+	@pip $(1) || { printf "\\033[0;31m✗ Pip operation failed: $(1)\\033[0m\\n"; exit 1; }
+	@printf "\\033[0;32m✓ Pip operation completed successfully\\033[0m\\n"
 endef
 
 # PostgreSQL database operations (used in 13+ commands)
 define postgres_operation
-	@$(ECHO_CMD) "$(BLUE)Running PostgreSQL operation: $(1)$(NC)\n"
+	@printf "\\033[0;34mRunning PostgreSQL operation: $(1)\\033[0m\\n"
 	@if ! command -v psql >/dev/null 2>&1; then \
-		echo -e "$(ERROR_COLOR)✗ PostgreSQL client (psql) not found.$(NC)"; \
-		echo -e "$(YELLOW)Please install PostgreSQL or use: make install-postgres$(NC)"; \
+		printf "\\033[0;31m✗ PostgreSQL client (psql) not found.\\033[0m\\n"; \
+		printf "\\033[0;33mPlease install PostgreSQL or use: make install-postgres\\033[0m\\n"; \
 		exit 1; \
 	fi
-	@$(ECHO_CMD) "$(YELLOW)Using PostgreSQL: $$(psql --version | head -n1)$(NC)\n"
-	@$(1) || { echo -e "$(ERROR_COLOR)✗ PostgreSQL operation failed$(NC)"; exit 1; }
-	@$(ECHO_CMD) "$(SUCCESS_COLOR)✓ PostgreSQL operation completed successfully$(NC)\n"
+	@printf "\\033[0;33mUsing PostgreSQL: $$(psql --version | head -n1)\\033[0m\\n"
+	@$(1) || { printf "\\033[0;31m✗ PostgreSQL operation failed\\033[0m\\n"; exit 1; }
+	@printf "\\033[0;32m✓ PostgreSQL operation completed successfully\\033[0m\\n"
 endef
 
 # Python file discovery with intelligent filtering (used in 9+ commands)
 define find_python_files
-	@$(ECHO_CMD) "$(BLUE)Discovering Python files: $(1)$(NC)\n"
+	@printf "\\033[0;34mDiscovering Python files: $(1)\\033[0m\\n"
 	@if [ -d "$(1)" ]; then \
 		echo -e "$(YELLOW)Searching in: $(1)$(NC)"; \
 		find "$(1)" -name "*.py" -type f \
@@ -78,22 +78,22 @@ endef
 
 # Command validation with helpful error messages
 define validate_command
-	@$(ECHO_CMD) "$(BLUE)Validating command: $(1)$(NC)\n"
+	@printf "\\033[0;34mValidating command: $(1)\\033[0m\\n"
 	@if ! command -v $(1) >/dev/null 2>&1; then \
-		echo -e "$(ERROR_COLOR)✗ Command not found: $(1)$(NC)"; \
-		$(if $(2),echo -e "$(YELLOW)Suggestion: $(2)$(NC)";) \
+		printf "\\033[0;31m✗ Command not found: $(1)\\033[0m\\n"; \
+		$(if $(2),printf "\\033[0;33mSuggestion: $(2)\\033[0m\\n";) \
 		exit 1; \
 	fi
-	@$(ECHO_CMD) "$(SUCCESS_COLOR)✓ Command available: $(1) at $$(which $(1))$(NC)\n"
+	@printf "\\033[0;32m✓ Command available: $(1) at $$(which $(1))\\033[0m\\n"
 endef
 
 # Progress indicator for long-running operations
 define progress_indicator
-	@$(ECHO_CMD) "$(BLUE)$(1)...$(NC)\n"
-	@printf "$(YELLOW)"
+	@printf "\\033[0;34m$(1)...\\033[0m\\n"
+	@printf "\\033[0;33m"
 	@for i in $$(seq 1 $(2)); do printf "▓"; sleep 0.1; done
-	@$(ECHO_CMD) "$(NC)\n"
-	@$(ECHO_CMD) "$(SUCCESS_COLOR)✓ $(1) completed$(NC)\n"
+	@printf "\\033[0m\\n"
+	@printf "\\033[0;32m✓ $(1) completed\\033[0m\\n"
 endef
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -125,37 +125,37 @@ _check_airflow_deps: ## Internal: Validate Airflow dependencies
 
 # Standard cleanup operation pattern
 define cleanup_pattern
-	@$(ECHO_CMD) "$(BLUE)Cleaning $(1)...$(NC)\n"
+	@printf "\\033[0;34mCleaning $(1)...\\033[0m\\n"
 	@if [ -d "$(2)" ]; then \
-		echo -e "$(YELLOW)Removing: $(2)$(NC)"; \
+		printf "\\033[0;33mRemoving: $(2)\\033[0m\\n"; \
 		rm -rf "$(2)"; \
-		echo -e "$(SUCCESS_COLOR)✓ Cleaned: $(2)$(NC)"; \
+		printf "\\033[0;32m✓ Cleaned: $(2)\\033[0m\\n"; \
 	else \
-		echo -e "$(INFO_COLOR)• Already clean: $(2)$(NC)"; \
+		printf "\\033[0;36m• Already clean: $(2)\\033[0m\\n"; \
 	fi
 endef
 
 # Standard test execution pattern
 define test_execution_pattern
-	@$(ECHO_CMD) "$(BLUE)Running $(1) tests...$(NC)\n"
+	@printf "\\033[0;34mRunning $(1) tests...\\033[0m\\n"
 	@$(call progress_indicator,Preparing test environment,5)
 	@$(MAKE) _check_pytest_deps
 	@pytest $(2) $(TEST_DIR) $(PYTEST_ARGS) || { \
-		echo -e "$(ERROR_COLOR)✗ $(1) tests failed$(NC)"; \
+		printf "\\033[0;31m✗ $(1) tests failed\\033[0m\\n"; \
 		exit 1; \
 	}
-	@$(ECHO_CMD) "$(SUCCESS_COLOR)✓ $(1) tests completed successfully$(NC)\n"
+	@printf "\\033[0;32m✓ $(1) tests completed successfully\\033[0m\\n"
 endef
 
 # Standard quality check pattern
 define quality_check_pattern
-	@$(ECHO_CMD) "$(BLUE)Running $(1) quality check...$(NC)\n"
+	@printf "\\033[0;34mRunning $(1) quality check...\\033[0m\\n"
 	@$(call progress_indicator,Initializing $(1),3)
 	@$(2) $(3) || { \
-		echo -e "$(ERROR_COLOR)✗ $(1) quality check failed$(NC)"; \
+		printf "\\033[0;31m✗ $(1) quality check failed\\033[0m\\n"; \
 		exit 1; \
 	}
-	@$(ECHO_CMD) "$(SUCCESS_COLOR)✓ $(1) quality check passed$(NC)\n"
+	@printf "\\033[0;32m✓ $(1) quality check passed\\033[0m\\n"
 endef
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -163,26 +163,26 @@ endef
 # ═══════════════════════════════════════════════════════════════════════════════
 
 common-validate: ## ⚙️ 🔍 Validate all common function dependencies
-	@$(ECHO_CMD) "$(HEADER_COLOR)Common Function Validation$(NC)\n"
-	@$(ECHO_CMD) "$(BLUE)Checking common function dependencies...$(NC)\n"
+	@printf "\\033[0;35mCommon Function Validation\\033[0m\\n"
+	@printf "\\033[0;34mChecking common function dependencies...\\033[0m\\n"
 	@$(call validate_command,find,Core system utility)
 	@$(call validate_command,grep,Core system utility)
 	@$(call validate_command,awk,Core system utility)
 	@$(call validate_command,sed,Core system utility)
-	@$(ECHO_CMD) "$(SUCCESS_COLOR)✓ All common function dependencies validated$(NC)\n"
+	@printf "\\033[0;32m✓ All common function dependencies validated\\033[0m\\n"
 
 common-debug: ## ℹ️ 🐛 Debug common function environment
-	@$(ECHO_CMD) "$(HEADER_COLOR)Common Function Debug Information$(NC)\n"
-	@$(ECHO_CMD) "$(INFO_COLOR)System Information:$(NC)\n"
-	@$(ECHO_CMD) "  OS: $(OS)\n"
-	@$(ECHO_CMD) "  Shell: $$SHELL\n"
-	@$(ECHO_CMD) "  Make: $$(make --version | head -n1)\n"
-	@$(ECHO_CMD) "$(INFO_COLOR)Available Commands:$(NC)\n"
+	@printf "\\033[0;35mCommon Function Debug Information\\033[0m\\n"
+	@printf "\\033[0;36mSystem Information:\\033[0m\\n"
+	@printf "  OS: $(OS)\\n"
+	@printf "  Shell: $$SHELL\\n"
+	@printf "  Make: $$(make --version | head -n1)\\n"
+	@printf "\\033[0;36mAvailable Commands:\\033[0m\\n"
 	@for cmd in find grep awk sed python pip psql; do \
 		if command -v $$cmd >/dev/null 2>&1; then \
-			echo -e "  $(SUCCESS_COLOR)✓$(NC) $$cmd: $$(which $$cmd)"; \
+			printf "  \\033[0;32m✓\\033[0m $$cmd: $$(which $$cmd)\\n"; \
 		else \
-			echo -e "  $(ERROR_COLOR)✗$(NC) $$cmd: not found"; \
+			printf "  \\033[0;31m✗\\033[0m $$cmd: not found\\n"; \
 		fi; \
 	done
 
@@ -192,12 +192,12 @@ common-debug: ## ℹ️ 🐛 Debug common function environment
 
 # Parallel execution wrapper for independent operations
 define parallel_operation
-	@$(ECHO_CMD) "$(BLUE)Running parallel operation: $(1)$(NC)\n"
+	@printf "\\033[0;34mRunning parallel operation: $(1)\\033[0m\\n"
 	@$(1) & \
 	$(2) & \
 	$(3) & \
 	wait
-	@$(ECHO_CMD) "$(SUCCESS_COLOR)✓ Parallel operation completed$(NC)\n"
+	@printf "\\033[0;32m✓ Parallel operation completed\\033[0m\\n"
 endef
 
 # Conditional execution based on file changes

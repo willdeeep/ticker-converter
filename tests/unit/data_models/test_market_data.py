@@ -6,11 +6,7 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
-from src.ticker_converter.data_models.market_data import (
-    CurrencyRate,
-    MarketDataPoint,
-    RawMarketData,
-)
+from src.ticker_converter.data_models.market_data import CurrencyRate, MarketDataPoint, RawMarketData
 
 
 class TestMarketDataPoint:

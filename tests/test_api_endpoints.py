@@ -8,11 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.ticker_converter.api.dependencies import get_db, get_sql_query
-from src.ticker_converter.api.main import (
-    _build_stock_performance_details,
-    _build_top_performer_stock,
-    app,
-)
+from src.ticker_converter.api.main import _build_stock_performance_details, _build_top_performer_stock, app
 from src.ticker_converter.api.models import StockPerformanceDetails, TopPerformerStock
 
 

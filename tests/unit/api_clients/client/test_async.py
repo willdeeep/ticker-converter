@@ -7,10 +7,7 @@ import pandas as pd
 import pytest
 
 from src.ticker_converter.api_clients.client import AlphaVantageClient
-from src.ticker_converter.api_clients.exceptions import (
-    AlphaVantageRequestError,
-    AlphaVantageTimeoutError,
-)
+from src.ticker_converter.api_clients.exceptions import AlphaVantageRequestError, AlphaVantageTimeoutError
 
 
 class TestAsyncContextManager:

@@ -21,13 +21,7 @@ from .api_models import (
     SortOrder,
     StockQueryParams,
 )
-from .market_data import (
-    CurrencyRate,
-    CurrencyRateCollection,
-    MarketDataCollection,
-    MarketDataPoint,
-    RawMarketData,
-)
+from .market_data import CurrencyRate, CurrencyRateCollection, MarketDataCollection, MarketDataPoint, RawMarketData
 
 __all__ = [
     # Core market data models
