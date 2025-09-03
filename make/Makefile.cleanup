@@ -21,7 +21,7 @@ TEMP_DIRS := .tmp temp tmp
 
 .PHONY: clean clean-build clean-cache clean-coverage clean-logs clean-env clean-temp
 
-clean: ## Remove all build artifacts and cache (comprehensive)
+clean: ## 🧹 Remove all build artifacts and cache (comprehensive)
 	@echo -e "$(BLUE)Performing comprehensive cleanup...$(NC)"
 	@$(MAKE) clean-build
 	@$(MAKE) clean-cache
@@ -30,7 +30,7 @@ clean: ## Remove all build artifacts and cache (comprehensive)
 	@$(MAKE) clean-temp
 	@echo -e "$(GREEN)✓ Comprehensive cleanup completed$(NC)"
 
-clean-build: ## Remove build directories and artifacts
+clean-build: ## 🧹 Remove build directories and artifacts
 	@echo -e "$(YELLOW)Cleaning build artifacts...$(NC)"
 	@for dir in $(BUILD_DIRS); do \
 		if [ -d "$$dir" ] || [ -f "$$dir" ]; then \
@@ -44,7 +44,7 @@ clean-build: ## Remove build directories and artifacts
 	@find . -name "*.egg" -type f -delete 2>/dev/null || true
 	@echo -e "$(GREEN)✓ Build artifacts cleaned$(NC)"
 
-clean-cache: ## Remove Python and tool cache directories
+clean-cache: ## 🧹 Remove Python and tool cache directories
 	@echo -e "$(YELLOW)Cleaning cache directories...$(NC)"
 	@for dir in $(CACHE_DIRS); do \
 		if [ -d "$$dir" ]; then \
@@ -56,7 +56,7 @@ clean-cache: ## Remove Python and tool cache directories
 	@find . -name "*.pyc" -type f -delete 2>/dev/null || true
 	@echo -e "$(GREEN)✓ Cache directories cleaned$(NC)"
 
-clean-coverage: ## Remove coverage reports and data
+clean-coverage: ## 🧪 Remove coverage reports and data
 	@echo -e "$(YELLOW)Cleaning coverage data...$(NC)"
 	@for file in $(COVERAGE_FILES); do \
 		if [ -f "$$file" ] || [ -d "$$file" ]; then \
@@ -67,7 +67,7 @@ clean-coverage: ## Remove coverage reports and data
 	@rm -f test-report.xml test-report.html 2>/dev/null || true
 	@echo -e "$(GREEN)✓ Coverage data cleaned$(NC)"
 
-clean-logs: ## Remove log files and directories
+clean-logs: ## 🧹 Remove log files and directories
 	@echo -e "$(YELLOW)Cleaning log files...$(NC)"
 	@for pattern in $(LOG_FILES); do \
 		for file in $$pattern; do \
@@ -80,7 +80,7 @@ clean-logs: ## Remove log files and directories
 	@find . -name "*.log" -type f -delete 2>/dev/null || true
 	@echo -e "$(GREEN)✓ Log files cleaned$(NC)"
 
-clean-env: ## Remove virtual environment (DESTRUCTIVE)
+clean-env: ## 🧹 Remove virtual environment (DESTRUCTIVE)
 	@echo -e "$(RED)WARNING: This will remove the virtual environment!$(NC)"
 	@echo -e "$(YELLOW)Virtual environment path: $(VENV_PATH)$(NC)"
 	@echo -e "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)"
@@ -93,7 +93,7 @@ clean-env: ## Remove virtual environment (DESTRUCTIVE)
 		echo -e "$(YELLOW)⚠ Virtual environment not found$(NC)"; \
 	fi
 
-clean-temp: ## Remove temporary directories and files
+clean-temp: ## 🧹 Remove temporary directories and files
 	@echo -e "$(YELLOW)Cleaning temporary files...$(NC)"
 	@for dir in $(TEMP_DIRS); do \
 		if [ -d "$$dir" ]; then \
@@ -112,7 +112,7 @@ clean-temp: ## Remove temporary directories and files
 
 .PHONY: clean-db clean-airflow clean-docker clean-git
 
-clean-db: ## Remove database data and logs (DESTRUCTIVE)
+clean-db: ## 🗄️ Remove database data and logs (DESTRUCTIVE)
 	@echo -e "$(RED)WARNING: This will remove all database data!$(NC)"
 	@echo -e "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)"
 	@read -p ""
@@ -123,7 +123,7 @@ clean-db: ## Remove database data and logs (DESTRUCTIVE)
 	@$(MAKE) db-clean-logs 2>/dev/null || echo -e "$(YELLOW)Database log cleanup not available$(NC)"
 	@echo -e "$(GREEN)✓ Database data cleaned$(NC)"
 
-clean-airflow: ## Remove Airflow data and logs (DESTRUCTIVE)
+clean-airflow: ## 🌊 Remove Airflow data and logs (DESTRUCTIVE)
 	@echo -e "$(RED)WARNING: This will remove all Airflow data!$(NC)"
 	@echo -e "$(YELLOW)Press Ctrl+C to cancel, or Enter to continue...$(NC)"
 	@read -p ""
@@ -136,7 +136,7 @@ clean-airflow: ## Remove Airflow data and logs (DESTRUCTIVE)
 	@rm -f airflow/*.pid 2>/dev/null || true
 	@echo -e "$(GREEN)✓ Airflow data cleaned$(NC)"
 
-clean-docker: ## Remove Docker containers and images (if Docker is available)
+clean-docker: ## 🧹 Remove Docker containers and images (if Docker is available)
 	@echo -e "$(YELLOW)Cleaning Docker resources...$(NC)"
 ifeq ($(HAS_DOCKER),yes)
 	@echo -e "$(CYAN)Stopping and removing containers...$(NC)"
@@ -150,7 +150,7 @@ else
 	@echo -e "$(YELLOW)⚠ Docker not available$(NC)"
 endif
 
-clean-git: ## Clean Git repository (remove untracked files)
+clean-git: ## 🧹 Clean Git repository (remove untracked files)
 	@echo -e "$(YELLOW)Cleaning Git repository...$(NC)"
 ifeq ($(HAS_GIT),yes)
 	@echo -e "$(CYAN)Showing untracked files:$(NC)"
@@ -173,7 +173,7 @@ endif
 
 .PHONY: clean-all clean-reset clean-development clean-production
 
-clean-all: ## Complete cleanup (DESTRUCTIVE - removes everything)
+clean-all: ## 🧹 Complete cleanup (DESTRUCTIVE - removes everything)
 	@echo -e "$(RED)WARNING: This will remove ALL data, environments, and artifacts!$(NC)"
 	@echo -e "$(RED)This includes:$(NC)"
 	@echo -e "$(YELLOW)  • Virtual environment$(NC)"
@@ -195,11 +195,11 @@ clean-all: ## Complete cleanup (DESTRUCTIVE - removes everything)
 		echo -e "$(YELLOW)Cleanup cancelled$(NC)"; \
 	fi
 
-clean-reset: clean-all ## Complete cleanup and prepare for fresh setup
+clean-reset: clean-all ## 🧹 Complete cleanup and prepare for fresh setup
 	@echo -e "$(BLUE)Preparing for fresh setup...$(NC)"
 	@echo -e "$(CYAN)Run 'make setup' to reinitialize the project$(NC)"
 
-clean-development: ## Clean development-related artifacts only
+clean-development: ## 🧹 Clean development-related artifacts only
 	@echo -e "$(BLUE)Cleaning development artifacts...$(NC)"
 	@$(MAKE) clean-build
 	@$(MAKE) clean-cache
@@ -209,7 +209,7 @@ clean-development: ## Clean development-related artifacts only
 	@rm -f bandit-report.json safety-report.json 2>/dev/null || true
 	@echo -e "$(GREEN)✓ Development cleanup completed$(NC)"
 
-clean-production: ## Clean production deployment artifacts
+clean-production: ## 🧹 Clean production deployment artifacts
 	@echo -e "$(BLUE)Cleaning production artifacts...$(NC)"
 	@$(MAKE) clean-build
 	@$(MAKE) clean-logs
@@ -222,7 +222,7 @@ clean-production: ## Clean production deployment artifacts
 
 .PHONY: clean-info clean-size clean-preview
 
-clean-info: ## Show cleanup targets and current disk usage
+clean-info: ## 🧹 Display cleanup targets and current disk usage
 	@echo -e "$(CYAN)Cleanup Information:$(NC)"
 	@echo -e "$(YELLOW)Cleanup Targets:$(NC)"
 	@echo -e "$(YELLOW)Build Artifacts:$(NC)"
@@ -247,7 +247,7 @@ clean-info: ## Show cleanup targets and current disk usage
 		echo -e "  $(VENV_PATH) (not found)"; \
 	fi
 
-clean-size: ## Show disk space that would be freed by cleanup
+clean-size: ## 🧹 Display disk space that would be freed by cleanup
 	@echo -e "$(CYAN)Disk Space Analysis:$(NC)"
 	@total_size=0; \
 	echo -e "$(YELLOW)Space to be freed:$(NC)"; \
@@ -270,7 +270,7 @@ clean-size: ## Show disk space that would be freed by cleanup
 	fi; \
 	echo -e "$(GREEN)Total reclaimable space: $${total_size}MB$(NC)"
 
-clean-preview: ## Preview what would be cleaned without actually cleaning
+clean-preview: ## 🧹 Preview what would be cleaned without actually cleaning
 	@echo -e "$(CYAN)Cleanup Preview (no files will be removed):$(NC)"
 	@echo -e "$(YELLOW)Files and directories that would be removed:$(NC)"
 	@echo -e "$(YELLOW)Build artifacts:$(NC)"
@@ -304,14 +304,14 @@ clean-preview: ## Preview what would be cleaned without actually cleaning
 
 .PHONY: clean-safe clean-interactive clean-minimal
 
-clean-safe: ## Safe cleanup (only cache and build artifacts)
+clean-safe: ## 🧹 Safe cleanup (only cache and build artifacts)
 	@echo -e "$(BLUE)Performing safe cleanup...$(NC)"
 	@$(MAKE) clean-build
 	@$(MAKE) clean-cache
 	@$(MAKE) clean-temp
 	@echo -e "$(GREEN)✓ Safe cleanup completed$(NC)"
 
-clean-interactive: ## Interactive cleanup with confirmation for each step
+clean-interactive: ## 🧹 Interactive cleanup with confirmation for each step
 	@echo -e "$(CYAN)Interactive Cleanup$(NC)"
 	@echo -e "$(YELLOW)Clean build artifacts? (y/N):$(NC)"
 	@read -p "" confirm && \
@@ -335,7 +335,7 @@ clean-interactive: ## Interactive cleanup with confirmation for each step
 	fi
 	@echo -e "$(GREEN)✓ Interactive cleanup completed$(NC)"
 
-clean-minimal: ## Minimal cleanup (only Python cache)
+clean-minimal: ## 🧹 Minimal cleanup (only Python cache)
 	@echo -e "$(BLUE)Performing minimal cleanup...$(NC)"
 	@echo -e "$(YELLOW)Removing Python cache files...$(NC)"
 	@find . -name "*.pyc" -type f -delete 2>/dev/null || true
@@ -348,7 +348,7 @@ clean-minimal: ## Minimal cleanup (only Python cache)
 
 .PHONY: clean-help clean-status
 
-clean-help: ## Show detailed cleanup help and options
+clean-help: ## 🧹 Display detailed cleanup help and options
 	@echo -e "$(CYAN)Cleanup Help and Options:$(NC)"
 	@echo -e "$(YELLOW)Safe Cleanup Commands:$(NC)"
 	@echo -e "  make clean-safe        # Only cache and build artifacts"
@@ -373,7 +373,7 @@ clean-help: ## Show detailed cleanup help and options
 	@echo -e "  make clean-preview     # Preview what would be cleaned"
 	@echo -e "  make clean-size        # Show disk space that would be freed"
 
-clean-status: ## Show current cleanup status and recommendations
+clean-status: ## 🧹 Display current cleanup status and recommendations
 	@echo -e "$(CYAN)Cleanup Status:$(NC)"
 	@artifact_count=0; \
 	for dir in $(BUILD_DIRS) $(CACHE_DIRS); do \

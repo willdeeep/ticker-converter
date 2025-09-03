@@ -1,0 +1,208 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMMON FUNCTIONS AND PATTERNS
+# ═══════════════════════════════════════════════════════════════════════════════
+# Shared utility functions for use across all Makefile modules
+# Extracted from common patterns identified in the deduplication analysis
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# HELP: Common Functions
+# ═══════════════════════════════════════════════════════════════════════════════
+
+help-common: ## 🔧 Show common functions available across modules
+	@echo -e "$(HEADER_COLOR)╔══════════════════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo -e "$(HEADER_COLOR)║                            COMMON FUNCTIONS                                 ║$(NC)"
+	@echo -e "$(HEADER_COLOR)╚══════════════════════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo -e "$(INFO_COLOR)Shared Utility Functions:$(NC)"
+	@echo -e "  $(YELLOW)• pip_operation$(NC)      - Standardized pip operations with error handling"
+	@echo -e "  $(YELLOW)• postgres_operation$(NC) - Common PostgreSQL database operations"
+	@echo -e "  $(YELLOW)• find_python_files$(NC) - Intelligent Python file discovery"
+	@echo -e "  $(YELLOW)• validate_command$(NC)   - Command existence validation"
+	@echo -e "  $(YELLOW)• progress_indicator$(NC) - Consistent progress indication"
+	@echo ""
+	@echo -e "$(SUCCESS_COLOR)✓ All functions include error handling and consistent output formatting$(NC)"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMMON FUNCTION DEFINITIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Standardized pip operations (used in 8+ commands)
+define pip_operation
+	@echo -e "$(BLUE)Running pip operation: $(1)$(NC)"
+	@if ! command -v pip >/dev/null 2>&1; then \
+		echo -e "$(ERROR_COLOR)✗ pip not found. Please install Python and pip first.$(NC)"; \
+		exit 1; \
+	fi
+	@echo -e "$(YELLOW)Using pip: $$(which pip)$(NC)"
+	@pip $(1) || { echo -e "$(ERROR_COLOR)✗ Pip operation failed: $(1)$(NC)"; exit 1; }
+	@echo -e "$(SUCCESS_COLOR)✓ Pip operation completed successfully$(NC)"
+endef
+
+# PostgreSQL database operations (used in 13+ commands)
+define postgres_operation
+	@echo -e "$(BLUE)Running PostgreSQL operation: $(1)$(NC)"
+	@if ! command -v psql >/dev/null 2>&1; then \
+		echo -e "$(ERROR_COLOR)✗ PostgreSQL client (psql) not found.$(NC)"; \
+		echo -e "$(YELLOW)Please install PostgreSQL or use: make install-postgres$(NC)"; \
+		exit 1; \
+	fi
+	@echo -e "$(YELLOW)Using PostgreSQL: $$(psql --version | head -n1)$(NC)"
+	@$(1) || { echo -e "$(ERROR_COLOR)✗ PostgreSQL operation failed$(NC)"; exit 1; }
+	@echo -e "$(SUCCESS_COLOR)✓ PostgreSQL operation completed successfully$(NC)"
+endef
+
+# Python file discovery with intelligent filtering (used in 9+ commands)
+define find_python_files
+	@echo -e "$(BLUE)Discovering Python files: $(1)$(NC)"
+	@if [ -d "$(1)" ]; then \
+		echo -e "$(YELLOW)Searching in: $(1)$(NC)"; \
+		find "$(1)" -name "*.py" -type f \
+			! -path "*/.*" \
+			! -path "*/__pycache__/*" \
+			! -path "*/venv/*" \
+			! -path "*/.venv/*" \
+			! -path "*/node_modules/*" \
+			! -path "*/build/*" \
+			! -path "*/dist/*" \
+			2>/dev/null || true; \
+	else \
+		echo -e "$(WARNING_COLOR)⚠ Directory not found: $(1)$(NC)"; \
+	fi
+endef
+
+# Command validation with helpful error messages
+define validate_command
+	@echo -e "$(BLUE)Validating command: $(1)$(NC)"
+	@if ! command -v $(1) >/dev/null 2>&1; then \
+		echo -e "$(ERROR_COLOR)✗ Command not found: $(1)$(NC)"; \
+		$(if $(2),echo -e "$(YELLOW)Suggestion: $(2)$(NC)";) \
+		exit 1; \
+	fi
+	@echo -e "$(SUCCESS_COLOR)✓ Command available: $(1) at $$(which $(1))$(NC)"
+endef
+
+# Progress indicator for long-running operations
+define progress_indicator
+	@echo -e "$(BLUE)$(1)...$(NC)"
+	@printf "$(YELLOW)"
+	@for i in $$(seq 1 $(2)); do printf "▓"; sleep 0.1; done
+	@echo -e "$(NC)"
+	@echo -e "$(SUCCESS_COLOR)✓ $(1) completed$(NC)"
+endef
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMMON DEPENDENCY CHECKS (centralized from multiple modules)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_check_pytest_deps: ## Internal: Validate pytest dependencies
+	@$(call validate_command,pytest,make install-test)
+	@$(call validate_command,python,make install-python)
+
+_check_coverage_deps: ## Internal: Validate coverage dependencies
+	@$(call validate_command,coverage,pip install coverage)
+	@$(call validate_command,pytest,make install-test)
+
+_check_quality_deps: ## Internal: Validate code quality dependencies
+	@$(call validate_command,black,pip install black)
+	@$(call validate_command,pylint,pip install pylint)
+	@$(call validate_command,mypy,pip install mypy)
+
+_check_database_deps: ## Internal: Validate database dependencies
+	@$(call validate_command,psql,make install-postgres)
+
+_check_airflow_deps: ## Internal: Validate Airflow dependencies
+	@$(call validate_command,airflow,pip install apache-airflow)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMMON PATTERNS FOR REPEATED OPERATIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Standard cleanup operation pattern
+define cleanup_pattern
+	@echo -e "$(BLUE)Cleaning $(1)...$(NC)"
+	@if [ -d "$(2)" ]; then \
+		echo -e "$(YELLOW)Removing: $(2)$(NC)"; \
+		rm -rf "$(2)"; \
+		echo -e "$(SUCCESS_COLOR)✓ Cleaned: $(2)$(NC)"; \
+	else \
+		echo -e "$(INFO_COLOR)• Already clean: $(2)$(NC)"; \
+	fi
+endef
+
+# Standard test execution pattern
+define test_execution_pattern
+	@echo -e "$(BLUE)Running $(1) tests...$(NC)"
+	@$(call progress_indicator,Preparing test environment,5)
+	@$(MAKE) _check_pytest_deps
+	@pytest $(2) $(TEST_DIR) $(PYTEST_ARGS) || { \
+		echo -e "$(ERROR_COLOR)✗ $(1) tests failed$(NC)"; \
+		exit 1; \
+	}
+	@echo -e "$(SUCCESS_COLOR)✓ $(1) tests completed successfully$(NC)"
+endef
+
+# Standard quality check pattern
+define quality_check_pattern
+	@echo -e "$(BLUE)Running $(1) quality check...$(NC)"
+	@$(call progress_indicator,Initializing $(1),3)
+	@$(2) $(3) || { \
+		echo -e "$(ERROR_COLOR)✗ $(1) quality check failed$(NC)"; \
+		exit 1; \
+	}
+	@echo -e "$(SUCCESS_COLOR)✓ $(1) quality check passed$(NC)"
+endef
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VALIDATION AND DEBUG FUNCTIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+common-validate: ## ⚙️ 🔍 Validate all common function dependencies
+	@echo -e "$(HEADER_COLOR)Common Function Validation$(NC)"
+	@echo -e "$(BLUE)Checking common function dependencies...$(NC)"
+	@$(call validate_command,find,Core system utility)
+	@$(call validate_command,grep,Core system utility)
+	@$(call validate_command,awk,Core system utility)
+	@$(call validate_command,sed,Core system utility)
+	@echo -e "$(SUCCESS_COLOR)✓ All common function dependencies validated$(NC)"
+
+common-debug: ## ℹ️ 🐛 Debug common function environment
+	@echo -e "$(HEADER_COLOR)Common Function Debug Information$(NC)"
+	@echo -e "$(INFO_COLOR)System Information:$(NC)"
+	@echo -e "  OS: $(OS)"
+	@echo -e "  Shell: $$SHELL"
+	@echo -e "  Make: $$(make --version | head -n1)"
+	@echo -e "$(INFO_COLOR)Available Commands:$(NC)"
+	@for cmd in find grep awk sed python pip psql; do \
+		if command -v $$cmd >/dev/null 2>&1; then \
+			echo -e "  $(SUCCESS_COLOR)✓$(NC) $$cmd: $$(which $$cmd)"; \
+		else \
+			echo -e "  $(ERROR_COLOR)✗$(NC) $$cmd: not found"; \
+		fi; \
+	done
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PERFORMANCE OPTIMIZATION HELPERS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Parallel execution wrapper for independent operations
+define parallel_operation
+	@echo -e "$(BLUE)Running parallel operation: $(1)$(NC)"
+	@$(1) & \
+	$(2) & \
+	$(3) & \
+	wait
+	@echo -e "$(SUCCESS_COLOR)✓ Parallel operation completed$(NC)"
+endef
+
+# Conditional execution based on file changes
+define conditional_execution
+	@if [ $(1) -nt $(2) ] || [ ! -f $(2) ]; then \
+		echo -e "$(BLUE)$(3) ($(1) changed)$(NC)"; \
+		$(4); \
+		touch $(2); \
+	else \
+		echo -e "$(INFO_COLOR)• $(3) (up to date)$(NC)"; \
+	fi
+endef
+
+.PHONY: help-common common-validate common-debug

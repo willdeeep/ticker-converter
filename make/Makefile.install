@@ -13,7 +13,7 @@
 
 .PHONY: check-tools install-system-deps _suggest_system_install
 
-check-tools: ## Verify required system tools availability
+check-tools: ## ⚙️ Verify required system tools availability
 	@echo -e "$(CYAN)Checking system tool availability...$(NC)"
 	@echo -e "$(YELLOW)Required Tools:$(NC)"
 	@echo -e "  Python: $(if $(HAS_PYTHON),$(GREEN)✓ Available,$(RED)❌ Missing) $(if $(PYTHON_CMD),- $(PYTHON_CMD),)$(NC)"
@@ -49,7 +49,7 @@ else
 	@echo -e "$(GREEN)✓ All critical tools are available$(NC)"
 endif
 
-install-system-deps: ## Install system-level dependencies
+install-system-deps: ## 📦 Install system-level dependencies
 	@echo -e "$(BLUE)Installing system dependencies...$(NC)"
 ifeq ($(PLATFORM_OS),macos)
 	@$(MAKE) _install_macos_deps
@@ -160,39 +160,39 @@ _suggest_manual_install: ## Internal: Suggest manual installation steps
 
 .PHONY: install install-test install-dev install-all pip-list pip-outdated pip-update
 
-install: _load_env _setup_python_environment ## Install production dependencies
+install: _load_env _setup_python_environment ## 📦 Install production dependencies
 	@echo -e "$(BLUE)Installing production dependencies...$(NC)"
 	@echo -e "$(YELLOW)Installing core packages from pyproject.toml...$(NC)"
 	@$(PIP) install -e . --quiet
 	@echo -e "$(GREEN)✓ Production dependencies installed$(NC)"
 
-install-test: _load_env _setup_python_environment ## Install testing dependencies
+install-test: _load_env _setup_python_environment ## 🧪 Install testing dependencies
 	@echo -e "$(BLUE)Installing testing dependencies...$(NC)"
 	@echo -e "$(YELLOW)Installing test packages...$(NC)"
 	@$(PIP) install -e ".[test]" --quiet
 	@echo -e "$(GREEN)✓ Testing dependencies installed$(NC)"
 
-install-dev: _load_env _setup_python_environment ## Install development dependencies
+install-dev: _load_env _setup_python_environment ## 📦 Install development dependencies
 	@echo -e "$(BLUE)Installing development dependencies...$(NC)"
 	@echo -e "$(YELLOW)Installing all package groups...$(NC)"
 	@$(PIP) install -e ".[dev,test]" --quiet
 	@echo -e "$(GREEN)✓ Development dependencies installed$(NC)"
 
-install-all: _load_env _setup_python_environment ## Install all dependencies (runtime + test + dev)
+install-all: _load_env _setup_python_environment ## 📦 Install all dependencies (runtime + test + dev)
 	@echo -e "$(BLUE)Installing all dependencies...$(NC)"
 	@echo -e "$(YELLOW)Installing complete package set...$(NC)"
 	@$(PIP) install -e ".[dev,test]" --quiet
 	@echo -e "$(GREEN)✓ All dependencies installed$(NC)"
 
-pip-list: ## List installed packages
+pip-list: ## 📦 List and display installed packages
 	@echo -e "$(CYAN)Installed Python packages:$(NC)"
 	@$(PIP) list
 
-pip-outdated: ## Check for package updates
+pip-outdated: ## 📦 Validate for package updates
 	@echo -e "$(CYAN)Checking for outdated packages:$(NC)"
 	@$(PIP) list --outdated
 
-pip-update: ## Update pip and setuptools
+pip-update: ## 📦 Update pip and setuptools
 	@echo -e "$(YELLOW)Updating pip and setuptools...$(NC)"
 	@$(PIP) install --upgrade pip setuptools --quiet
 	@echo -e "$(GREEN)✓ Package tools updated$(NC)"
@@ -203,7 +203,7 @@ pip-update: ## Update pip and setuptools
 
 .PHONY: check-install validate-install _check_package_group
 
-check-install: ## Validate installation completeness
+check-install: ## 📦 Validate installation completeness
 	@echo -e "$(CYAN)Validating installation...$(NC)"
 	@echo -e "$(YELLOW)Checking Python environment...$(NC)"
 	@$(PYTHON) --version
@@ -213,7 +213,7 @@ check-install: ## Validate installation completeness
 	@$(MAKE) _check_package_group GROUP=core
 	@echo -e "$(GREEN)✓ Installation validation completed$(NC)"
 
-validate-install: ## Comprehensive installation validation with imports
+validate-install: ## 📦 Comprehensive installation validation with imports
 	@echo -e "$(CYAN)Comprehensive installation validation...$(NC)"
 	@echo -e "$(YELLOW)Testing core imports...$(NC)"
 	@$(PYTHON) -c "import ticker_converter; print('✓ ticker_converter module available')"
@@ -245,7 +245,7 @@ _check_package_group: ## Internal: Check if package group is installed
 
 .PHONY: deps-tree deps-check deps-security
 
-deps-tree: ## Show dependency tree
+deps-tree: ## 📦 Display dependency tree
 	@echo -e "$(CYAN)Dependency tree:$(NC)"
 	@if $(PYTHON) -c "import pipdeptree" 2>/dev/null; then \
 		$(PYTHON) -m pipdeptree; \
@@ -254,12 +254,12 @@ deps-tree: ## Show dependency tree
 		$(PIP) list; \
 	fi
 
-deps-check: ## Check for dependency conflicts
+deps-check: ## 📦 Validate for dependency conflicts
 	@echo -e "$(CYAN)Checking for dependency conflicts...$(NC)"
 	@$(PIP) check && echo -e "$(GREEN)✓ No dependency conflicts found$(NC)" || \
 	echo -e "$(RED)❌ Dependency conflicts detected$(NC)"
 
-deps-security: ## Check for security vulnerabilities in dependencies
+deps-security: ## 📦 Validate for security vulnerabilities in dependencies
 	@echo -e "$(CYAN)Scanning for security vulnerabilities...$(NC)"
 	@if $(PYTHON) -c "import safety" 2>/dev/null; then \
 		$(PYTHON) -m safety check; \
@@ -274,7 +274,7 @@ deps-security: ## Check for security vulnerabilities in dependencies
 
 .PHONY: fresh-install quick-install developer-setup
 
-fresh-install: ## Complete fresh installation from scratch
+fresh-install: ## 📦 Complete fresh installation from scratch
 	@echo -e "$(BLUE)Performing fresh installation...$(NC)"
 	@$(MAKE) check-tools
 	@$(MAKE) _setup_python_environment
@@ -283,13 +283,13 @@ fresh-install: ## Complete fresh installation from scratch
 	@$(MAKE) validate-install
 	@echo -e "$(GREEN)✓ Fresh installation completed$(NC)"
 
-quick-install: ## Quick installation for CI/CD or minimal setup
+quick-install: ## 📦 Quick installation for CI/CD or minimal setup
 	@echo -e "$(BLUE)Performing quick installation...$(NC)"
 	@$(MAKE) _setup_python_environment
 	@$(MAKE) install
 	@echo -e "$(GREEN)✓ Quick installation completed$(NC)"
 
-developer-setup: ## Complete developer environment setup
+developer-setup: ## 📦 Complete developer environment setup
 	@echo -e "$(BLUE)Setting up developer environment...$(NC)"
 	@$(MAKE) check-tools
 	@$(MAKE) _setup_python_environment
@@ -311,7 +311,7 @@ developer-setup: ## Complete developer environment setup
 
 .PHONY: install-debug install-info install-doctor
 
-install-debug: ## Debug installation issues
+install-debug: ## 📦 Debug and troubleshoot installation issues
 	@echo -e "$(CYAN)Installation debug information:$(NC)"
 	@echo -e "$(YELLOW)Platform Information:$(NC)"
 	@echo -e "  OS: $(PLATFORM_OS)"
@@ -330,7 +330,7 @@ install-debug: ## Debug installation issues
 	@$(PYTHON) -c "import pytest; print('✓ Test dependencies installed')" 2>/dev/null || echo "○ Test dependencies not installed"
 	@$(PYTHON) -c "import black; print('✓ Dev dependencies installed')" 2>/dev/null || echo "○ Dev dependencies not installed"
 
-install-info: ## Show installation information and recommendations
+install-info: ## 📦 Display installation information and recommendations
 	@echo -e "$(CYAN)Installation Information:$(NC)"
 	@echo -e "$(YELLOW)Available Installation Commands:$(NC)"
 	@echo -e "  make install          # Production runtime only"
@@ -344,7 +344,7 @@ install-info: ## Show installation information and recommendations
 	@echo -e "  Development:          make install-dev"
 	@echo -e "  Complete Setup:       make setup && make install-dev"
 
-install-doctor: ## Diagnose and suggest fixes for installation problems
+install-doctor: ## 📦 Diagnose and suggest fixes for installation problems
 	@echo -e "$(CYAN)Installation Doctor - Diagnosing Issues...$(NC)"
 	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo -e "$(YELLOW)1. Checking system requirements...$(NC)"

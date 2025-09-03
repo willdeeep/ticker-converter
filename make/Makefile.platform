@@ -246,7 +246,7 @@ endif
 
 .PHONY: platform-info platform-debug
 
-platform-info: ## Display current platform detection information
+platform-info: ## ℹ️ Display current platform detection information
 	@echo -e "$(CYAN)Platform Detection Results:$(NC)"
 	@echo -e "$(YELLOW)Operating System:$(NC) $(DETECTED_OS) ($(PLATFORM_OS))"
 	@echo -e "$(YELLOW)Architecture:$(NC) $(DETECTED_ARCH) ($(PLATFORM_ARCH))"
@@ -256,7 +256,7 @@ platform-info: ## Display current platform detection information
 	@echo -e "$(YELLOW)Python Command:$(NC) $(PYTHON_CMD)"
 	@echo -e "$(YELLOW)Shell:$(NC) $(SHELL)"
 
-platform-debug: ## Show detailed platform detection and tool availability
+platform-debug: ## ℹ️ Display detailed platform detection and tool availability
 	@echo -e "$(CYAN)Platform Detection Debug Information:$(NC)"
 	@echo -e "$(YELLOW)Raw OS Detection:$(NC) $(DETECTED_OS)"
 	@echo -e "$(YELLOW)Raw Architecture:$(NC) $(DETECTED_ARCH)"
