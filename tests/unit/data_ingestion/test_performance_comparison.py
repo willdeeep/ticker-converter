@@ -136,7 +136,7 @@ class TestingOptimizationDemonstration:
         avg_traditional = sum(traditional_times) / len(traditional_times)
         avg_optimized = sum(optimized_times) / len(optimized_times)
 
-        print(f"\nPerformance Comparison:")
+        print("\nPerformance Comparison:")
         print(f"Traditional setup: {avg_traditional:.6f}s average")
         print(f"Optimized builder: {avg_optimized:.6f}s average")
         print(f"Improvement: {((avg_traditional - avg_optimized) / avg_traditional * 100):.1f}% faster")
@@ -178,7 +178,7 @@ class TestingOptimizationDemonstration:
 
         reduction_percentage = (duplicate_lines_before - duplicate_lines_after) / duplicate_lines_before * 100
 
-        print(f"\nCode Duplication Reduction:")
+        print("\nCode Duplication Reduction:")
         print(f"Lines before optimization: {duplicate_lines_before}")
         print(f"Lines after optimization: {duplicate_lines_after}")
         print(f"Reduction: {reduction_percentage:.1f}%")

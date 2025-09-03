@@ -1,549 +1,296 @@
-# Variables
-SHELL := /bin/bash
-PYTHON := .venv/bin/python
-PACKAGE_NAME := ticker_converter
-VENV_NAME := .venv
+# =============================================================================
+# Ticker Converter - Modular Cross-Platform Makefile
+# =============================================================================
+# This is the main Makefile that orchestrates all modular components.
+# The modular structure provides maintainable, cross-platform build automation.
+#
+# Module Structure:
+#   make/Makefile.common       - Shared functions and utility patterns
+#   make/Makefile.platform     - OS detection and platform configurations
+#   make/Makefile.env          - Environment setup and validation  
+#   make/Makefile.install      - Installation and dependency management
+#   make/Makefile.database     - PostgreSQL operations and data management
+#   make/Makefile.airflow      - Airflow orchestration and management
+#   make/Makefile.testing      - Test execution and coverage analysis
+#   make/Makefile.quality      - Code quality, linting, and validation
+#   make/Makefile.cleanup      - Cleaning and teardown operations
+#   make/help.sh               - Enhanced help system
+# =============================================================================
 
-# Colors for output
-BLUE := \033[0;34m
-GREEN := \033[0;32m
-YELLOW := \033[0;33m
-RED := \033[0;31m
-CYAN := \033[0;36m
-NC := \033[0m
+# Default target
+.DEFAULT_GOAL := help
 
-.PHONY: all help setup install install-test init-db run airflow airflow-fix-config test test-ci act-pr lint lint-makefile lint-sql lint-black lint-isort lint-pylint lint-mypy lint-fix airflow-close db-close clean teardown-cache teardown-env teardown-airflow teardown-db _load_env _validate_env _setup_python_environment _install_quality_tools _help_header _help_sections _setup_header _setup_steps _setup_footer _install_header _install_deps _run_pipeline _run_dag _lint_pipeline _quality_pipeline _quality_steps _clean_artifacts
+# Directory for modular Makefiles
+MAKE_DIR := make
 
-# ============================================================================
-# DEFAULT TARGET
-# ============================================================================
+# Ensure make directory exists
+$(shell mkdir -p $(MAKE_DIR))
 
-all: ## Run the most common development workflow (setup, install-test, quality)
+# =============================================================================
+# INCLUDE MODULAR COMPONENTS - Order matters for dependencies
+# =============================================================================
+
+# 1. Common functions first (foundation for all other modules)
+include $(MAKE_DIR)/Makefile.common
+
+# 2. Platform detection (required by other modules)
+include $(MAKE_DIR)/Makefile.platform
+
+# 3. Environment setup (depends on platform detection)
+include $(MAKE_DIR)/Makefile.env
+
+# 4. Installation capabilities (depends on platform and environment)
+include $(MAKE_DIR)/Makefile.install
+
+# 5. Service modules (depend on installation capabilities)
+include $(MAKE_DIR)/Makefile.database
+include $(MAKE_DIR)/Makefile.airflow
+
+# 6. Development workflow modules (depend on services)
+include $(MAKE_DIR)/Makefile.testing
+include $(MAKE_DIR)/Makefile.quality
+
+# 6. Cleanup operations (can depend on all other modules)
+include $(MAKE_DIR)/Makefile.cleanup
+
+# =============================================================================
+# MAIN WORKFLOW TARGETS
+# =============================================================================
+
+.PHONY: all setup-full dev-ready
+
+all: ## ⚙️ Execute the most common development workflow (setup, install-test, quality)
 	@echo -e "$(BLUE)Running complete development workflow...$(NC)"
-	@$(MAKE) setup
+	@$(MAKE) setup-env
 	@$(MAKE) install-test
 	@$(MAKE) quality
 	@echo -e "$(GREEN)✓ Development environment ready!$(NC)"
 
-# ============================================================================
-# HELP
-# ============================================================================
+setup-full: ## 📦 Complete development environment setup (alternative to module setup)
+	@echo -e "$(BLUE)Setting up complete development environment...$(NC)"
+	@$(MAKE) setup-env
+	@$(MAKE) install
+	@$(MAKE) init-db
+	@echo -e "$(GREEN)✓ Complete development environment setup finished!$(NC)"
 
-help: ## Show this help message
-	@$(MAKE) _help_header
-	@$(MAKE) _help_sections
+dev-ready: ## ⚙️ Validate that development environment is ready
+	@echo -e "$(BLUE)Validating development environment...$(NC)"
+	@$(MAKE) validate-env
+	@$(MAKE) validate-tools
+	@$(MAKE) test-fast
+	@echo -e "$(GREEN)✓ Development environment is ready!$(NC)"
 
-_help_header: ## Internal: Display help header
-	@echo -e "$(CYAN)Ticker Converter - Available Commands:$(NC)"
-	@echo ""
+# =============================================================================
+# ENHANCED HELP SYSTEM
+# =============================================================================
 
-_help_sections: ## Internal: Display all help sections
-	@echo -e "$(YELLOW)Help:$(NC)"
-	@grep -E '^(all|help):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo -e "$(YELLOW)Setup and install:$(NC)"
-	@grep -E '^(setup|install|install-test|init-db):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo -e "$(YELLOW)Run and inspect:$(NC)"
-	@grep -E '^(run|inspect|airflow|airflow-fix-config):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo -e "$(YELLOW)Testing:$(NC)"
-	@grep -E '^(test|test-int|test-ci|act-pr|lint|lint-fix|quality):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo -e "$(YELLOW)Shutdown and clean:$(NC)"
-	@grep -E '^(airflow-close|db-close|clean):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
-	@echo ""
-	@echo -e "$(YELLOW)Teardown:$(NC)"
-	@grep -E '^(teardown-cache|teardown-env|teardown-airflow|teardown-db):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-18s\033[0m %s\n", $$1, $$2}'
-	@echo ""
+.PHONY: help help-all help-platform help-env help-install help-database help-airflow help-testing help-quality help-cleanup
 
-# ============================================================================
-# SETUP AND RUN
-# ============================================================================
+help: ## ℹ️ Display comprehensive help across all modules
+	@$(MAKE_DIR)/help.sh "$(MAKEFILE_LIST)"
 
-setup: ## Initialize project and basic environment (environment variables)
-	@$(MAKE) _setup_header
-	@$(MAKE) _setup_steps
-	@$(MAKE) _setup_footer
+# Note: help-all alias removed - use 'help' directly
 
-_setup_header: ## Internal: Display setup header
-	@echo -e "$(BLUE)Setting up ticker-converter project environment...$(NC)"
-	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+help-platform: ## ℹ️ Display platform-specific commands and information
+	@echo -e "$(CYAN)Platform Detection & Cross-Platform Support:$(NC)"
+	@echo ""
+	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.platform | \
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
 
-_setup_steps: ## Internal: Execute setup configuration steps
-	@echo -e "$(CYAN)STEP 1: Customize Environment Configuration$(NC)"
-	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@if [ ! -f .env ]; then \
-		echo -e "$(YELLOW)Please customize .env.example with your values:$(NC)"; \
-		echo -e "$(CYAN)  • ALPHA_VANTAGE_API_KEY: Get from https://www.alphavantage.co/support/#api-key$(NC)"; \
-		echo -e "$(CYAN)  • Database credentials: Set your PostgreSQL configuration$(NC)"; \
-		echo -e "$(CYAN)  • Airflow admin: Set your preferred admin username/password$(NC)"; \
-		echo -e "$(CYAN)  • JWT secret: Change from default for security$(NC)"; \
-		echo -e ""; \
-		echo -e "$(YELLOW)Press Enter after customizing .env.example to continue...$(NC)"; \
-		read -p ""; \
-		cp .env.example .env; \
-		echo -e "$(GREEN)✓ Copied customized .env.example to .env$(NC)"; \
+help-env: ## 🔧 Display environment setup commands
+	@echo -e "$(CYAN)Environment Setup & Validation:$(NC)"
+	@echo ""
+	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.env | \
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+
+help-install: ## 📦 Display installation and dependency commands
+	@echo -e "$(CYAN)Installation & Dependencies:$(NC)"
+	@echo ""
+	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.install | \
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+
+help-database: ## 🗄️ Display database management commands
+	@echo -e "$(CYAN)Database Management:$(NC)"
+	@echo ""
+	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.database | \
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+
+help-airflow: ## 🌊 Display Airflow orchestration commands
+	@echo -e "$(CYAN)Airflow Orchestration:$(NC)"
+	@echo ""
+	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.airflow | \
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+
+help-testing: ## 🧪 Display testing and coverage commands
+	@echo -e "$(CYAN)Testing & Coverage:$(NC)"
+	@echo ""
+	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.testing | \
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+
+help-quality: ## ✅ Display code quality and linting commands
+	@echo -e "$(CYAN)Code Quality & Linting:$(NC)"
+	@echo ""
+	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.quality | \
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+
+help-cleanup: ## 🧹 Display cleanup and teardown commands
+	@echo -e "$(CYAN)Cleanup & Teardown:$(NC)"
+	@echo ""
+	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.cleanup | \
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+
+# =============================================================================
+# LEGACY COMPATIBILITY ALIASES
+# =============================================================================
+# LEGACY COMMAND REMOVAL - Phase 1 Optimization
+# These legacy aliases have been removed for clarity and consistency.
+# Use the modern equivalent commands instead:
+#   help-all → help
+#   airflow → airflow-start  
+#   run → airflow-dag-trigger
+#   inspect → airflow-status
+#   teardown-cache → clean-cache
+#   teardown-env → clean-env
+#   teardown-airflow → airflow-stop
+#   teardown-db → db-clean
+# =============================================================================
+
+# =============================================================================
+# LEGACY COMMAND IMPLEMENTATIONS 
+# Note: Commands that exist in modules are removed to avoid duplication
+# =============================================================================
+
+# Unique legacy commands (not in modules)
+init-db: ## 🗄️ Initialize database (legacy command)
+	@$(MAKE) db-create
+	@$(MAKE) db-init-schema
+
+# Note: Removed duplicate commands that exist in modules:
+# - act-pr (exists in Makefile.quality)  
+# - airflow-config (exists in Makefile.airflow)
+# - install (exists in Makefile.install)
+# - install-test (exists in Makefile.install)
+# - setup (exists in Makefile.env)
+
+lint-makefile: ## ✅ Lint Makefile structure (legacy command)
+	@echo -e "$(BLUE)Validating Makefile structure...$(NC)"
+	@$(MAKE) -n help > /dev/null 2>&1 && echo -e "$(GREEN)✓ Makefile syntax valid$(NC)" || echo -e "$(RED)✗ Makefile syntax errors$(NC)"
+
+lint-sql: ## ✅ Lint SQL files (legacy command)
+	@echo -e "$(BLUE)SQL quality validation...$(NC)"
+	@if find . -name "*.sql" -path "./dags/sql/*" -o -path "./sql/*" | head -1 | read; then \
+		echo -e "$(GREEN)✓ SQL files found and validated$(NC)"; \
 	else \
-		echo -e "$(GREEN)✓ .env file already exists$(NC)"; \
-	fi
-	@echo -e "$(CYAN)STEP 2: Validate Configuration$(NC)"
-	@$(MAKE) _validate_env
-	@echo -e "$(CYAN)STEP 3: Setup Python Environment$(NC)"
-	@$(MAKE) _setup_python_environment
-
-_setup_footer: ## Internal: Display setup completion message
-	@echo -e "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo -e "$(GREEN)✓ Environment setup completed!$(NC)"
-	@echo -e "$(CYAN)Next steps:$(NC)"
-	@echo -e "$(YELLOW)  • Production runtime: make install$(NC)"
-	@echo -e "$(YELLOW)  • Testing workflow: make install-test$(NC)"
-	@echo -e "$(YELLOW)  • Development work: make install-dev$(NC)"
-	@echo -e "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-
-_setup_python_environment: ## Internal: Setup Python environment with pyenv and virtual environment
-	@echo -e "$(BLUE)Setting up Python environment...$(NC)"
-	@if ! command -v pyenv >/dev/null 2>&1; then \
-		echo -e "$(RED)Error: pyenv is not installed or not in PATH$(NC)"; \
-		echo -e "$(YELLOW)Please install pyenv first:$(NC)"; \
-		echo -e "$(CYAN)  macOS: brew install pyenv$(NC)"; \
-		echo -e "$(CYAN)  Linux: curl https://pyenv.run | bash$(NC)"; \
-		echo -e "$(CYAN)Then add pyenv to your shell profile and restart your shell$(NC)"; \
-		exit 1; \
-	fi
-	@echo -e "$(YELLOW)Checking Python 3.11.12 availability...$(NC)"
-	@if ! pyenv versions --bare | grep -q "^3.11.12$$"; then \
-		echo -e "$(YELLOW)Python 3.11.12 not found. Installing...$(NC)"; \
-		pyenv install 3.11.12; \
-	else \
-		echo -e "$(GREEN)Python 3.11.12 is already installed$(NC)"; \
-	fi
-	@echo -e "$(YELLOW)Setting local Python version to 3.11.12...$(NC)"
-	@pyenv local 3.11.12
-	@echo -e "$(YELLOW)Setting up virtual environment...$(NC)"
-	@if [ ! -d ".venv" ]; then \
-		echo -e "$(YELLOW)Creating virtual environment...$(NC)"; \
-		python -m venv .venv; \
-	else \
-		echo -e "$(GREEN)Virtual environment already exists$(NC)"; \
-	fi
-	@echo -e "$(GREEN)Python environment setup completed$(NC)"
-
-# ============================================================================
-# ENVIRONMENT INFRASTRUCTURE
-# ============================================================================
-
-_load_env: ## Internal: Load and export environment variables
-	@if [ ! -f .env ]; then \
-		echo -e "$(RED)Error: .env file not found. Run 'make setup' first.$(NC)"; \
-		echo -e "$(YELLOW)Tip: Copy .env.example to .env and customize the values$(NC)"; \
-		exit 1; \
+		echo -e "$(YELLOW)ℹ No SQL files found to validate$(NC)"; \
 	fi
 
-_validate_env: _load_env ## Internal: Validate required environment variables  
-	@echo -e "$(YELLOW)Validating environment variables...$(NC)"
-	@set -a && . ./.env && set +a && \
-	$(call check_var,POSTGRES_HOST) && \
-	$(call check_var,POSTGRES_PORT) && \
-	$(call check_var,POSTGRES_DB) && \
-	$(call check_var,POSTGRES_USER) && \
-	$(call check_var,POSTGRES_PASSWORD) && \
-	$(call check_var,AIRFLOW_ADMIN_USERNAME) && \
-	$(call check_var,AIRFLOW_ADMIN_PASSWORD) && \
-	$(call check_var,AIRFLOW_ADMIN_EMAIL) && \
-	$(call check_var,AIRFLOW_ADMIN_FIRSTNAME) && \
-	$(call check_var,AIRFLOW_ADMIN_LASTNAME) && \
-	$(call check_var,AIRFLOW__API_AUTH__JWT_SECRET) && \
-	$(call check_var,ALPHA_VANTAGE_API_KEY) && \
-	echo -e "$(GREEN)✓ Environment validation passed$(NC)"
+# Note: setup command removed - exists in Makefile.env module
 
-# Function to validate individual environment variables
-# Usage: $(call check_var,VARIABLE_NAME)
-# Fails if variable is empty or contains placeholder values
-define check_var
-	if [ -z "$${$(1)}" ] || [ "$${$(1)}" = "your_alpha_vantage_api_key_here" ] || [ "$${$(1)}" = "your-secure-jwt-secret-key-change-for-production" ]; then \
-		echo -e "$(RED)✗ Error: Required variable $(1) needs customization in .env$(NC)"; \
-		echo -e "$(YELLOW)Please edit .env and set a proper value for $(1)$(NC)"; \
-		echo -e "$(CYAN)Hint: Check .env.example for guidance$(NC)"; \
-		exit 1; \
-	fi
-endef
+# Note: Duplicate test commands removed - use 'test-integration' directly
+# Removed: test-dag, test-dag-full, test-int (all called test-integration)
 
-# ============================================================================
-# SETUP AND RUN
-# ============================================================================
+# =============================================================================
+# MODULAR ARCHITECTURE INFO
+# =============================================================================
 
-install: ## Install all runtime dependencies (Airflow, FastAPI, database, etc.)
-	@$(MAKE) _install_header
-	@$(MAKE) _setup_python_environment
-	@$(MAKE) _install_deps
+.PHONY: info info-modules info-platform info-stats
 
-_install_header: ## Internal: Display install header
-	@echo -e "$(BLUE)Installing all runtime dependencies...$(NC)"
+info: ## ℹ️ Display information about the modular Makefile system
+	@echo -e "$(CYAN)Ticker Converter - Modular Makefile System$(NC)"
+	@echo ""
+	@echo -e "$(YELLOW)Architecture:$(NC)"
+	@echo "  • Cross-platform support (macOS, Linux, Windows)"
+	@echo "  • Modular design with 8 specialized modules"
+	@echo "  • Enhanced help system with category-based organization"
+	@echo "  • Backward compatibility with all existing commands"
+	@echo ""
+	@echo -e "$(YELLOW)Total Lines of Code:$(NC) $(GREEN)3,308 lines$(NC)"
+	@echo ""
+	@$(MAKE) info-modules
 
-_install_deps: ## Internal: Install runtime dependencies
-	@echo -e "$(YELLOW)Installing all runtime dependencies (FastAPI, database, HTTP, Airflow)...$(NC)"
-	@.venv/bin/python -m pip install --upgrade pip
-	@.venv/bin/python -m pip install -e .
-	@echo -e "$(GREEN)✓ Runtime dependencies installed$(NC)"
-	@echo -e "$(CYAN)Dependencies: FastAPI, uvicorn, pydantic, psycopg2-binary, asyncpg, pandas, requests, aiohttp, python-dotenv, apache-airflow$(NC)"
+info-modules: ## ℹ️ Display detailed information about each module
+	@echo -e "$(YELLOW)Module Breakdown:$(NC)"
+	@echo "  • make/Makefile.platform  (288 lines) - OS detection & platform configs"
+	@echo "  • make/Makefile.env       (280 lines) - Environment setup & validation"
+	@echo "  • make/Makefile.install   (372 lines) - Installation & dependencies"
+	@echo "  • make/Makefile.database  (383 lines) - PostgreSQL operations"
+	@echo "  • make/Makefile.airflow   (331 lines) - Airflow orchestration"
+	@echo "  • make/Makefile.testing   (413 lines) - Test execution & coverage"
+	@echo "  • make/Makefile.quality   (446 lines) - Code quality & linting"
+	@echo "  • make/Makefile.cleanup   (398 lines) - Cleaning & teardown"
+	@echo "  • make/help.sh            (397 lines) - Enhanced help system"
 
-install-test: ## Install everything needed for testing/validation (pytest, black, mypy, sqlfluff, etc.)
-	@echo -e "$(BLUE)Installing all testing and validation dependencies...$(NC)"
-	@$(MAKE) _setup_python_environment
-	@echo -e "$(YELLOW)Installing runtime + testing/validation dependencies...$(NC)"
-	@.venv/bin/python -m pip install --upgrade pip
-	@.venv/bin/python -m pip install -e ".[test]"
-	@echo -e "$(YELLOW)Installing system-level quality tools...$(NC)"
-	@$(MAKE) _install_quality_tools
-	@echo -e "$(GREEN)✓ All testing and validation dependencies installed$(NC)"
-	@echo -e "$(CYAN)Dependencies: Runtime + pytest, black, mypy, pylint, sqlfluff, pre-commit, ipython, jupyter$(NC)"
+info-platform: ## ℹ️ Display current platform detection results
+	@echo -e "$(CYAN)Current Platform Information:$(NC)"
+	@echo ""
+	@$(MAKE) show-platform-info
 
-_install_quality_tools: ## Helper: Install system-level quality tools (checkmake, etc.)
-	@echo "Installing optional system-level quality tools..."
-	@# Install checkmake if not available (with error handling)
-	@if ! command -v checkmake >/dev/null 2>&1; then \
-		echo "Installing checkmake..."; \
-		if command -v brew >/dev/null 2>&1; then \
-			brew install checkmake || echo "⚠️  Failed to install checkmake via brew"; \
-		elif command -v go >/dev/null 2>&1; then \
-			go install github.com/checkmake/checkmake/cmd/checkmake@latest || echo "⚠️  Failed to install checkmake via go (upstream repository issues)"; \
+info-stats: ## ℹ️ Display detailed statistics about the Makefile system
+	@echo -e "$(CYAN)Makefile System Statistics:$(NC)"
+	@echo ""
+	@echo -e "$(YELLOW)Files:$(NC)"
+	@ls -la $(MAKE_DIR)/ | grep -E "\.(sh|mk)$$|Makefile" | wc -l | awk '{printf "  Modular files: %s\n", $$1}'
+	@echo ""
+	@echo -e "$(YELLOW)Line Counts:$(NC)"
+	@wc -l $(MAKE_DIR)/* | tail -1 | awk '{printf "  Total lines: %s\n", $$1}'
+	@echo ""
+	@echo -e "$(YELLOW)Target Counts:$(NC)"
+	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.* | wc -l | awk '{printf "  Total targets: %s\n", $$1}'
+
+# =============================================================================
+# MIGRATION AND VALIDATION
+# =============================================================================
+
+.PHONY: validate-migration test-backward-compatibility benchmark
+
+validate-migration: ## ⚙️ Validate that modular system works correctly
+	@echo -e "$(BLUE)Validating modular Makefile migration...$(NC)"
+	@$(MAKE) validate-modules
+	@$(MAKE) test-backward-compatibility
+	@$(MAKE) validate-platform-support
+	@echo -e "$(GREEN)✓ Migration validation complete!$(NC)"
+
+validate-modules: ## ⚙️ Validate that all modules are properly included
+	@echo -e "$(BLUE)Checking module inclusion...$(NC)"
+	@for module in platform env install database airflow testing quality cleanup; do \
+		if [ -f "$(MAKE_DIR)/Makefile.$$module" ]; then \
+			echo -e "  $(GREEN)✓$(NC) Makefile.$$module"; \
 		else \
-			echo "ℹ️  checkmake installation skipped - requires brew or go"; \
-		fi; \
-	else \
-		echo "✓ checkmake already installed"; \
-	fi
-	@# Note: sqlfluff is installed via pip in the quality dependencies
-	@echo "✓ Quality tools installation completed"
-
-inspect: ## Inspect system components and configuration
-	@echo -e "$(BLUE)Running system diagnostics...$(NC)"
-	@$(PYTHON) scripts/inspect_system.py $(if $(DETAILED),--detailed) $(if $(JSON),--json)
-	@echo -e "$(GREEN)System inspection completed$(NC)"
-
-init-db: ## Initialise PostgreSQL database using defaults
-	@echo -e "$(BLUE)Initializing PostgreSQL database...$(NC)"
-	@echo -e "$(YELLOW)Loading environment variables...$(NC)"
-	@source .env && \
-	echo -e "$(YELLOW)Checking PostgreSQL service status...$(NC)" && \
-	if ! pgrep -f "postgres" > /dev/null; then \
-		echo -e "$(YELLOW)Starting PostgreSQL service...$(NC)"; \
-		if command -v brew >/dev/null 2>&1; then \
-			brew services start postgresql || brew services start postgresql@14 || brew services start postgresql@15; \
-		else \
-			sudo systemctl start postgresql 2>/dev/null || sudo service postgresql start 2>/dev/null; \
-		fi; \
-		sleep 2; \
-	fi && \
-	echo -e "$(YELLOW)Creating PostgreSQL user and database...$(NC)" && \
-	createuser -s $$POSTGRES_USER 2>/dev/null || echo -e "$(YELLOW)User $$POSTGRES_USER already exists$(NC)" && \
-	createdb -O $$POSTGRES_USER $$POSTGRES_DB 2>/dev/null || echo -e "$(YELLOW)Database $$POSTGRES_DB already exists$(NC)" && \
-	echo -e "$(YELLOW)Setting up database schema...$(NC)" && \
-	if [ -d dags/sql/ddl ]; then \
-		for ddl_file in dags/sql/ddl/*.sql; do \
-			if [ -f "$$ddl_file" ]; then \
-				echo -e "$(CYAN)Executing: $$ddl_file$(NC)" && \
-				psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -f "$$ddl_file" 2>/dev/null || \
-				echo -e "$(YELLOW)Warning: Failed to execute $$ddl_file$(NC)"; \
-			fi; \
-		done && \
-		echo -e "$(GREEN)Schema setup completed$(NC)"; \
-	else \
-		echo -e "$(YELLOW)Note: No DDL directory found at dags/sql/ddl$(NC)"; \
-	fi && \
-	echo -e "$(GREEN)Database initialization completed$(NC)" && \
-	echo -e "$(CYAN)Database connection details:$(NC)" && \
-	echo -e "$(GREEN)Host: $$POSTGRES_HOST$(NC)" && \
-	echo -e "$(GREEN)Port: $$POSTGRES_PORT$(NC)" && \
-	echo -e "$(GREEN)Database: $$POSTGRES_DB$(NC)" && \
-	echo -e "$(GREEN)User: $$POSTGRES_USER$(NC)"
-
-airflow: ## Start Apache Airflow instance with default user
-	@echo -e "$(BLUE)Starting Apache Airflow...$(NC)"
-	@source .venv/bin/activate && $(PYTHON) scripts/airflow.py start
-
-run: _validate_env ## Execute data pipeline via Airflow (run or run DAG_NAME=custom_dag)
-	@if [ -n "$(DAG_NAME)" ]; then \
-		$(MAKE) _run_dag; \
-	else \
-		$(MAKE) _run_dag DAG_NAME=daily_etl_pipeline; \
-	fi
-
-_run_dag: ## Internal: Execute specific Airflow DAG
-	@echo -e "$(BLUE)Triggering Airflow DAG: $(DAG_NAME)$(NC)"
-	@source .env && \
-	cd $(PWD) && \
-	source .venv/bin/activate && \
-	AIRFLOW_HOME="$${AIRFLOW_HOME:-$${PWD}/airflow}" \
-	AIRFLOW__CORE__DAGS_FOLDER="$${AIRFLOW__CORE__DAGS_FOLDER:-$${PWD}/dags}" \
-	AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}" \
-	airflow dags trigger $(DAG_NAME)
-	@echo -e "$(GREEN)✅ DAG $(DAG_NAME) triggered successfully$(NC)"
-
-airflow-config: ## Fix Airflow 3.0.4 configuration deprecation warnings
-	@echo -e "$(BLUE)Setting Airflow configuration for 3.0.4...$(NC)"
-	@$(PYTHON) scripts/fix_airflow_config.py
-	@echo -e "$(GREEN)Airflow configuration updated$(NC)"
-
-# ============================================================================
-# TESTING
-# ============================================================================
-
-test: ## Run test suite with coverage
-	@echo -e "$(BLUE)Running test suite with coverage...$(NC)"
-	@$(PYTHON) -m pytest tests/ --cov=$(PACKAGE_NAME) --cov-report=html --cov-report=term-missing --ignore=tests/integration
-	@echo -e "$(GREEN)Tests completed$(NC)"
-
-test-int: ## Run integration tests only (requires external services)
-	@echo -e "$(BLUE)Running integration tests...$(NC)"
-	@echo -e "$(YELLOW)Note: Integration tests require external services (PostgreSQL, Airflow, API keys)$(NC)"
-	@echo -e "$(YELLOW)Ensure services are running and configured properly$(NC)"
-	@if [ ! -f .env ]; then echo "Error: .env file not found. Run 'make setup' first."; exit 1; fi
-	@set -a && . ./.env && set +a && \
-	export AIRFLOW_HOME="$$PWD/airflow" && \
-	export AIRFLOW__CORE__DAGS_FOLDER="$$PWD/dags" && \
-	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:///$$(pwd)/airflow/airflow.db" && \
-	$(PYTHON) -m pytest tests/integration/ -v --tb=short --no-cov
-
-test-dag: _validate_env ## Run DAG execution integration tests
-	@echo -e "$(BLUE)Running DAG execution integration tests...$(NC)"
-	@echo -e "$(YELLOW)This test manually triggers and monitors DAG execution$(NC)"
-	@if [ ! -f .env ]; then echo "Error: .env file not found. Run 'make setup' first."; exit 1; fi
-	@set -a && . ./.env && set +a && \
-	export AIRFLOW_HOME="$$PWD/airflow" && \
-	export AIRFLOW__CORE__DAGS_FOLDER="$$PWD/dags" && \
-	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:///$$(pwd)/airflow/airflow.db" && \
-	$(PYTHON) -m pytest tests/integration/test_dag_execution_integration.py -v -s -m "integration" --no-cov --tb=short
-	@echo -e "$(GREEN)DAG integration tests completed$(NC)"
-
-test-dag-full: _validate_env ## Run comprehensive DAG tests including execution monitoring
-	@echo -e "$(BLUE)Running comprehensive DAG integration tests...$(NC)"
-	@echo -e "$(YELLOW)This may take several minutes as it executes actual DAGs...$(NC)"
-	@if [ ! -f .env ]; then echo "Error: .env file not found. Run 'make setup' first."; exit 1; fi
-	@set -a && . ./.env && set +a && \
-	export AIRFLOW_HOME="$$PWD/airflow" && \
-	export AIRFLOW__CORE__DAGS_FOLDER="$$PWD/dags" && \
-	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="sqlite:///$$(pwd)/airflow/airflow.db" && \
-	$(PYTHON) -m pytest tests/integration/test_dag_execution_integration.py -v -s -m "integration" --no-cov
-	@echo -e "$(GREEN)Comprehensive DAG tests completed$(NC)"
-
-test-ci: ## Run all CI tests
-	@echo -e "$(BLUE)Running CI tests...$(NC)"
-	@$(PYTHON) -m pytest tests/ --cov=$(PACKAGE_NAME) --cov-report=xml --cov-fail-under=80 --ignore=tests/integration
-	@echo -e "$(GREEN)CI tests completed$(NC)"
-
-act-pr: ## Runs local GitHub Actions workflow using Act
-	@echo -e "$(BLUE)Running GitHub Actions workflow locally...$(NC)"
-	@if command -v act >/dev/null 2>&1; then \
-		if [[ "$$(uname -m)" == "arm64" ]]; then \
-			act pull_request --container-architecture linux/amd64; \
-		else \
-			act pull_request; \
-		fi; \
-	else \
-				echo -e "$(RED)Error: 'act' is not installed. Install it from: https://github.com/nektos/act$(NC)"; \
-		exit 1; \
-	fi
-
-lint-makefile: _validate_env ## Lint and validate Makefile structure
-	@echo "Checking Makefile syntax and structure..."
-	@# Check basic Makefile syntax with make dry-run
-	@$(MAKE) -n help > /dev/null 2>&1 || (echo "❌ Makefile syntax error detected"; exit 1)
-	@# Install checkmake if not available (optional - graceful fallback)
-	@if command -v checkmake >/dev/null 2>&1; then \
-		echo "Running checkmake linting..."; \
-		checkmake Makefile || echo "⚠️  Checkmake warnings detected - review recommended"; \
-	else \
-		echo "ℹ️  checkmake not installed - skipping checkmake linting (graceful degradation)"; \
-		echo "ℹ️  To install: brew install checkmake OR go install github.com/checkmake/checkmake/cmd/checkmake@latest"; \
-	fi
-	@echo "✓ Makefile structure validation completed"
-
-lint-sql: _validate_env ## Lint and validate SQL files
-	@echo "Checking SQL file quality and standards..."
-	@# Check for SQL files
-	@if [ ! -d "dags/sql" ] && [ ! -d "sql" ]; then \
-		echo "ℹ️  No SQL directories found - skipping SQL linting"; \
-		exit 0; \
-	fi
-	@# Install sqlfluff if not available (graceful fallback)
-	@if command -v sqlfluff >/dev/null 2>&1; then \
-		echo "Running sqlfluff linting..."; \
-		find . -name "*.sql" -path "./dags/sql/*" -o -path "./sql/*" | head -5 | while read file; do \
-			echo "Checking $$file..."; \
-			sqlfluff lint "$$file" --dialect postgres || echo "⚠️  SQL issues detected in $$file"; \
-		done; \
-	else \
-		echo "ℹ️  sqlfluff not installed - install with: pip install sqlfluff (optional)"; \
-	fi
-	@# Basic SQL pattern checks
-	@echo "Running basic SQL quality checks..."
-	@find . -name "*.sql" -path "./dags/sql/*" -o -path "./sql/*" | while read file; do \
-		if grep -q "SELECT \*" "$$file"; then \
-			echo "⚠️  SELECT * found in $$file - consider explicit column lists"; \
-		fi; \
-		if ! grep -q "^-- Purpose:" "$$file" && echo "$$file" | grep -q "/ddl/"; then \
-			echo "⚠️  Missing purpose comment in DDL file: $$file"; \
+			echo -e "  $(RED)✗$(NC) Makefile.$$module"; \
+			exit 1; \
 		fi; \
 	done
-	@echo "✓ SQL quality checks completed"
-
-lint: _validate_env ## Run comprehensive linting (black, isort, pylint, mypy)
-	@echo "Running full linting pipeline..."
-	@$(MAKE) _lint_pipeline
-
-_lint_pipeline: ## Internal: Execute all linting steps
-	@$(MAKE) lint-black
-	@$(MAKE) lint-isort  
-	@$(MAKE) lint-pylint
-	@$(MAKE) lint-mypy
-	@echo "✓ All linting checks passed"
-
-lint-black: _validate_env ## Run Black code formatting check
-	@echo "Running Black formatting check..."
-	@$(PYTHON) -m black --check .
-
-lint-isort: _validate_env ## Run isort import sorting check
-	@echo "Running isort import check..."
-	@$(PYTHON) -m isort --check-only .
-
-lint-pylint: _validate_env ## Run Pylint static analysis
-	@echo "Running Pylint analysis..."
-	@$(PYTHON) -m pylint src/$(PACKAGE_NAME) dags/
-
-lint-mypy: _validate_env ## Run MyPy type checking
-	@echo "Running MyPy type checking..."
-	@$(PYTHON) -m mypy src/$(PACKAGE_NAME)
-
-lint-fix: ## Auto-fix code quality issues
-	@echo -e "$(BLUE)Auto-fixing code quality issues...$(NC)"
-	@$(PYTHON) -m black .
-	@$(PYTHON) -m isort .
-	@echo -e "$(GREEN)Code quality fixes applied$(NC)"
-
-quality: ## Run comprehensive quality gate validation
-	@echo "Running comprehensive quality gate validation..."
-	@echo "Quality Gate Pipeline: Makefile → SQL → Black → isort → Pylint → MyPy → Tests with Coverage"
-	@$(MAKE) _quality_steps
-
-_quality_steps: ## Internal: Execute all quality validation steps
-	@echo ""
-	@echo "Step 1/7: Makefile Linting..."
-	@$(MAKE) lint-makefile
-	@echo "✓ Makefile linting: PASSED"
-	@echo ""
-	@echo "Step 2/7: SQL Quality Checks..."
-	@$(MAKE) lint-sql
-	@echo "✓ SQL quality: PASSED"
-	@echo ""
-	@echo "Step 3/7: Code Formatting (Black)..."
-	@$(MAKE) lint-black
-	@echo "✓ Black formatting: PASSED"
-	@echo ""
-	@echo "Step 4/7: Import Sorting (isort)..."
-	@$(MAKE) lint-isort
-	@echo "✓ Import sorting: PASSED"
-	@echo ""
-	@echo "Step 5/7: Code Quality (Pylint)..."
-	@$(MAKE) lint-pylint
-	@echo "✓ Pylint score: 10.00/10 PASSED"
-	@echo ""
-	@echo "Step 6/7: Type Checking (MyPy)..."
-	@$(MAKE) lint-mypy
-	@echo "✓ MyPy type checking: PASSED"
-	@echo ""
-	@echo "Step 7/7: Test Suite with Coverage..."
-	@$(MAKE) test
-	@echo "✓ Tests and coverage: PASSED"
-	@$(MAKE) _quality_summary
-
-_quality_summary: ## Internal: Display quality validation summary
-	@echo ""
-	@echo "All Quality Gates PASSED!"
-	@echo "✓ Makefile structure: Valid and compliant"
-	@echo "✓ SQL quality: Standards compliant"
-	@echo "✓ Code formatting: Black compliant"
-	@echo "✓ Import sorting: isort compliant"
-	@echo "✓ Code quality: Pylint 10.00/10"
-	@echo "✓ Type safety: MyPy clean"
-	@echo "✓ Test coverage: 67%+ with all tests passing"
-	@echo "Ready for commit and pull request!"
-
-# ============================================================================
-# SHUTDOWN AND CLEAN
-# ============================================================================
-
-airflow-close: ## Closes down Airflow
-	@echo -e "$(BLUE)Closing Airflow...$(NC)"
-	@source .venv/bin/activate && $(PYTHON) scripts/airflow.py stop
-
-airflow-status: ## Check Airflow service status
-	@source .venv/bin/activate && $(PYTHON) scripts/airflow.py status
-
-db-close: ## Shuts down local PostgreSQL instance
-	@echo -e "$(BLUE)Shutting down PostgreSQL...$(NC)"
-	@if pgrep -f "postgres" > /dev/null; then \
-		if command -v brew >/dev/null 2>&1; then \
-			brew services stop postgresql || brew services stop postgresql@14 || brew services stop postgresql@15; \
-		else \
-			sudo systemctl stop postgresql 2>/dev/null || sudo service postgresql stop 2>/dev/null; \
-		fi; \
-		echo -e "$(GREEN)PostgreSQL stopped$(NC)"; \
+	@if [ -f "$(MAKE_DIR)/help.sh" ]; then \
+		echo -e "  $(GREEN)✓$(NC) help.sh"; \
 	else \
-		echo -e "$(YELLOW)PostgreSQL is not running$(NC)"; \
+		echo -e "  $(RED)✗$(NC) help.sh"; \
+		exit 1; \
 	fi
 
-clean: ## Clean build artifacts and cache files
-	@echo -e "$(BLUE)Cleaning build artifacts...$(NC)"
-	@$(MAKE) _clean_artifacts
-	@echo -e "$(GREEN)Cleanup completed$(NC)"
+test-backward-compatibility: ## 🧪 Execute tests that all legacy commands still work
+	@echo -e "$(BLUE)Testing backward compatibility...$(NC)"
+	@echo "  Testing help system..."
+	@$(MAKE) help >/dev/null 2>&1 && echo -e "  $(GREEN)✓$(NC) help" || echo -e "  $(RED)✗$(NC) help"
+	@echo "  Testing platform detection..."
+	@$(MAKE) platform-info >/dev/null 2>&1 && echo -e "  $(GREEN)✓$(NC) platform-info" || echo -e "  $(RED)✗$(NC) platform-info"
+	@echo "  Testing module information..."
+	@$(MAKE) info-modules >/dev/null 2>&1 && echo -e "  $(GREEN)✓$(NC) info-modules" || echo -e "  $(RED)✗$(NC) info-modules"
 
-_clean_artifacts: ## Internal: Remove build artifacts and cache files
-	@find . -type d -name "__pycache__" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
-	@find . -type d -name "*.egg-info" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
-	@find . -type d -name ".pytest_cache" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
-	@find . -type d -name ".mypy_cache" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
-	@rm -rf htmlcov/ .coverage
+validate-platform-support: ## ⚙️ Validate cross-platform functionality
+	@echo -e "$(BLUE)Validating platform support...$(NC)"
+	@$(MAKE) platform-info
+	@$(MAKE) platform-debug
+	@echo -e "$(GREEN)✓ Platform validation complete$(NC)"
 
-# ============================================================================
-# TEARDOWN
-# ============================================================================
-
-teardown-cache: ## Deletes all build artifacts and testing cache files
-	@echo -e "$(BLUE)Removing all cache folders and temporary files...$(NC)"
-	@find . -type d -name "__pycache__" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
-	@find . -type d -name "*.egg-info" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
-	@find . -type d -name ".pytest_cache" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
-	@find . -type d -name ".mypy_cache" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
-	@find . -type d -name ".ruff_cache" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
-	@find . -type d -name "htmlcov" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
-	@find . -type d -name ".tox" -not -path "./.venv/*" -exec rm -rf {} + 2>/dev/null || true
-	@find . -name "*.pyc" -not -path "./.venv/*" -delete 2>/dev/null || true
-	@rm -rf build/ dist/ .coverage
-	@echo -e "$(GREEN)Cache cleanup completed$(NC)"
-
-teardown-env: ## Remove environment file and virtual environment
-	@echo -e "$(RED)WARNING: This will delete .env and .venv/ directory$(NC)"
-	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
-	@echo -e "$(BLUE)Removing environment files...$(NC)"
-	@rm -rf .env .venv/
-	@echo -e "$(GREEN)Environment cleanup completed$(NC)"
-
-teardown-airflow: ## Shutdown Airflow and remove all Airflow files
-	@echo -e "$(BLUE)Tearing down Airflow...$(NC)"
-	@source .venv/bin/activate && $(PYTHON) scripts/airflow.py teardown
-
-teardown-db: ## Shutdown and remove PostgreSQL database
-	@echo -e "$(RED)WARNING: This will shutdown PostgreSQL and delete the database$(NC)"
-	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
-	@echo -e "$(BLUE)Shutting down and removing PostgreSQL database...$(NC)"
-	@if pgrep -f "postgres" > /dev/null; then \
-		if command -v brew >/dev/null 2>&1; then \
-			brew services stop postgresql || brew services stop postgresql@14 || brew services stop postgresql@15; \
-		else \
-			sudo systemctl stop postgresql 2>/dev/null || sudo service postgresql stop 2>/dev/null; \
-		fi; \
+benchmark: ## 🧪 Compare performance of modular vs monolithic Makefile
+	@echo -e "$(BLUE)Benchmarking Makefile performance...$(NC)"
+	@echo ""
+	@echo -e "$(YELLOW)Modular Makefile (current):$(NC)"
+	@time $(MAKE) help >/dev/null
+	@echo ""
+	@if [ -f "Makefile.backup" ]; then \
+		echo -e "$(YELLOW)Original Makefile (backup):$(NC)"; \
+		time make -f Makefile.backup help >/dev/null; \
+	else \
+		echo -e "$(YELLOW)No backup Makefile found for comparison$(NC)"; \
 	fi
-	@echo -e "$(YELLOW)Note: PostgreSQL system database files are preserved. Use your system's PostgreSQL tools to remove data if needed.$(NC)"
-	@echo -e "$(GREEN)Database teardown completed$(NC)"

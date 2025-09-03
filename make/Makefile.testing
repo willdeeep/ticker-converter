@@ -1,0 +1,465 @@
+# ============================================================================
+# TEST EXECUTION AND COVERAGE ANALYSIS
+# ============================================================================
+# This module handles test execution, coverage analysis, and test-related
+# operations with cross-platform support
+#
+# Dependencies: Makefile.platform, Makefile.env, Makefile.install
+# ============================================================================
+
+# Test configuration
+TEST_DIR := tests
+SRC_DIR := src
+COVERAGE_DIR := htmlcov
+COVERAGE_FILE := .coverage
+
+# Test execution parameters
+PYTEST_ARGS := --verbose --tb=short
+PYTEST_PARALLEL_ARGS := -n auto
+PYTEST_COVERAGE_ARGS := --cov=$(SRC_DIR) --cov-report=term --cov-report=html --cov-report=xml
+
+# ============================================================================
+# BASIC TEST EXECUTION
+# ============================================================================
+
+.PHONY: test test-unit test-integration test-fast test-verbose
+
+test: _load_env ## 🧪 Execute full test suite
+	@echo -e "$(BLUE)Running full test suite...$(NC)"
+	@$(MAKE) _check_test_deps
+	@echo -e "$(YELLOW)Executing tests with pytest...$(NC)"
+	@$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS)
+	@echo -e "$(GREEN)✓ Test suite completed$(NC)"
+
+test-unit: _load_env ## 🧪 Execute unit tests only
+	@echo -e "$(BLUE)Running unit tests...$(NC)"
+	@$(MAKE) _check_test_deps
+	@echo -e "$(YELLOW)Executing unit tests...$(NC)"
+	@$(PYTHON) -m pytest $(TEST_DIR)/unit $(PYTEST_ARGS) 2>/dev/null || \
+	$(PYTHON) -m pytest $(TEST_DIR) -k "unit" $(PYTEST_ARGS) 2>/dev/null || \
+	$(PYTHON) -m pytest $(TEST_DIR) -m "unit" $(PYTEST_ARGS) 2>/dev/null || \
+	$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS)
+	@echo -e "$(GREEN)✓ Unit tests completed$(NC)"
+
+test-integration: _load_env ## 🧪 Execute integration tests only
+	@echo -e "$(BLUE)Running integration tests...$(NC)"
+	@$(MAKE) _check_test_deps
+	@echo -e "$(YELLOW)Executing integration tests...$(NC)"
+	@$(PYTHON) -m pytest $(TEST_DIR)/integration $(PYTEST_ARGS) 2>/dev/null || \
+	$(PYTHON) -m pytest $(TEST_DIR) -k "integration" $(PYTEST_ARGS) 2>/dev/null || \
+	$(PYTHON) -m pytest $(TEST_DIR) -m "integration" $(PYTEST_ARGS) 2>/dev/null || \
+	echo -e "$(YELLOW)⚠ No integration tests found or specific marker not defined$(NC)"
+	@echo -e "$(GREEN)✓ Integration tests completed$(NC)"
+
+test-fast: _load_env ## 🧪 Execute tests in parallel (fast mode)
+	@echo -e "$(BLUE)Running tests in parallel mode...$(NC)"
+	@$(MAKE) _check_test_deps
+	@if $(PYTHON) -c "import pytest_xdist" 2>/dev/null; then \
+		echo -e "$(YELLOW)Executing tests with parallel execution...$(NC)"; \
+		$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS) $(PYTEST_PARALLEL_ARGS); \
+	else \
+		echo -e "$(YELLOW)pytest-xdist not available, running sequential tests...$(NC)"; \
+		$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS); \
+	fi
+	@echo -e "$(GREEN)✓ Fast test execution completed$(NC)"
+
+test-verbose: _load_env ## 🧪 Execute tests with verbose output
+	@$(call test_execution_pattern,verbose,--verbose --tb=long -v -s)
+
+test-debug: _load_env ## 🧪 Execute tests with debugging enabled
+	@$(call test_execution_pattern,debug,--pdb --tb=long -v -s)
+
+# ============================================================================
+# COVERAGE ANALYSIS
+# ============================================================================
+
+.PHONY: test-coverage coverage coverage-report coverage-html coverage-open coverage-xml
+
+test-coverage: _load_env ## 🧪 Execute tests with coverage reporting
+	@echo -e "$(BLUE)Running tests with coverage analysis...$(NC)"
+	@$(MAKE) _check_test_deps
+	@$(MAKE) _check_coverage_deps
+	@echo -e "$(YELLOW)Executing tests with coverage collection...$(NC)"
+	@$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS) $(PYTEST_COVERAGE_ARGS)
+	@echo -e "$(GREEN)✓ Test coverage analysis completed$(NC)"
+
+# ============================================================================
+# CONSOLIDATED COVERAGE COMMANDS - Phase 2 Optimization
+# ============================================================================
+
+coverage: _load_env ## 🧪 📊 Flexible coverage command (run 'make coverage help' for options)
+	@if [ "$(filter help,$(MAKECMDGOALS))" ]; then \
+		echo -e "$(HEADER_COLOR)╔══════════════════════════════════════════════════════════════════╗$(NC)"; \
+		echo -e "$(HEADER_COLOR)║                     COVERAGE COMMAND OPTIONS                    ║$(NC)"; \
+		echo -e "$(HEADER_COLOR)╚══════════════════════════════════════════════════════════════════╝$(NC)"; \
+		echo -e "$(CYAN)Usage: make coverage [option]$(NC)"; \
+		echo ""; \
+		echo -e "$(YELLOW)Options:$(NC)"; \
+		echo -e "  report    Generate terminal coverage report"; \
+		echo -e "  html      Generate HTML coverage report"; \
+		echo -e "  xml       Generate XML coverage report"; \
+		echo -e "  open      Generate and open HTML report in browser"; \
+		echo -e "  all       Generate all report formats"; \
+		echo ""; \
+		echo -e "$(GREEN)Examples:$(NC)"; \
+		echo -e "  make coverage report    # Terminal report only"; \
+		echo -e "  make coverage html      # HTML report only"; \
+		echo -e "  make coverage all       # All formats"; \
+	elif [ "$(filter report,$(MAKECMDGOALS))" ]; then \
+		$(MAKE) coverage-report-only; \
+	elif [ "$(filter html,$(MAKECMDGOALS))" ]; then \
+		$(MAKE) coverage-html-only; \
+	elif [ "$(filter xml,$(MAKECMDGOALS))" ]; then \
+		$(MAKE) coverage-xml-only; \
+	elif [ "$(filter open,$(MAKECMDGOALS))" ]; then \
+		$(MAKE) coverage-open-only; \
+	elif [ "$(filter all,$(MAKECMDGOALS))" ]; then \
+		$(MAKE) coverage-all-formats; \
+	else \
+		echo -e "$(BLUE)Generating standard coverage report...$(NC)"; \
+		$(MAKE) coverage-report-only; \
+	fi
+
+# Internal coverage command implementations
+coverage-report-only: _load_env ## Internal: Generate terminal coverage report
+	@$(MAKE) _check_coverage_deps
+	@if [ -f $(COVERAGE_FILE) ]; then \
+		echo -e "$(YELLOW)Generating terminal coverage report...$(NC)"; \
+		$(PYTHON) -m coverage report; \
+		echo -e "$(GREEN)✓ Terminal coverage report generated$(NC)"; \
+	else \
+		echo -e "$(RED)❌ No coverage data found. Run 'make test-coverage' first.$(NC)"; \
+		exit 1; \
+	fi
+
+coverage-html-only: _load_env ## Internal: Generate HTML coverage report
+	@$(MAKE) _check_coverage_deps
+	@if [ -f $(COVERAGE_FILE) ]; then \
+		echo -e "$(YELLOW)Generating HTML coverage report...$(NC)"; \
+		$(PYTHON) -m coverage html; \
+		echo -e "$(GREEN)✓ HTML coverage report generated in $(COVERAGE_DIR)/$(NC)"; \
+	else \
+		echo -e "$(RED)❌ No coverage data found. Run 'make test-coverage' first.$(NC)"; \
+		exit 1; \
+	fi
+
+coverage-xml-only: _load_env ## Internal: Generate XML coverage report
+	@$(MAKE) _check_coverage_deps
+	@if [ -f $(COVERAGE_FILE) ]; then \
+		echo -e "$(YELLOW)Generating XML coverage report...$(NC)"; \
+		$(PYTHON) -m coverage xml; \
+		echo -e "$(GREEN)✓ XML coverage report generated$(NC)"; \
+	else \
+		echo -e "$(RED)❌ No coverage data found. Run 'make test-coverage' first.$(NC)"; \
+		exit 1; \
+	fi
+
+coverage-open-only: coverage-html-only ## Internal: Generate and open HTML coverage report
+	@echo -e "$(CYAN)Opening HTML coverage report...$(NC)"
+	@if [ -f "$(COVERAGE_DIR)/index.html" ]; then \
+		if command -v open >/dev/null 2>&1; then \
+			open "$(COVERAGE_DIR)/index.html"; \
+		elif command -v xdg-open >/dev/null 2>&1; then \
+			xdg-open "$(COVERAGE_DIR)/index.html"; \
+		else \
+			echo -e "$(YELLOW)⚠ Cannot open browser automatically. Open: $(COVERAGE_DIR)/index.html$(NC)"; \
+		fi; \
+		echo -e "$(GREEN)✓ HTML coverage report opened$(NC)"; \
+	else \
+		echo -e "$(RED)❌ HTML report not found$(NC)"; \
+		exit 1; \
+	fi
+
+coverage-all-formats: _load_env ## Internal: Generate all coverage report formats
+	@echo -e "$(BLUE)Generating all coverage report formats...$(NC)"
+	@$(MAKE) coverage-report-only
+	@$(MAKE) coverage-html-only  
+	@$(MAKE) coverage-xml-only
+	@echo -e "$(GREEN)✓ All coverage reports generated$(NC)"
+
+# Legacy commands for backward compatibility (deprecated)
+coverage-report: coverage-report-only ## ⚠️ DEPRECATED: Use 'make coverage report' instead
+	@echo -e "$(YELLOW)⚠️ Deprecated: Use 'make coverage report' instead$(NC)"
+
+coverage-html: coverage-html-only ## ⚠️ DEPRECATED: Use 'make coverage html' instead  
+	@echo -e "$(YELLOW)⚠️ Deprecated: Use 'make coverage html' instead$(NC)"
+
+coverage-xml: coverage-xml-only ## ⚠️ DEPRECATED: Use 'make coverage xml' instead
+	@echo -e "$(YELLOW)⚠️ Deprecated: Use 'make coverage xml' instead$(NC)"
+
+coverage-open: coverage-open-only ## ⚠️ DEPRECATED: Use 'make coverage open' instead
+	@echo -e "$(YELLOW)⚠️ Deprecated: Use 'make coverage open' instead$(NC)"
+			open $(COVERAGE_DIR)/index.html; \
+		elif command -v xdg-open >/dev/null 2>&1; then \
+			xdg-open $(COVERAGE_DIR)/index.html; \
+		elif command -v start >/dev/null 2>&1; then \
+			start $(COVERAGE_DIR)/index.html; \
+		else \
+			echo -e "$(YELLOW)Please manually open: $(COVERAGE_DIR)/index.html$(NC)"; \
+		fi; \
+	else \
+		echo -e "$(RED)❌ HTML coverage report not found$(NC)"; \
+		exit 1; \
+	fi
+
+# ============================================================================
+# SPECIALIZED TEST MODES  
+# ============================================================================
+
+.PHONY: test-watch test-debug test-profile test-benchmark
+
+test-watch: _load_env ## 🧪 Execute tests in watch mode (continuous)
+	@echo -e "$(BLUE)Starting test watch mode...$(NC)"
+	@$(MAKE) _check_test_deps
+	@if $(PYTHON) -c "import pytest_watch" 2>/dev/null; then \
+		echo -e "$(YELLOW)Running tests in watch mode (press Ctrl+C to stop)...$(NC)"; \
+		$(PYTHON) -m pytest_watch $(TEST_DIR) -- $(PYTEST_ARGS); \
+	else \
+		echo -e "$(YELLOW)pytest-watch not available. Install with: pip install pytest-watch$(NC)"; \
+		echo -e "$(CYAN)Alternative: Run 'make install-dev' to get all development tools$(NC)"; \
+		exit 1; \
+	fi
+
+test-profile: _load_env ## 🧪 Execute performance profiling on tests
+	@echo -e "$(BLUE)Running test performance profiling...$(NC)"
+	@$(MAKE) _check_test_deps
+	@if $(PYTHON) -c "import pytest_profiling" 2>/dev/null; then \
+		echo -e "$(YELLOW)Executing tests with performance profiling...$(NC)"; \
+		$(PYTHON) -m pytest $(TEST_DIR) --profile $(PYTEST_ARGS); \
+	else \
+		echo -e "$(YELLOW)pytest-profiling not available. Install with: pip install pytest-profiling$(NC)"; \
+		echo -e "$(CYAN)Running basic timing analysis...$(NC)"; \
+		time $(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS); \
+	fi
+	@echo -e "$(GREEN)✓ Test profiling completed$(NC)"
+
+test-benchmark: _load_env ## 🧪 Execute benchmark tests
+	@echo -e "$(BLUE)Running benchmark tests...$(NC)"
+	@$(MAKE) _check_test_deps
+	@if $(PYTHON) -c "import pytest_benchmark" 2>/dev/null; then \
+		echo -e "$(YELLOW)Executing benchmark tests...$(NC)"; \
+		$(PYTHON) -m pytest $(TEST_DIR) --benchmark-only $(PYTEST_ARGS); \
+	else \
+		echo -e "$(YELLOW)pytest-benchmark not available. Install with: pip install pytest-benchmark$(NC)"; \
+		echo -e "$(CYAN)Running tests with benchmark marker...$(NC)"; \
+		$(PYTHON) -m pytest $(TEST_DIR) -m "benchmark" $(PYTEST_ARGS) 2>/dev/null || \
+		echo -e "$(YELLOW)No benchmark tests found$(NC)"; \
+	fi
+	@echo -e "$(GREEN)✓ Benchmark testing completed$(NC)"
+
+# ============================================================================
+# TEST FILTERING AND SELECTION
+# ============================================================================
+
+.PHONY: test-by-name test-by-marker test-failed test-changed
+
+test-by-name: _load_env ## 🧪 Execute tests matching a name pattern (interactive)
+	@echo -e "$(CYAN)Test filtering by name$(NC)"
+	@echo -e "$(YELLOW)Enter test name pattern (e.g., test_database, TestClass, etc.):$(NC)"
+	@read -p "Pattern: " pattern && \
+	echo -e "$(YELLOW)Running tests matching pattern: $$pattern$(NC)" && \
+	$(PYTHON) -m pytest $(TEST_DIR) -k "$$pattern" $(PYTEST_ARGS)
+
+test-by-marker: _load_env ## 🧪 Execute tests with specific marker (interactive)
+	@echo -e "$(CYAN)Test filtering by marker$(NC)"
+	@echo -e "$(YELLOW)Available markers:$(NC)"
+	@$(PYTHON) -m pytest --markers 2>/dev/null | grep "^@pytest.mark" || echo "  No custom markers found"
+	@echo -e "$(YELLOW)Enter marker name (e.g., slow, unit, integration):$(NC)"
+	@read -p "Marker: " marker && \
+	echo -e "$(YELLOW)Running tests with marker: $$marker$(NC)" && \
+	$(PYTHON) -m pytest $(TEST_DIR) -m "$$marker" $(PYTEST_ARGS)
+
+test-failed: _load_env ## 🧪 Execute only failed tests from last run
+	@echo -e "$(BLUE)Running only failed tests from last run...$(NC)"
+	@$(MAKE) _check_test_deps
+	@if [ -f .pytest_cache/v/cache/lastfailed ]; then \
+		echo -e "$(YELLOW)Re-running failed tests...$(NC)"; \
+		$(PYTHON) -m pytest --lf $(PYTEST_ARGS); \
+	else \
+		echo -e "$(YELLOW)No failed tests found. Running full test suite...$(NC)"; \
+		$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS); \
+	fi
+	@echo -e "$(GREEN)✓ Failed test execution completed$(NC)"
+
+test-changed: _load_env ## 🧪 Execute tests for changed files (requires git)
+	@echo -e "$(BLUE)Running tests for changed files...$(NC)"
+	@$(MAKE) _check_test_deps
+	@if command -v git >/dev/null 2>&1; then \
+		changed_files=$$(git diff --name-only HEAD~1 | grep -E "\.(py)$$" | tr '\n' ' '); \
+		if [ -n "$$changed_files" ]; then \
+			echo -e "$(YELLOW)Changed files: $$changed_files$(NC)"; \
+			echo -e "$(YELLOW)Running tests for changed files...$(NC)"; \
+			$(PYTHON) -m pytest --co -q $$changed_files 2>/dev/null && \
+			$(PYTHON) -m pytest $$changed_files $(PYTEST_ARGS) || \
+			echo -e "$(YELLOW)No tests found for changed files, running full suite...$(NC)" && \
+			$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS); \
+		else \
+			echo -e "$(YELLOW)No Python files changed, running full test suite...$(NC)"; \
+			$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS); \
+		fi; \
+	else \
+		echo -e "$(YELLOW)Git not available, running full test suite...$(NC)"; \
+		$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS); \
+	fi
+
+# ============================================================================
+# TEST ENVIRONMENT AND DEPENDENCIES
+# ============================================================================
+
+.PHONY: _check_test_deps _check_coverage_deps test-deps-info test-deps-install
+
+_check_test_deps: ## Internal: Check test dependencies
+	@$(PYTHON) -c "import pytest" 2>/dev/null || \
+	(echo -e "$(RED)❌ pytest not available. Run 'make install-test' first.$(NC)" && exit 1)
+
+test-deps-info: ## 🧪 Display test dependency information
+	@echo -e "$(CYAN)Test Dependencies Information:$(NC)"
+	@echo -e "$(YELLOW)Core Testing:$(NC)"
+	@$(PYTHON) -c "import pytest; print(f'  ✓ pytest {pytest.__version__}')" 2>/dev/null || echo "  ❌ pytest not available"
+	@$(PYTHON) -c "import coverage; print(f'  ✓ coverage {coverage.__version__}')" 2>/dev/null || echo "  ❌ coverage not available"
+	@echo -e "$(YELLOW)Optional Testing Tools:$(NC)"
+	@$(PYTHON) -c "import pytest_xdist; print(f'  ✓ pytest-xdist (parallel execution)')" 2>/dev/null || echo "  ○ pytest-xdist not available"
+	@$(PYTHON) -c "import pytest_watch; print(f'  ✓ pytest-watch (watch mode)')" 2>/dev/null || echo "  ○ pytest-watch not available"
+	@$(PYTHON) -c "import pytest_profiling; print(f'  ✓ pytest-profiling (performance)')" 2>/dev/null || echo "  ○ pytest-profiling not available"
+	@$(PYTHON) -c "import pytest_benchmark; print(f'  ✓ pytest-benchmark (benchmarks)')" 2>/dev/null || echo "  ○ pytest-benchmark not available"
+
+test-deps-install: ## 🧪 Install additional test dependencies
+	@echo -e "$(BLUE)Installing additional test dependencies...$(NC)"
+	@echo -e "$(YELLOW)Installing pytest extensions...$(NC)"
+	@$(PIP) install pytest-xdist pytest-watch pytest-profiling pytest-benchmark --quiet
+	@echo -e "$(GREEN)✓ Additional test dependencies installed$(NC)"
+
+# ============================================================================
+# TEST REPORTING AND ANALYSIS
+# ============================================================================
+
+.PHONY: test-report test-stats test-duration test-summary
+
+test-report: _load_env ## 🧪 Generate comprehensive test report
+	@echo -e "$(BLUE)Generating comprehensive test report...$(NC)"
+	@$(MAKE) _check_test_deps
+	@echo -e "$(YELLOW)Running tests with detailed reporting...$(NC)"
+	@$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS) \
+		--tb=short \
+		--durations=10 \
+		--junit-xml=test-report.xml \
+		--html=test-report.html --self-contained-html 2>/dev/null || \
+	$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS) --tb=short --durations=10
+	@echo -e "$(GREEN)✓ Test report generated$(NC)"
+
+test-stats: _load_env ## 🧪 Display test statistics and metrics
+	@echo -e "$(CYAN)Test Statistics:$(NC)"
+	@$(MAKE) _check_test_deps
+	@echo -e "$(YELLOW)Test Discovery:$(NC)"
+	@$(PYTHON) -m pytest --collect-only $(TEST_DIR) 2>/dev/null | grep -E "test session starts|collected" || \
+	echo "  Test discovery information not available"
+	@echo -e "$(YELLOW)Test Files:$(NC)"
+	@find $(TEST_DIR) -name "test_*.py" -o -name "*_test.py" 2>/dev/null | wc -l | sed 's/^/  /' || echo "  0"
+	@echo -e "$(YELLOW)Coverage Files:$(NC)"
+	@if [ -f $(COVERAGE_FILE) ]; then \
+		echo "  ✓ Coverage data available"; \
+		$(PYTHON) -c "import coverage; cov = coverage.Coverage(); cov.load(); print(f'  Total statements: {cov.get_data().measured_files().__len__()}')" 2>/dev/null || echo "  Coverage details not available"; \
+	else \
+		echo "  ❌ No coverage data found"; \
+	fi
+
+test-duration: _load_env ## 🧪 Display test execution duration analysis
+	@echo -e "$(CYAN)Test Duration Analysis:$(NC)"
+	@$(MAKE) _check_test_deps
+	@echo -e "$(YELLOW)Running tests with duration tracking...$(NC)"
+	@$(PYTHON) -m pytest $(TEST_DIR) --durations=0 --tb=no -q
+
+test-summary: _load_env ## 🧪 Display quick test summary
+	@echo -e "$(CYAN)Quick Test Summary:$(NC)"
+	@$(MAKE) _check_test_deps
+	@echo -e "$(YELLOW)Running quick test check...$(NC)"
+	@$(PYTHON) -m pytest $(TEST_DIR) --tb=no -q
+
+# ============================================================================
+# TEST CLEANUP AND MAINTENANCE
+# ============================================================================
+
+.PHONY: test-clean test-clean-cache test-clean-coverage test-clean-all
+
+test-clean: ## 🧪 Clean test artifacts and cache
+	@echo -e "$(YELLOW)Cleaning test artifacts...$(NC)"
+	@$(MAKE) test-clean-cache
+	@$(MAKE) test-clean-coverage
+	@echo -e "$(GREEN)✓ Test cleanup completed$(NC)"
+
+test-clean-cache: ## 🧪 Clean pytest cache
+	@echo -e "$(YELLOW)Cleaning pytest cache...$(NC)"
+	@rm -rf .pytest_cache
+	@rm -rf $(TEST_DIR)/__pycache__
+	@find $(TEST_DIR) -name "*.pyc" -delete 2>/dev/null || true
+	@find $(TEST_DIR) -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+	@echo -e "$(GREEN)✓ Pytest cache cleaned$(NC)"
+
+test-clean-coverage: ## 🧪 Clean coverage reports and data
+	@echo -e "$(YELLOW)Cleaning coverage data...$(NC)"
+	@rm -f $(COVERAGE_FILE)
+	@rm -f coverage.xml
+	@rm -rf $(COVERAGE_DIR)
+	@echo -e "$(GREEN)✓ Coverage data cleaned$(NC)"
+
+test-clean-all: test-clean ## 🧪 Clean all test-related files and reports
+	@echo -e "$(YELLOW)Cleaning all test reports...$(NC)"
+	@rm -f test-report.xml test-report.html
+	@rm -f .coverage.*
+	@echo -e "$(GREEN)✓ All test files cleaned$(NC)"
+
+# ============================================================================
+# TEST DEBUGGING AND DIAGNOSTICS
+# ============================================================================
+
+.PHONY: test-debug-info test-doctor test-env-check
+
+test-debug-info: _load_env ## 🧪 Display test debugging information
+	@echo -e "$(CYAN)Test Debug Information:$(NC)"
+	@echo -e "$(YELLOW)Test Environment:$(NC)"
+	@echo -e "  Python: $(PYTHON)"
+	@echo -e "  Test Directory: $(TEST_DIR)"
+	@echo -e "  Source Directory: $(SRC_DIR)"
+	@echo -e "$(YELLOW)Test Dependencies:$(NC)"
+	@$(MAKE) test-deps-info
+	@echo -e "$(YELLOW)Test Configuration:$(NC)"
+	@echo -e "  pytest.ini: $(if $(wildcard pytest.ini),✓ Present,❌ Missing)"
+	@echo -e "  .coveragerc: $(if $(wildcard .coveragerc),✓ Present,❌ Missing)"
+	@echo -e "  pyproject.toml: $(if $(wildcard pyproject.toml),✓ Present,❌ Missing)"
+
+test-doctor: _load_env ## 🧪 Diagnose test setup issues
+	@echo -e "$(CYAN)Test Doctor - Diagnosing Issues...$(NC)"
+	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo -e "$(YELLOW)1. Checking test dependencies...$(NC)"
+	@$(MAKE) _check_test_deps 2>/dev/null && echo -e "$(GREEN)✓ Test dependencies available$(NC)" || \
+	echo -e "$(RED)Issue: Missing test dependencies$(NC)" && echo -e "$(CYAN)Fix: Run 'make install-test'$(NC)"
+	@echo ""
+	@echo -e "$(YELLOW)2. Checking test directory structure...$(NC)"
+	@if [ -d "$(TEST_DIR)" ]; then \
+		echo -e "$(GREEN)✓ Test directory exists$(NC)"; \
+		test_count=$$(find $(TEST_DIR) -name "test_*.py" -o -name "*_test.py" 2>/dev/null | wc -l); \
+		echo -e "$(CYAN)Found $$test_count test files$(NC)"; \
+	else \
+		echo -e "$(RED)Issue: Test directory missing$(NC)"; \
+		echo -e "$(CYAN)Fix: Create $(TEST_DIR) directory and add test files$(NC)"; \
+	fi
+	@echo ""
+	@echo -e "$(YELLOW)3. Checking source directory...$(NC)"
+	@if [ -d "$(SRC_DIR)" ]; then \
+		echo -e "$(GREEN)✓ Source directory exists$(NC)"; \
+	else \
+		echo -e "$(YELLOW)Warning: Source directory not found$(NC)"; \
+		echo -e "$(CYAN)Note: Adjust SRC_DIR in Makefile if needed$(NC)"; \
+	fi
+	@echo -e "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+
+test-env-check: _load_env ## 🧪 Validate test environment setup
+	@echo -e "$(CYAN)Test Environment Check:$(NC)"
+	@echo -e "$(YELLOW)Python Environment:$(NC)"
+	@$(PYTHON) --version
+	@echo -e "$(YELLOW)Module Import Check:$(NC)"
+	@$(PYTHON) -c "import $(PACKAGE_NAME); print('✓ Package can be imported')" 2>/dev/null || \
+	echo -e "$(YELLOW)⚠ Package import failed - ensure package is installed$(NC)"
+	@echo -e "$(YELLOW)Test Discovery:$(NC)"
+	@$(PYTHON) -m pytest --collect-only $(TEST_DIR) -q 2>/dev/null | head -5 || \
+	echo -e "$(YELLOW)⚠ Test discovery failed$(NC)"

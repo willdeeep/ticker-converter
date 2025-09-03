@@ -49,7 +49,7 @@ def real_stock_json_data():
     import json
 
     stock_file_path = "/Users/willhuntleyclarke/repos/interests/ticker-converter/dags/raw_data/dummy_stocks/stocks_20250830T143935Z.json"
-    with open(stock_file_path, "r") as f:
+    with open(stock_file_path) as f:
         data = json.load(f)
 
     # Return just the first 5 records for testing
@@ -62,7 +62,7 @@ def real_currency_json_data():
     import json
 
     currency_file_path = "/Users/willhuntleyclarke/repos/interests/ticker-converter/dags/raw_data/dummy_exchange/exchange_20250830T143935Z.json"
-    with open(currency_file_path, "r") as f:
+    with open(currency_file_path) as f:
         data = json.load(f)
 
     # Return just the first 3 records for testing

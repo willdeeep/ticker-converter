@@ -7,7 +7,7 @@ providing end-to-end validation of the Airflow pipeline functionality.
 import json
 import subprocess
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -43,7 +43,7 @@ class AirflowDAGExecutor:
             FileNotFoundError: If Airflow CLI is not available
         """
         # Generate a unique run ID based on timestamp
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
         self.run_id = f"integration_test_{timestamp}"
 
         # Trigger the DAG with manual run ID
@@ -76,7 +76,7 @@ class AirflowDAGExecutor:
             self.execution_date = self.run_id  # Use run_id as fallback
             return self.run_id
 
-    def get_dag_run_status(self) -> Dict[str, str]:
+    def get_dag_run_status(self) -> dict[str, str]:
         """Get the current status of the DAG run.
 
         Returns:
@@ -98,7 +98,7 @@ class AirflowDAGExecutor:
         except subprocess.TimeoutExpired:
             return {"state": "timeout", "error": "Command timed out"}
 
-    def get_task_states(self) -> Dict[str, str]:
+    def get_task_states(self) -> dict[str, str]:
         """Get the states of all tasks in the DAG run.
 
         Returns:
@@ -129,7 +129,7 @@ class AirflowDAGExecutor:
         except subprocess.TimeoutExpired:
             return {}
 
-    def wait_for_completion(self) -> Dict[str, str]:
+    def wait_for_completion(self) -> dict[str, str]:
         """Wait for the DAG run to complete.
 
         Returns:

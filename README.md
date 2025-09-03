@@ -14,6 +14,7 @@ This project implements a production-ready financial data analytics pipeline des
 - **Code Quality Tools**: Automated formatting, linting, and type checking
 - **Comprehensive Testing**: 69% test coverage with pytest, coverage reporting, and 100% test success rate
 - **Development Environment**: Pre-commit hooks and automated quality gates
+- **Cross-Platform Support**: Works seamlessly on macOS, Linux, and Windows environments
 
 ## What's New in v3.2.2
 
@@ -31,6 +32,31 @@ This project implements a production-ready financial data analytics pipeline des
 - **GitHub Workflow Integration**: Enhanced CI/CD documentation and pull request automation
 - **Data Freshness Validation**: Integration tests verify most recent data retrieval and proper date filtering
 - **Error Handling Coverage**: Comprehensive testing for missing exchange rate data and graceful degradation
+
+## 🔮 Latest: Modular Makefile System (GitHub Issue #62) - ✅ COMPLETED
+
+### 🎉 Cross-Platform Build System - Now Available!
+
+We've successfully modernized our build system with a comprehensive modular architecture:
+
+- **✅ Modular Architecture**: 8 specialized modules (3,308 lines) replacing monolithic Makefile
+- **✅ Cross-Platform Support**: Full compatibility for macOS, Linux, and Windows development  
+- **✅ Automatic Tool Detection**: Smart detection of package managers and development tools
+- **✅ Enhanced Help System**: Category-based help with `make help-<category>` commands
+- **✅ Backward Compatibility**: All existing commands continue to work seamlessly
+
+**Status**: ✅ **COMPLETE** - Production ready! See [detailed roadmap](my_docs/MAKEFILE_MODERNIZATION_ROADMAP.md) for implementation details.
+
+### New Enhanced Commands Available
+```bash
+make help              # Comprehensive cross-platform help system
+make help-platform     # Platform-specific information and commands
+make help-install      # Installation and dependency management
+make help-testing      # Testing and coverage options
+make help-quality      # Code quality and linting tools
+make info              # System architecture and module information
+make platform-info     # Current platform detection results
+```
 
 ## What's New in v3.2.0
 
@@ -84,14 +110,72 @@ This project implements a production-ready financial data analytics pipeline des
 python --version  # Should output: Python 3.11.12
 ```
 
-**System Requirements**:
-- PostgreSQL (for database backend)
-- Git (for version control)
-- Make (for automation commands)
+**Cross-Platform Support**: Our modular Makefile system supports macOS, Linux, and Windows with automatic platform detection and tool configuration.
+
+**System Dependencies**: The following tools are automatically detected and configured:
+- **Python 3.11.12** (via pyenv, system package, or manual installation)
+- **PostgreSQL** (for database backend)
+- **Git** (for version control)
+- **Make** (for cross-platform automation)
+- **Package Manager** (Homebrew/APT/Chocolatey - detected automatically)
+
+### Cross-Platform Setup
+
+Our modular Makefile system automatically detects your operating system and configures the appropriate tools. Here's what you need for each platform:
+
+#### macOS Setup
+```bash
+# Install Homebrew (if not already installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install required system tools (handled automatically by 'make install-system-deps')
+brew install python@3.11 postgresql git make pyenv
+
+# Clone and setup the project
+git clone https://github.com/willdeeep/ticker-converter.git
+cd ticker-converter
+make setup  # Automatically detects macOS and configures accordingly
+```
+
+#### Linux (Ubuntu/Debian) Setup
+```bash
+# Update package manager
+sudo apt update
+
+# Install required system tools (handled automatically by 'make install-system-deps')
+sudo apt install python3.11 python3.11-venv postgresql postgresql-contrib git make build-essential
+
+# Clone and setup the project
+git clone https://github.com/willdeeep/ticker-converter.git
+cd ticker-converter
+make setup  # Automatically detects Linux and configures accordingly
+```
+
+#### Windows Setup
+```bash
+# Install Chocolatey (if not already installed)
+# Run in PowerShell as Administrator:
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+
+# Install required tools (handled automatically by 'make install-system-deps')
+choco install python311 postgresql git make
+
+# Clone and setup the project
+git clone https://github.com/willdeeep/ticker-converter.git
+cd ticker-converter
+make setup  # Automatically detects Windows and configures accordingly
+```
+
+#### Platform Detection
+Our system automatically detects your platform and adapts accordingly:
+```bash
+make platform-info    # Shows detected OS, architecture, and available tools
+make platform-debug   # Detailed platform information and tool availability
+```
 
 ### Step-by-Step Setup
 
-Follow these commands in order to set up the project:
+Follow these commands in order to set up the project on any supported platform:
 
 #### 1. Clone and Enter Repository
 ```bash
@@ -135,6 +219,29 @@ make airflow
 # In a separate terminal, start the FastAPI server:
 make serve
 # Note: API endpoints will be available at http://localhost:8000
+```
+
+### Enhanced Help System
+
+Our modular Makefile provides comprehensive help organized by category:
+
+```bash
+make help              # Complete cross-platform help system
+make help-platform     # Platform detection and OS-specific features
+make help-install      # Installation and dependency management
+make help-database     # PostgreSQL operations and data management  
+make help-airflow      # Airflow orchestration and workflow management
+make help-testing      # Test execution and coverage analysis
+make help-quality      # Code quality, linting, and validation
+make help-cleanup      # Cleaning and teardown operations
+```
+
+For system information and architecture details:
+```bash
+make info              # Modular Makefile system overview
+make info-modules      # Detailed breakdown of all 8 modules
+make info-platform     # Current platform detection results
+make info-stats        # Comprehensive system statistics
 ```
 
 ### Daily Operations

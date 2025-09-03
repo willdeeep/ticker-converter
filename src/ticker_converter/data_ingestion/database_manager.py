@@ -17,8 +17,6 @@ import psycopg2.extensions
 from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 
-from ..exceptions import DatabaseConnectionException, DatabaseOperationException
-
 # Load environment variables from project root
 # Find project root by looking for pyproject.toml
 _current_file = Path(__file__).resolve()

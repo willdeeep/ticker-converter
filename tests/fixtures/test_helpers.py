@@ -4,7 +4,8 @@ This module provides utilities to reduce test code duplication and improve
 test readability and maintainability.
 """
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -199,7 +200,9 @@ def parametrize_with_data(test_data: list[tuple[str, dict[str, Any]]]) -> Callab
     test_names = [name for name, _ in test_data]
     test_params = [params for _, params in test_data]
 
-    return pytest.mark.parametrize("test_name,test_params", list(zip(test_names, test_params)), ids=test_names)
+    return pytest.mark.parametrize(
+        "test_name,test_params", list(zip(test_names, test_params, strict=False)), ids=test_names
+    )
 
 
 def create_standard_result_dict() -> dict[str, Any]:
