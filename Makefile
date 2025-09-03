@@ -26,6 +26,27 @@ MAKE_DIR := make
 $(shell mkdir -p $(MAKE_DIR))
 
 # =============================================================================
+# COMMON FUNCTIONS - Phase 3 Optimization: Extract repeated patterns
+# =============================================================================
+
+# Common output formatting functions
+define output_header
+	@echo -e "$(CYAN)$(1):$(NC)"
+endef
+
+define success_message
+	@echo -e "$(GREEN)✓ $(1)$(NC)"
+endef
+
+define warning_message
+	@echo -e "$(YELLOW)⚠ $(1)$(NC)"
+endef
+
+define error_message
+	@echo -e "$(RED)✗ $(1)$(NC)"
+endef
+
+# =============================================================================
 # MODULAR INCLUDES - Order matters for dependencies
 # =============================================================================
 
@@ -85,7 +106,7 @@ dev-ready: ## Validate that development environment is ready
 help: ## Show comprehensive help across all modules
 	@$(MAKE_DIR)/help.sh "$(MAKEFILE_LIST)"
 
-help-all: help ## Alias for comprehensive help
+# Note: help-all alias removed - use 'help' directly
 
 help-platform: ## Show platform-specific commands and information
 	@echo -e "$(CYAN)Platform Detection & Cross-Platform Support:$(NC)"
@@ -138,61 +159,35 @@ help-cleanup: ## Show cleanup and teardown commands
 # =============================================================================
 # LEGACY COMPATIBILITY ALIASES
 # =============================================================================
-# These targets ensure backward compatibility with existing workflows
+# LEGACY COMMAND REMOVAL - Phase 1 Optimization
+# These legacy aliases have been removed for clarity and consistency.
+# Use the modern equivalent commands instead:
+#   help-all → help
+#   airflow → airflow-start  
+#   run → airflow-dag-trigger
+#   inspect → airflow-status
+#   teardown-cache → clean-cache
+#   teardown-env → clean-env
+#   teardown-airflow → airflow-stop
+#   teardown-db → db-clean
+# =============================================================================
 
-.PHONY: airflow run inspect teardown-cache teardown-env teardown-airflow teardown-db
+# =============================================================================
+# LEGACY COMMAND IMPLEMENTATIONS 
+# Note: Commands that exist in modules are removed to avoid duplication
+# =============================================================================
 
-# Alias common commands for backward compatibility
-airflow: airflow-start ## Legacy alias for airflow-start (start Airflow services)
-run: airflow-dag-trigger ## Legacy alias for airflow-dag-trigger (run DAG)
-inspect: airflow-status ## Legacy alias for airflow-status (check Airflow status)
-
-# Legacy teardown commands (map to new modular equivalents)
-teardown-cache: clean-cache ## Legacy alias for clean-cache
-teardown-env: clean-env ## Legacy alias for clean-env  
-teardown-airflow: airflow-stop ## Legacy alias for airflow-stop
-teardown-db: db-clean ## Legacy alias for db-clean
-
-# Missing legacy commands - adding implementations  
-act-pr: ## Run local GitHub Actions workflow using Act (cross-platform)
-	@echo -e "$(BLUE)Running GitHub Actions workflow locally...$(NC)"
-	@if ! command -v act >/dev/null 2>&1; then \
-		echo -e "$(RED)Error: 'act' is not installed$(NC)"; \
-		echo -e "$(YELLOW)Install instructions:$(NC)"; \
-		echo -e "$(CYAN)  macOS: brew install act$(NC)"; \
-		echo -e "$(CYAN)  Linux: curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash$(NC)"; \
-		echo -e "$(CYAN)  Windows: choco install act-cli$(NC)"; \
-		exit 1; \
-	fi
-	@echo -e "$(YELLOW)Platform: $(PLATFORM_OS)/$(PLATFORM_ARCH)$(NC)"
-ifeq ($(PLATFORM_OS),Darwin)
-ifeq ($(PLATFORM_ARCH),arm64)
-	@echo -e "$(CYAN)Running with linux/amd64 architecture for M-series Mac...$(NC)"
-	@act pull_request --container-architecture linux/amd64
-else
-	@act pull_request
-endif
-else
-	@act pull_request  
-endif
-	@echo -e "$(GREEN)✓ GitHub Actions workflow completed$(NC)"
-
-airflow-config: ## Fix Airflow configuration (legacy command)
-	@echo -e "$(YELLOW)Note: Airflow 3.0.4+ configuration is handled automatically$(NC)"
-	@echo -e "$(GREEN)✓ Modern Airflow configuration is applied by default$(NC)"
-
-db-close: ## Stop PostgreSQL service (legacy command)
-	@$(MAKE) db-stop
-
+# Unique legacy commands (not in modules)
 init-db: ## Initialize database (legacy command)
 	@$(MAKE) db-create
 	@$(MAKE) db-init-schema
 
-install: ## Install runtime dependencies (legacy command)
-	@$(MAKE) install
-
-install-test: ## Install testing dependencies (legacy command)  
-	@$(MAKE) install-test
+# Note: Removed duplicate commands that exist in modules:
+# - act-pr (exists in Makefile.quality)  
+# - airflow-config (exists in Makefile.airflow)
+# - install (exists in Makefile.install)
+# - install-test (exists in Makefile.install)
+# - setup (exists in Makefile.env)
 
 lint-makefile: ## Lint Makefile structure (legacy command)
 	@echo -e "$(BLUE)Validating Makefile structure...$(NC)"
@@ -206,17 +201,10 @@ lint-sql: ## Lint SQL files (legacy command)
 		echo -e "$(YELLOW)ℹ No SQL files found to validate$(NC)"; \
 	fi
 
-setup: ## Setup project environment (legacy command)
-	@$(MAKE) setup
+# Note: setup command removed - exists in Makefile.env module
 
-test-dag: ## Run DAG integration tests (legacy command)
-	@$(MAKE) test-integration
-
-test-dag-full: ## Run comprehensive DAG tests (legacy command)
-	@$(MAKE) test-integration
-
-test-int: ## Run integration tests (legacy command)
-	@$(MAKE) test-integration
+# Note: Duplicate test commands removed - use 'test-integration' directly
+# Removed: test-dag, test-dag-full, test-int (all called test-integration)
 
 # =============================================================================
 # MODULAR ARCHITECTURE INFO
