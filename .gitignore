@@ -36,6 +36,7 @@ MANIFEST
 .mypy_cache/
 .ruff_cache/
 .coverage
+coverage.xml
 htmlcov/
 .tox/
 sqlfluff_errors.json
