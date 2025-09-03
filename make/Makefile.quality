@@ -4,9 +4,7 @@
 # This module handles code quality checks, linting, formatting, and validation
 # with comprehensive cross-platform support
 #
-_check_mypy_deps: ## Internal: Check MyPy dependencies
-	@$(PYTHON) -c "import mypy" 2>/dev/null || \
-	(echo -e "$(RED)❌ MyPy not available. Run 'make install-test' first.$(NC)" && exit 1)ependencies: Makefile.platform, Makefile.env, Makefile.install
+# Dependencies: Makefile.platform, Makefile.env, Makefile.install
 # ============================================================================
 
 # Quality configuration
@@ -325,7 +323,7 @@ _check_pylint_deps: ## Internal: Check Pylint dependencies
 
 _check_mypy_deps: ## Internal: Check MyPy dependencies
 	@$(PYTHON) -c "import mypy" 2>/dev/null || \
-	(echo -e "$(RED)❌ MyPy not available. Run 'make install-dev' first.$(NC)" && exit 1)
+	(echo -e "$(RED)❌ MyPy not available. Run 'make install-test' first.$(NC)" && exit 1)
 
 _check_ruff_deps: ## Internal: Check Ruff dependencies
 	@$(PYTHON) -c "import ruff" 2>/dev/null || \

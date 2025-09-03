@@ -108,7 +108,8 @@ class DatabaseManager:
         """
         with self.connection() as conn:
             # PostgreSQL connection
-            assert isinstance(conn, psycopg2.extensions.connection)
+            # nosec B101: Type checking assert for PostgreSQL connection
+            assert isinstance(conn, psycopg2.extensions.connection)  # nosec
             with conn.cursor(cursor_factory=RealDictCursor) as pg_cursor:
                 pg_cursor.execute(query, params or ())
                 return [dict(row) for row in pg_cursor.fetchall()]

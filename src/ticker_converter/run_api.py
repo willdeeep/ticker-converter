@@ -63,7 +63,7 @@ async def main() -> None:
 
     config = uvicorn.Config(
         app=app,
-        host=os.getenv("HOST", "0.0.0.0"),
+        host=os.getenv("HOST", "0.0.0.0"),  # nosec B104: Configurable via environment
         port=int(os.getenv("PORT", "8000")),
         log_level=os.getenv("LOG_LEVEL", "info").lower(),
         reload=os.getenv("DEBUG", "false").lower() == "true",

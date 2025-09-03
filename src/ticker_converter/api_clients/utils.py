@@ -39,7 +39,8 @@ def calculate_backoff_delay_with_jitter(attempt: int, base_delay: int = 12) -> f
     max_delay = min(base_delay_calc, 300)  # Max 5 minutes
 
     # Add jitter: random factor between 0.5 and 1.5
-    jitter = 0.5 + random.random()
+    # nosec B311: Using random for backoff jitter, not cryptographic purposes
+    jitter = 0.5 + random.random()  # nosec
     delay_with_jitter = max_delay * jitter
 
     return float(min(delay_with_jitter, 300.0))
