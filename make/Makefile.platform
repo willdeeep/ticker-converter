@@ -59,7 +59,7 @@ ifeq ($(PLATFORM_FAMILY),unix)
     NULL_DEVICE ?= /dev/null
 else
     SHELL ?= cmd.exe
-    PATH_SEP ?= \\
+    PATH_SEP ?= \ \
     NULL_DEVICE ?= nul
 endif
 
@@ -234,34 +234,34 @@ endif
 .PHONY: platform-info platform-debug
 
 platform-info: ## ℹ️ Display current platform detection information
-	@$(ECHO_CMD) "$(CYAN)Platform Detection Results:$(NC)\n"
-	@$(ECHO_CMD) "$(YELLOW)Operating System:$(NC) $(DETECTED_OS) ($(PLATFORM_OS))\n"
-	@$(ECHO_CMD) "$(YELLOW)Architecture:$(NC) $(DETECTED_ARCH) ($(PLATFORM_ARCH))\n"
-	@$(ECHO_CMD) "$(YELLOW)Platform Family:$(NC) $(PLATFORM_FAMILY)\n"
-	@$(ECHO_CMD) "$(YELLOW)Package Manager:$(NC) $(PACKAGE_MANAGER)\n"
-	@$(ECHO_CMD) "$(YELLOW)Service Manager:$(NC) $(SERVICE_MANAGER)\n"
-	@$(ECHO_CMD) "$(YELLOW)Python Command:$(NC) $(PYTHON_CMD)\n"
-	@$(ECHO_CMD) "$(YELLOW)Shell:$(NC) $(SHELL)\n"
+	@printf "\033[0;36mPlatform Detection Results:\033[0m\n"
+	@printf "\033[0;33mOperating System:\033[0m $(DETECTED_OS) ($(PLATFORM_OS))\n"
+	@printf "\033[0;33mArchitecture:\033[0m $(DETECTED_ARCH) ($(PLATFORM_ARCH))\n"
+	@printf "\033[0;33mPlatform Family:\033[0m $(PLATFORM_FAMILY)\n"
+	@printf "\033[0;33mPackage Manager:\033[0m $(PACKAGE_MANAGER)\n"
+	@printf "\033[0;33mService Manager:\033[0m $(SERVICE_MANAGER)\n"
+	@printf "\033[0;33mPython Command:\033[0m $(PYTHON_CMD)\n"
+	@printf "\033[0;33mShell:\033[0m $(SHELL)\n"
 
 platform-debug: ## ℹ️ Display detailed platform detection and tool availability
-	@$(ECHO_CMD) "$(CYAN)Platform Detection Debug Information:$(NC)\n"
-	@$(ECHO_CMD) "$(YELLOW)Raw OS Detection:$(NC) $(DETECTED_OS)\n"
-	@$(ECHO_CMD) "$(YELLOW)Raw Architecture:$(NC) $(DETECTED_ARCH)\n"
-	@$(ECHO_CMD) "$(YELLOW)Normalized OS:$(NC) $(PLATFORM_OS)\n"
-	@$(ECHO_CMD) "$(YELLOW)Platform Family:$(NC) $(PLATFORM_FAMILY)\n"
+	@printf "\033[0;36mPlatform Detection Debug Information:\033[0m\n"
+	@printf "\033[0;33mRaw OS Detection:\033[0m $(DETECTED_OS)\n"
+	@printf "\033[0;33mRaw Architecture:\033[0m $(DETECTED_ARCH)\n"
+	@printf "\033[0;33mNormalized OS:\033[0m $(PLATFORM_OS)\n"
+	@printf "\033[0;33mPlatform Family:\033[0m $(PLATFORM_FAMILY)\n"
 	@echo ""
-	@$(ECHO_CMD) "$(CYAN)Tool Availability:$(NC)\n"
-	@$(ECHO_CMD) "$(YELLOW)Python ($(PYTHON_CMD)):$(NC) $(HAS_PYTHON)\n"
-	@$(ECHO_CMD) "$(YELLOW)Git:$(NC) $(HAS_GIT)\n"
-	@$(ECHO_CMD) "$(YELLOW)Make:$(NC) $(HAS_MAKE)\n"
-	@$(ECHO_CMD) "$(YELLOW)pyenv:$(NC) $(HAS_PYENV)\n"
-	@$(ECHO_CMD) "$(YELLOW)PostgreSQL (psql):$(NC) $(HAS_PSQL)\n"
-	@$(ECHO_CMD) "$(YELLOW)Package Manager ($(PACKAGE_MANAGER)):$(NC) $(call check_command,$(PACKAGE_MANAGER))\n"
+	@printf "\033[0;36mTool Availability:\033[0m\n"
+	@printf "\033[0;33mPython ($(PYTHON_CMD)):\033[0m $(HAS_PYTHON)\n"
+	@printf "\033[0;33mGit:\033[0m $(HAS_GIT)\n"
+	@printf "\033[0;33mMake:\033[0m $(HAS_MAKE)\n"
+	@printf "\033[0;33mpyenv:\033[0m $(HAS_PYENV)\n"
+	@printf "\033[0;33mPostgreSQL (psql):\033[0m $(HAS_PSQL)\n"
+	@printf "\033[0;33mPackage Manager ($(PACKAGE_MANAGER)):\033[0m $(call check_command,$(PACKAGE_MANAGER))\n"
 	@echo ""
-	@$(ECHO_CMD) "$(CYAN)Platform-Specific Configuration:$(NC)\n"
-	@$(ECHO_CMD) "$(YELLOW)PostgreSQL Service:$(NC) $(PG_SERVICE_NAME)\n"
-	@$(ECHO_CMD) "$(YELLOW)PostgreSQL Binary Path:$(NC) $(PG_BIN_PATH)\n"
-	@$(ECHO_CMD) "$(YELLOW)Airflow Home:$(NC) $(AIRFLOW_HOME_DEFAULT)\n"
+	@printf "\033[0;36mPlatform-Specific Configuration:\033[0m\n"
+	@printf "\033[0;33mPostgreSQL Service:\033[0m $(PG_SERVICE_NAME)\n"
+	@printf "\033[0;33mPostgreSQL Binary Path:\033[0m $(PG_BIN_PATH)\n"
+	@printf "\033[0;33mAirflow Home:\033[0m $(AIRFLOW_HOME_DEFAULT)\n"
 
 # Export platform variables for use in other modules
 export PLATFORM_OS

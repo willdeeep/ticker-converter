@@ -450,17 +450,17 @@ class DataIngestionOrchestrator:
                 current_rate = self.currency_fetcher.fetch_current_exchange_rate()
                 status_result["current_exchange_rate"] = current_rate
                 # Set currency pair information
-                status_result[
-                    "currency_pair"
-                ] = f"{self.currency_fetcher.FROM_CURRENCY}/{self.currency_fetcher.TO_CURRENCY}"
+                status_result["currency_pair"] = (
+                    f"{self.currency_fetcher.FROM_CURRENCY}/{self.currency_fetcher.TO_CURRENCY}"
+                )
             except Exception as e:
                 self.logger.warning("Could not get current exchange rate: %s", e)
                 status_result["errors"].append(f"Exchange rate check failed: {e}")
                 # Set default currency pair even if rate fetch failed
                 try:
-                    status_result[
-                        "currency_pair"
-                    ] = f"{self.currency_fetcher.FROM_CURRENCY}/{self.currency_fetcher.TO_CURRENCY}"
+                    status_result["currency_pair"] = (
+                        f"{self.currency_fetcher.FROM_CURRENCY}/{self.currency_fetcher.TO_CURRENCY}"
+                    )
                 except AttributeError:
                     status_result["currency_pair"] = "USD/GBP"  # Default fallback
 

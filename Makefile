@@ -60,25 +60,25 @@ include $(MAKE_DIR)/Makefile.cleanup
 .PHONY: all setup-full dev-ready
 
 all: ## ⚙️ Execute the most common development workflow (setup, install-test, quality)
-	@echo -e "$(BLUE)Running complete development workflow...$(NC)"
+	@printf "\033[0;34mRunning complete development workflow...\033[0m\n"
 	@$(MAKE) setup-env
 	@$(MAKE) install-test
 	@$(MAKE) quality
-	@echo -e "$(GREEN)✓ Development environment ready!$(NC)"
+	@printf "\033[0;32m✓ Development environment ready!\033[0m\n"
 
 setup-full: ## 📦 Complete development environment setup (alternative to module setup)
-	@echo -e "$(BLUE)Setting up complete development environment...$(NC)"
+	@printf "\033[0;34mSetting up complete development environment...\033[0m\n"
 	@$(MAKE) setup-env
 	@$(MAKE) install
 	@$(MAKE) init-db
-	@echo -e "$(GREEN)✓ Complete development environment setup finished!$(NC)"
+	@printf "\033[0;32m✓ Complete development environment setup finished!\033[0m\n"
 
 dev-ready: ## ⚙️ Validate that development environment is ready
-	@echo -e "$(BLUE)Validating development environment...$(NC)"
+	@printf "\033[0;34mValidating development environment...\033[0m\n"
 	@$(MAKE) validate-env
 	@$(MAKE) validate-tools
 	@$(MAKE) test-fast
-	@echo -e "$(GREEN)✓ Development environment is ready!$(NC)"
+	@printf "\033[0;32m✓ Development environment is ready!\033[0m\n"
 
 # =============================================================================
 # ENHANCED HELP SYSTEM
@@ -92,40 +92,40 @@ help: ## ℹ️ Display comprehensive help across all modules
 # Note: help-all alias removed - use 'help' directly
 
 help-platform: ## ℹ️ Display platform-specific commands and information
-	@echo -e "$(CYAN)Platform Detection & Cross-Platform Support:$(NC)"
+	@printf "\\033[0;36mPlatform Detection & Cross-Platform Support:\\033[0m\\n"
 	@echo ""
 	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.platform | \
-	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}'
 
 help-env: ## 🔧 Display environment setup commands
-	@echo -e "$(CYAN)Environment Setup & Validation:$(NC)"
+	@printf "\\033[0;36mEnvironment Setup & Validation:\\033[0m\\n"
 	@echo ""
 	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.env | \
-	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}'
 
 help-install: ## 📦 Display installation and dependency commands
-	@echo -e "$(CYAN)Installation & Dependencies:$(NC)"
+	@printf "\\033[0;36mInstallation & Dependencies:\\033[0m\\n"
 	@echo ""
 	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.install | \
-	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}'
 
 help-database: ## 🗄️ Display database management commands
-	@echo -e "$(CYAN)Database Management:$(NC)"
+	@printf "\\033[0;36mDatabase Management:\\033[0m\\n"
 	@echo ""
 	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.database | \
-	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}'
 
 help-airflow: ## 🌊 Display Airflow orchestration commands
-	@echo -e "$(CYAN)Airflow Orchestration:$(NC)"
+	@printf "\\033[0;36mAirflow Orchestration:\\033[0m\\n"
 	@echo ""
 	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.airflow | \
-	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}'
 
 help-testing: ## 🧪 Display testing and coverage commands
-	@echo -e "$(CYAN)Testing & Coverage:$(NC)"
+	@printf "\\033[0;36mTesting & Coverage:\\033[0m\\n"
 	@echo ""
 	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.testing | \
-	awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+	awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}'
 
 help-quality: ## ✅ Display code quality and linting commands
 	@printf "\\033[0;36mCode Quality & Linting:\\033[0m\\n"
@@ -173,15 +173,15 @@ init-db: ## 🗄️ Initialize database (legacy command)
 # - setup (exists in Makefile.env)
 
 lint-makefile: ## ✅ Lint Makefile structure (legacy command)
-	@echo -e "$(BLUE)Validating Makefile structure...$(NC)"
-	@$(MAKE) -n help > /dev/null 2>&1 && echo -e "$(GREEN)✓ Makefile syntax valid$(NC)" || echo -e "$(RED)✗ Makefile syntax errors$(NC)"
+	@printf "\033[0;34mValidating Makefile structure...\033[0m\n"
+	@$(MAKE) -n help > /dev/null 2>&1 && printf "\033[0;32m✓ Makefile syntax valid\033[0m\n" || printf "\033[0;31m✗ Makefile syntax errors\033[0m\n"
 
 lint-sql: ## ✅ Lint SQL files (legacy command)
-	@echo -e "$(BLUE)SQL quality validation...$(NC)"
+	@printf "\033[0;34mSQL quality validation...\033[0m\n"
 	@if find . -name "*.sql" -path "./dags/sql/*" -o -path "./sql/*" | head -1 | read; then \
-		echo -e "$(GREEN)✓ SQL files found and validated$(NC)"; \
+		printf "\033[0;32m✓ SQL files found and validated\033[0m\n"; \
 	else \
-		echo -e "$(YELLOW)ℹ No SQL files found to validate$(NC)"; \
+		printf "\033[0;33mℹ No SQL files found to validate\033[0m\n"; \
 	fi
 
 # Note: setup command removed - exists in Makefile.env module
@@ -196,20 +196,20 @@ lint-sql: ## ✅ Lint SQL files (legacy command)
 .PHONY: info info-modules info-platform info-stats
 
 info: ## ℹ️ Display information about the modular Makefile system
-	@echo -e "$(CYAN)Ticker Converter - Modular Makefile System$(NC)"
+	@printf "\033[0;36mTicker Converter - Modular Makefile System\033[0m\n"
 	@echo ""
-	@echo -e "$(YELLOW)Architecture:$(NC)"
+	@printf "\033[0;33mArchitecture:\033[0m\n"
 	@echo "  • Cross-platform support (macOS, Linux, Windows)"
 	@echo "  • Modular design with 8 specialized modules"
 	@echo "  • Enhanced help system with category-based organization"
 	@echo "  • Backward compatibility with all existing commands"
 	@echo ""
-	@echo -e "$(YELLOW)Total Lines of Code:$(NC) $(GREEN)3,308 lines$(NC)"
+	@printf "\033[0;33mTotal Lines of Code:\033[0m \033[0;32m3,308 lines\033[0m\n"
 	@echo ""
 	@$(MAKE) info-modules
 
 info-modules: ## ℹ️ Display detailed information about each module
-	@echo -e "$(YELLOW)Module Breakdown:$(NC)"
+	@printf "\033[0;33mModule Breakdown:\033[0m\n"
 	@echo "  • make/Makefile.platform  (288 lines) - OS detection & platform configs"
 	@echo "  • make/Makefile.env       (280 lines) - Environment setup & validation"
 	@echo "  • make/Makefile.install   (372 lines) - Installation & dependencies"
@@ -221,20 +221,20 @@ info-modules: ## ℹ️ Display detailed information about each module
 	@echo "  • make/help.sh            (397 lines) - Enhanced help system"
 
 info-platform: ## ℹ️ Display current platform detection results
-	@echo -e "$(CYAN)Current Platform Information:$(NC)"
+	@printf "\033[0;36mCurrent Platform Information:\033[0m\n"
 	@echo ""
 	@$(MAKE) show-platform-info
 
 info-stats: ## ℹ️ Display detailed statistics about the Makefile system
-	@echo -e "$(CYAN)Makefile System Statistics:$(NC)"
+	@printf "\033[0;36mMakefile System Statistics:\033[0m\n"
 	@echo ""
-	@echo -e "$(YELLOW)Files:$(NC)"
+	@printf "\033[0;33mFiles:\033[0m\n"
 	@ls -la $(MAKE_DIR)/ | grep -E "\.(sh|mk)$$|Makefile" | wc -l | awk '{printf "  Modular files: %s\n", $$1}'
 	@echo ""
-	@echo -e "$(YELLOW)Line Counts:$(NC)"
+	@printf "\033[0;33mLine Counts:\033[0m\n"
 	@wc -l $(MAKE_DIR)/* | tail -1 | awk '{printf "  Total lines: %s\n", $$1}'
 	@echo ""
-	@echo -e "$(YELLOW)Target Counts:$(NC)"
+	@printf "\033[0;33mTarget Counts:\033[0m\n"
 	@grep -h "^[a-zA-Z0-9_-]*:.*##.*$$" $(MAKE_DIR)/Makefile.* | wc -l | awk '{printf "  Total targets: %s\n", $$1}'
 
 # =============================================================================
@@ -244,55 +244,55 @@ info-stats: ## ℹ️ Display detailed statistics about the Makefile system
 .PHONY: validate-migration test-backward-compatibility benchmark
 
 validate-migration: ## ⚙️ Validate that modular system works correctly
-	@echo -e "$(BLUE)Validating modular Makefile migration...$(NC)"
+	@printf "\033[0;34mValidating modular Makefile migration...\033[0m\n"
 	@$(MAKE) validate-modules
 	@$(MAKE) test-backward-compatibility
 	@$(MAKE) validate-platform-support
-	@echo -e "$(GREEN)✓ Migration validation complete!$(NC)"
+	@printf "\033[0;32m✓ Migration validation complete!\033[0m\n"
 
 validate-modules: ## ⚙️ Validate that all modules are properly included
-	@echo -e "$(BLUE)Checking module inclusion...$(NC)"
+	@printf "\033[0;34mChecking module inclusion...\033[0m\n"
 	@for module in platform env install database airflow testing quality cleanup; do \
 		if [ -f "$(MAKE_DIR)/Makefile.$$module" ]; then \
-			echo -e "  $(GREEN)✓$(NC) Makefile.$$module"; \
+			printf "  \033[0;32m✓\033[0m Makefile.$$module"; \
 		else \
-			echo -e "  $(RED)✗$(NC) Makefile.$$module"; \
+			printf "  \033[0;31m✗\033[0m Makefile.$$module"; \
 			exit 1; \
 		fi; \
 	done
 	@if [ -f "$(MAKE_DIR)/help.sh" ]; then \
-		echo -e "  $(GREEN)✓$(NC) help.sh"; \
+		printf "  \033[0;32m✓\033[0m help.sh"; \
 	else \
-		echo -e "  $(RED)✗$(NC) help.sh"; \
+		printf "  \033[0;31m✗\033[0m help.sh"; \
 		exit 1; \
 	fi
 
 test-backward-compatibility: ## 🧪 Execute tests that all legacy commands still work
-	@echo -e "$(BLUE)Testing backward compatibility...$(NC)"
+	@printf "\033[0;34mTesting backward compatibility...\033[0m\n"
 	@echo "  Testing help system..."
-	@$(MAKE) help >/dev/null 2>&1 && echo -e "  $(GREEN)✓$(NC) help" || echo -e "  $(RED)✗$(NC) help"
+	@$(MAKE) help >/dev/null 2>&1 && printf "  \033[0;32m✓\033[0m help" || printf "  \033[0;31m✗\033[0m help"
 	@echo "  Testing platform detection..."
-	@$(MAKE) platform-info >/dev/null 2>&1 && echo -e "  $(GREEN)✓$(NC) platform-info" || echo -e "  $(RED)✗$(NC) platform-info"
+	@$(MAKE) platform-info >/dev/null 2>&1 && printf "  \033[0;32m✓\033[0m platform-info" || printf "  \033[0;31m✗\033[0m platform-info"
 	@echo "  Testing module information..."
-	@$(MAKE) info-modules >/dev/null 2>&1 && echo -e "  $(GREEN)✓$(NC) info-modules" || echo -e "  $(RED)✗$(NC) info-modules"
+	@$(MAKE) info-modules >/dev/null 2>&1 && printf "  \033[0;32m✓\033[0m info-modules" || printf "  \033[0;31m✗\033[0m info-modules"
 
 validate-platform-support: ## ⚙️ Validate cross-platform functionality
-	@echo -e "$(BLUE)Validating platform support...$(NC)"
+	@printf "\033[0;34mValidating platform support...\033[0m\n"
 	@$(MAKE) platform-info
 	@$(MAKE) platform-debug
-	@echo -e "$(GREEN)✓ Platform validation complete$(NC)"
+	@printf "\033[0;32m✓ Platform validation complete\033[0m\n"
 
 benchmark: ## 🧪 Compare performance of modular vs monolithic Makefile
-	@echo -e "$(BLUE)Benchmarking Makefile performance...$(NC)"
+	@printf "\033[0;34mBenchmarking Makefile performance...\033[0m\n"
 	@echo ""
-	@echo -e "$(YELLOW)Modular Makefile (current):$(NC)"
+	@printf "\033[0;33mModular Makefile (current):\033[0m\n"
 	@time $(MAKE) help >/dev/null
 	@echo ""
 	@if [ -f "Makefile.backup" ]; then \
-		echo -e "$(YELLOW)Original Makefile (backup):$(NC)"; \
+		printf "\033[0;33mOriginal Makefile (backup):\033[0m\n"; \
 		time make -f Makefile.backup help >/dev/null; \
 	else \
-		echo -e "$(YELLOW)No backup Makefile found for comparison$(NC)"; \
+		printf "\033[0;33mNo backup Makefile found for comparison\033[0m\n"; \
 	fi
 
 # ============================================================================
@@ -303,36 +303,36 @@ info-platform: platform-info ## 📊 Show platform information (alias)
 
 # Help targets for documented sections
 help-setup: ## 📖 Show setup and installation help
-	@echo -e "$(BLUE)📖 Setup and Installation Help$(NC)"
+	@printf "\\033[0;34m📖 Setup and Installation Help\\033[0m\\n"
 	@echo ""
-	@echo -e "$(YELLOW)Essential Setup Commands:$(NC)"
+	@printf "\\033[0;33mEssential Setup Commands:\\033[0m\\n"
 	@echo "  make setup              - Complete environment setup"
 	@echo "  make setup-full         - Full setup (same as setup)"
 	@echo "  make install            - Install Python dependencies"
 	@echo "  make install-all        - Install all dependencies"
 	@echo "  make fresh-install      - Clean install from scratch"
 	@echo ""
-	@echo -e "$(YELLOW)Quick Start:$(NC)"
+	@printf "\\033[0;33mQuick Start:\\033[0m\\n"
 	@echo "  make all                - Setup + test + quality check"
 	@echo "  make dev-ready          - Fast development readiness check"
 	@echo ""
 	@echo "For more help: make help"
 
 help-examples: ## 📖 Show common usage examples
-	@echo -e "$(BLUE)📖 Common Usage Examples$(NC)"
+	@printf "\033[0;34m📖 Common Usage Examples\033[0m\n"
 	@echo ""
-	@echo -e "$(YELLOW)Development Workflow:$(NC)"
+	@printf "\033[0;33mDevelopment Workflow:\033[0m\n"
 	@echo "  make setup              # Initial setup"
 	@echo "  make test               # Run tests"
 	@echo "  make quality            # Check code quality"
 	@echo "  make clean              # Clean temporary files"
 	@echo ""
-	@echo -e "$(YELLOW)Database Operations:$(NC)"
+	@printf "\033[0;33mDatabase Operations:\033[0m\n"
 	@echo "  make init-db            # Initialize database"
 	@echo "  make db-status          # Check database status"
 	@echo "  make db-reset           # Reset database"
 	@echo ""
-	@echo -e "$(YELLOW)Airflow Workflow:$(NC)"
+	@printf "\033[0;33mAirflow Workflow:\033[0m\n"
 	@echo "  make airflow-init       # Initialize Airflow"
 	@echo "  make airflow-start      # Start Airflow services"
 	@echo "  make airflow-status     # Check Airflow status"
@@ -340,42 +340,42 @@ help-examples: ## 📖 Show common usage examples
 	@echo "For more help: make help"
 
 help-troubleshooting: ## 📖 Show troubleshooting guide
-	@echo -e "$(BLUE)📖 Troubleshooting Guide$(NC)"
+	@printf "\033[0;34m📖 Troubleshooting Guide\033[0m\n"
 	@echo ""
-	@echo -e "$(YELLOW)Common Issues:$(NC)"
+	@printf "\033[0;33mCommon Issues:\033[0m\n"
 	@echo "  • Permission errors     → Check file permissions"
 	@echo "  • Package conflicts     → make clean && make install"
 	@echo "  • Database issues       → make db-status, make db-reset"
 	@echo "  • Environment issues    → make env-debug"
 	@echo ""
-	@echo -e "$(YELLOW)Diagnostic Commands:$(NC)"
+	@printf "\033[0;33mDiagnostic Commands:\033[0m\n"
 	@echo "  make platform-info      # Check platform detection"
 	@echo "  make env-debug          # Debug environment setup"
 	@echo "  make install-doctor     # Check installation health"
 	@echo "  make db-debug           # Debug database issues"
 	@echo ""
-	@echo -e "$(YELLOW)Reset Commands:$(NC)"
+	@printf "\033[0;33mReset Commands:\033[0m\n"
 	@echo "  make clean-all          # Clean everything"
 	@echo "  make fresh-install      # Reinstall from scratch"
 	@echo ""
 	@echo "For more help: make help"
 
 help-workflows: ## 📖 Show workflow guides
-	@echo -e "$(BLUE)📖 Workflow Guides$(NC)"
+	@printf "\033[0;34m📖 Workflow Guides\033[0m\n"
 	@echo ""
-	@echo -e "$(YELLOW)Development Workflow:$(NC)"
+	@printf "\033[0;33mDevelopment Workflow:\033[0m\n"
 	@echo "  1. make setup           # Initial setup"
 	@echo "  2. make test-fast       # Quick test"
 	@echo "  3. make quality-fix     # Fix code issues"
 	@echo "  4. make test            # Full test suite"
 	@echo ""
-	@echo -e "$(YELLOW)CI/CD Workflow:$(NC)"
+	@printf "\033[0;33mCI/CD Workflow:\033[0m\n"
 	@echo "  1. make validate-ci     # Validate CI readiness"
 	@echo "  2. make test            # Run all tests"
 	@echo "  3. make quality         # Full quality check"
 	@echo "  4. make security-scan   # Security analysis"
 	@echo ""
-	@echo -e "$(YELLOW)Data Pipeline Workflow:$(NC)"
+	@printf "\033[0;33mData Pipeline Workflow:\033[0m\n"
 	@echo "  1. make init-db         # Setup database"
 	@echo "  2. make airflow-init    # Setup Airflow"
 	@echo "  3. make airflow-start   # Start services"

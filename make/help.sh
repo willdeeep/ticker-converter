@@ -37,15 +37,15 @@ fi
 
 show_header() {
     echo -e "${BLUE}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║                           TICKER CONVERTER                                  ║${NC}"
-    echo -e "${BLUE}║                     Cross-Platform Build System                             ║${NC}"
+    echo -e "${BLUE}║                              TICKER CONVERTER                                ║${NC}"
+    echo -e "${BLUE}║                        Cross-Platform Build System                           ║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
 
 show_quick_start() {
     echo -e "${WHITE}${BOLD}QUICK START GUIDE${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}1. Initial Setup:${NC}"
     echo -e "   ${CYAN}make setup${NC}              # Configure environment and dependencies"
     echo -e ""
@@ -63,13 +63,13 @@ show_quick_start() {
     echo -e "${GREEN}4. Get Help:${NC}"
     echo -e "   ${CYAN}make help${NC}               # This help system"
     echo -e "   ${CYAN}make help-<category>${NC}    # Category-specific help"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
 }
 
 show_categories() {
     echo -e "${WHITE}${BOLD}AVAILABLE HELP CATEGORIES${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${CYAN}make help-setup${NC}          Environment setup and platform configuration"
     echo -e "${CYAN}make help-install${NC}        Dependency installation and package management"
     echo -e "${CYAN}make help-database${NC}       PostgreSQL operations and data management"
@@ -80,7 +80,7 @@ show_categories() {
     echo -e "${CYAN}make help-platform${NC}       Platform detection and cross-platform features"
     echo ""
     echo -e "${WHITE}${BOLD}SPECIALIZED HELP${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${CYAN}make help-workflows${NC}      Common development workflows and patterns"
     echo -e "${CYAN}make help-troubleshooting${NC} Problem diagnosis and solutions"
     echo -e "${CYAN}make help-examples${NC}       Usage examples and common scenarios"
@@ -89,7 +89,7 @@ show_categories() {
 
 show_setup_help() {
     echo -e "${WHITE}${BOLD}ENVIRONMENT SETUP AND CONFIGURATION${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}Initial Setup:${NC}"
     echo -e "  ${CYAN}setup${NC}                   Initialize project environment and dependencies"
     echo -e "  ${CYAN}env-info${NC}                Display current environment configuration"
@@ -109,7 +109,7 @@ show_setup_help() {
 
 show_install_help() {
     echo -e "${WHITE}${BOLD}DEPENDENCY INSTALLATION AND PACKAGE MANAGEMENT${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}Installation Modes:${NC}"
     echo -e "  ${CYAN}install${NC}                 Production runtime dependencies"
     echo -e "  ${CYAN}install-test${NC}            Testing and quality assurance tools"
@@ -129,7 +129,7 @@ show_install_help() {
 
 show_database_help() {
     echo -e "${WHITE}${BOLD}POSTGRESQL OPERATIONS AND DATA MANAGEMENT${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}Database Lifecycle:${NC}"
     echo -e "  ${CYAN}db-start${NC}                Start PostgreSQL service"
     echo -e "  ${CYAN}db-stop${NC}                 Stop PostgreSQL service"
@@ -152,7 +152,7 @@ show_database_help() {
 
 show_airflow_help() {
     echo -e "${WHITE}${BOLD}AIRFLOW ORCHESTRATION AND WORKFLOW MANAGEMENT${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}Airflow Lifecycle:${NC}"
     echo -e "  ${CYAN}airflow-start${NC}           Start Airflow (scheduler + webserver)"
     echo -e "  ${CYAN}airflow-stop${NC}            Stop all Airflow processes"
@@ -174,7 +174,7 @@ show_airflow_help() {
 
 show_testing_help() {
     echo -e "${WHITE}${BOLD}TEST EXECUTION AND COVERAGE ANALYSIS${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}Test Execution:${NC}"
     echo -e "  ${CYAN}test${NC}                    Run full test suite"
     echo -e "  ${CYAN}test-unit${NC}               Run unit tests only"
@@ -196,7 +196,7 @@ show_testing_help() {
 
 show_quality_help() {
     echo -e "${WHITE}${BOLD}CODE QUALITY, LINTING, AND VALIDATION${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}Code Quality Suite:${NC}"
     echo -e "  ${CYAN}quality${NC}                 Run all code quality checks"
     echo -e "  ${CYAN}quality-fix${NC}             Auto-fix code quality issues where possible"
@@ -217,7 +217,7 @@ show_quality_help() {
 
 show_cleanup_help() {
     echo -e "${WHITE}${BOLD}CLEANING AND TEARDOWN OPERATIONS${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}Build Artifacts:${NC}"
     echo -e "  ${CYAN}clean${NC}                   Remove all build artifacts and cache"
     echo -e "  ${CYAN}clean-build${NC}             Remove build directories only"
@@ -238,7 +238,7 @@ show_cleanup_help() {
 
 show_platform_help() {
     echo -e "${WHITE}${BOLD}PLATFORM DETECTION AND CROSS-PLATFORM FEATURES${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}Platform Information:${NC}"
     echo -e "  ${CYAN}platform-info${NC}           Show current platform details"
     echo -e "  ${CYAN}platform-debug${NC}          Detailed platform debugging information"
@@ -256,7 +256,7 @@ show_platform_help() {
 
 show_workflows_help() {
     echo -e "${WHITE}${BOLD}COMMON DEVELOPMENT WORKFLOWS AND PATTERNS${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}New Developer Setup:${NC}"
     echo -e "  ${CYAN}make setup && make install-test && make test${NC}"
     echo -e ""
@@ -279,7 +279,7 @@ show_workflows_help() {
 
 show_troubleshooting_help() {
     echo -e "${WHITE}${BOLD}PROBLEM DIAGNOSIS AND SOLUTIONS${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}Environment Issues:${NC}"
     echo -e "  ${RED}Problem:${NC} 'Python not found'"
     echo -e "  ${CYAN}Solution:${NC} make platform-debug, install Python via suggested method"
@@ -309,7 +309,7 @@ show_troubleshooting_help() {
 
 show_examples_help() {
     echo -e "${WHITE}${BOLD}USAGE EXAMPLES AND COMMON SCENARIOS${NC}"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${GREEN}Scenario 1: First-time setup on macOS${NC}"
     echo -e "  ${CYAN}make setup${NC}               # Configure environment"
     echo -e "  ${CYAN}make install-test${NC}       # Install all dependencies"
