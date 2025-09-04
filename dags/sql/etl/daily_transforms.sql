@@ -29,13 +29,13 @@ WITH daily_returns AS (
                 6
             )
         END AS calculated_daily_return
-    FROM fact_stock_prices fsp
-    JOIN dim_date dd ON fsp.date_id = dd.date_id
+    FROM fact_stock_prices AS fsp
+    INNER JOIN dim_date AS dd ON fsp.date_id = dd.date_id
     WHERE fsp.daily_return IS NULL  -- Only calculate for records without daily_return
 )
 UPDATE fact_stock_prices
 SET daily_return = dr.calculated_daily_return
-FROM daily_returns dr
+FROM daily_returns AS dr
 WHERE fact_stock_prices.stock_id = dr.stock_id
 AND fact_stock_prices.date_id = dr.date_id
 AND dr.calculated_daily_return IS NOT NULL;

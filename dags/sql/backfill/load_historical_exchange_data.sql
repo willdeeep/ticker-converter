@@ -31,7 +31,7 @@ SELECT
     hes.exchange_rate,
     hes.backfill_timestamp,
     hes.backfill_timestamp
-FROM historical_exchange_staging hes
+FROM historical_exchange_staging AS hes
 WHERE hes.date BETWEEN '{{ params.start_date }}'::TIMESTAMP AND '{{ params.end_date }}'::TIMESTAMP
 ON CONFLICT (from_currency, to_currency, date) DO UPDATE SET
     rate = EXCLUDED.rate,
