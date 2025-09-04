@@ -451,7 +451,7 @@ act-pr: _load_env ## ⚙️ Execute local GitHub Actions workflow using Act (cro
 		exit 1; \
 	fi
 	@printf "\\033[0;33mPlatform: $(PLATFORM_OS)/$(PLATFORM_ARCH)\\033[0m\\n"
-ifeq ($(PLATFORM_OS),Darwin)
+ifeq ($(PLATFORM_OS),macos)
 ifeq ($(PLATFORM_ARCH),arm64)
 	@printf "\\033[0;36mRunning with linux/amd64 architecture for M-series Mac...\\033[0m\\n"
 	@act pull_request --container-architecture linux/amd64
