@@ -51,7 +51,7 @@ TEST_CONNECTIONS = _connection_validator_module.TEST_CONNECTIONS
         "depends_on_past": False,
         "retries": 1,
         "retry_delay": timedelta(minutes=1),
-        "execution_timeout": timedelta(minutes=2),  # Add task timeout
+        "execution_timeout": timedelta(seconds=10),  # Max 10 seconds for test tasks
     },
 )
 def test_etl_dag() -> None:
@@ -91,19 +91,9 @@ def test_etl_dag() -> None:
 
         return "airflow_config_ok"
 
-    @task(execution_timeout=timedelta(seconds=30))
+    @task(execution_timeout=timedelta(seconds=10))
     def test_alpha_vantage_api_access() -> str:
         """Test Alpha Vantage API access without making actual API calls."""
-        import signal
-        import time
-
-        def timeout_handler(signum, frame):
-            raise TimeoutError("Task execution timed out")
-
-        # Set a signal-based timeout as backup
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(25)  # 25 second backup timeout
-
         try:
             print("🔍 Starting Alpha Vantage API access test...")
 
@@ -131,22 +121,10 @@ def test_etl_dag() -> None:
         except Exception as e:
             print(f"❌ Error in Alpha Vantage test: {e}")
             raise
-        finally:
-            signal.alarm(0)  # Cancel the alarm
 
-    @task(execution_timeout=timedelta(seconds=30))
+    @task(execution_timeout=timedelta(seconds=10))
     def test_postgresql_database_access() -> str:
         """Test PostgreSQL database access using Airflow's configured postgres_default connection."""
-        import signal
-        import subprocess
-
-        def timeout_handler(signum, frame):
-            raise TimeoutError("Task execution timed out")
-
-        # Set a signal-based timeout as backup
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(25)  # 25 second backup timeout
-
         try:
             print("🔍 Starting PostgreSQL database access test...")
 
@@ -256,8 +234,6 @@ def test_etl_dag() -> None:
         except Exception as e:
             print(f"❌ Unexpected error during database test: {e}")
             raise
-        finally:
-            signal.alarm(0)  # Cancel the alarm
 
     # Define task dependencies
     connection_validation = test_validate_connections()

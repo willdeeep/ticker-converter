@@ -97,44 +97,24 @@ class ConnectionValidator:
         try:
             logger.info("Validating connection: %s", conn_id)
 
-            # Attempt to retrieve connection with timeout
-            import signal
+            # Simplified connection validation without signal timeouts
+            # (signal.alarm can hang in Airflow task execution context)
+            connection = BaseHook.get_connection(conn_id)
 
-            def timeout_handler(signum, frame):
-                raise TimeoutError(f"Connection validation timed out for {conn_id}")
+            # Extract connection details
+            result.update(
+                {
+                    "is_valid": True,
+                    "connection_type": connection.conn_type,
+                    "host": connection.host,
+                    "port": connection.port,
+                    "schema": connection.schema,
+                    "login": connection.login,
+                    "uri_masked": self._mask_uri(connection.get_uri()) if connection else None,
+                }
+            )
 
-            # Set timeout for connection validation
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(10)  # 10 second timeout
-
-            try:
-                connection = BaseHook.get_connection(conn_id)
-
-                # Extract connection details
-                result.update(
-                    {
-                        "is_valid": True,
-                        "connection_type": connection.conn_type,
-                        "host": connection.host,
-                        "port": connection.port,
-                        "schema": connection.schema,
-                        "login": connection.login,
-                        "uri_masked": self._mask_uri(connection.get_uri()) if connection else None,
-                    }
-                )
-
-                logger.info("✓ Connection %s details: type=%s, host=%s", conn_id, connection.conn_type, connection.host)
-
-            finally:
-                signal.alarm(0)  # Cancel timeout
-
-        except TimeoutError as e:
-            error_msg = f"Timeout validating connection {conn_id}: {str(e)}"
-            result["error"] = error_msg
-            logger.error(error_msg)
-
-            if raise_on_failure:
-                raise AirflowException(error_msg) from e
+            logger.info("✓ Connection %s details: type=%s, host=%s", conn_id, connection.conn_type, connection.host)
 
         except Exception as e:
             error_msg = f"Failed to retrieve connection {conn_id}: {str(e)}"

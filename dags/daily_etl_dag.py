@@ -67,18 +67,18 @@ with DAG(  # type: ignore[arg-type]
     max_active_runs=1,
 ) as dag:
 
-    @task(task_id="validate_connections", execution_timeout=timedelta(minutes=2))
+    @task(task_id="validate_connections", execution_timeout=timedelta(seconds=30))
     def validate_connections_task() -> dict[str, Any]:
         """Validate that all required connections are available before starting the pipeline."""
         return validate_dag_connections(
             required_connections=STANDARD_PIPELINE_CONNECTIONS, task_name="validate_connections"
         )
 
-    @task(task_id="assess_latest")
+    @task(task_id="assess_latest", execution_timeout=timedelta(seconds=30))
     def assess_latest_task() -> dict[str, Any]:
         return assess_latest_records()
 
-    @task.branch(task_id="decide_collect")
+    @task.branch(task_id="decide_collect", execution_timeout=timedelta(seconds=10))
     def decide_collect(assess: dict[str, Any]) -> str:
         """
         Decides whether to collect new data from the API.
@@ -96,17 +96,17 @@ with DAG(  # type: ignore[arg-type]
             return "collect_api"
         return "skip_collection"
 
-    @task(task_id="collect_api")
+    @task(task_id="collect_api", execution_timeout=timedelta(minutes=2))
     def collect_api_task() -> dict:
         """Task to collect data from the API."""
         return collect_api_data()
 
-    @task(task_id="skip_collection")
+    @task(task_id="skip_collection", execution_timeout=timedelta(seconds=10))
     def skip_collection_task():
         """Dummy task to allow skipping the API collection step."""
         pass
 
-    @task(task_id="load_to_facts", trigger_rule="none_failed_min_one_success")
+    @task(task_id="load_to_facts", trigger_rule="none_failed_min_one_success", execution_timeout=timedelta(seconds=60))
     def load_to_facts_task() -> dict:
         """
         Task to load data from JSON files directly into fact tables.
@@ -115,7 +115,7 @@ with DAG(  # type: ignore[arg-type]
         """
         return load_raw_to_db()
 
-    @task(task_id="end", trigger_rule="none_failed")
+    @task(task_id="end", trigger_rule="none_failed", execution_timeout=timedelta(seconds=10))
     def end_task():
         """Final task in the pipeline."""
         pass

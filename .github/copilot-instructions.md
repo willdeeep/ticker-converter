@@ -52,6 +52,101 @@ The Makefile modernization project is fully complete and production-ready:
 4. ✅ **Performance**: Zero performance regression, improved maintainability
 5. ✅ **Migration**: Comprehensive validation system ensures smooth transition
 
+## Airflow 3.x CLI Command Reference
+
+**CRITICAL**: This project uses **Apache Airflow 3.0.6**. The CLI syntax has changed significantly from Airflow 2.x.
+
+### Environment Setup Requirements
+
+**ALWAYS** run these exports before any Airflow CLI command:
+```bash
+source .venv/bin/activate
+source .env
+export AIRFLOW_HOME=/Users/willhuntleyclarke/repos/interests/ticker-converter/airflow
+export AIRFLOW__CORE__DAGS_FOLDER=/Users/willhuntleyclarke/repos/interests/ticker-converter/dags
+export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////Users/willhuntleyclarke/repos/interests/ticker-converter/airflow/airflow.db
+export PYTHONPATH=/Users/willhuntleyclarke/repos/interests/ticker-converter:/Users/willhuntleyclarke/repos/interests/ticker-converter/dags:/Users/willhuntleyclarke/repos/interests/ticker-converter/src
+```
+
+### Airflow 3.x CLI Commands (DO NOT USE --output json)
+
+**✅ CORRECT Airflow 3.x Commands:**
+```bash
+# List DAGs
+airflow dags list
+
+# Check DAG import errors
+airflow dags list-import-errors
+
+# Trigger DAG
+airflow dags trigger <dag_id>
+
+# Get DAG state (NO --output json flag!)
+airflow dags state <dag_id>
+
+# List DAG runs
+airflow dags list-runs <dag_id>
+
+# Get task states for DAG run
+airflow tasks states-for-dag-run <dag_id> <run_id>
+
+# Clear/stop running or failed tasks
+airflow tasks clear <dag_id> -r -y  # Clear only running tasks
+airflow tasks clear <dag_id> -f -y  # Clear only failed tasks
+airflow tasks clear <dag_id> -t <task_regex> -y  # Clear specific tasks by regex
+
+# Test task execution
+airflow tasks test <dag_id> <task_id> <execution_date>
+
+# Pause/Unpause DAGs
+airflow dags pause <dag_id>
+airflow dags unpause <dag_id>
+
+# List connections
+airflow connections list
+
+# Add connection
+airflow connections add <conn_id> --conn-uri <uri>
+
+# Test connection (may be disabled)
+airflow connections test <conn_id>
+
+# Check health
+curl http://localhost:8080/api/v2/monitor/health
+```
+
+**❌ INCORRECT Airflow 2.x Commands (DO NOT USE):**
+```bash
+# These will fail in Airflow 3.x:
+airflow dags state <dag_id> --output json     # --output flag removed
+airflow dags list --output json               # --output flag removed
+airflow connections list --output json        # --output flag removed
+```
+
+### Common Troubleshooting
+
+**Problem**: CLI commands fail but web UI works
+**Solution**: Ensure all environment variables are exported (see Environment Setup above)
+
+**Problem**: "unrecognized arguments: --output"
+**Solution**: Remove `--output json` flags - not supported in Airflow 3.x
+
+**Problem**: DAGs not visible in CLI
+**Solution**: Check AIRFLOW__CORE__DAGS_FOLDER and PYTHONPATH exports
+
+### Health Check Endpoints
+
+**Airflow 3.x Health Check:**
+```bash
+# NEW endpoint in Airflow 3.x
+curl http://localhost:8080/api/v2/monitor/health
+```
+
+**❌ Old endpoint (will redirect):**
+```bash
+curl http://localhost:8080/health  # Returns redirect message
+```
+
 ## Issue Management
 
 ### Issue Creation Protocol

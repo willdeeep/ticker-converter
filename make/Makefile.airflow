@@ -19,22 +19,26 @@ AIRFLOW_DAGS_FOLDER := $(shell pwd)/dags
 
 airflow-start: _load_env _check_airflow_deps airflow-init ## 🌊 Start Airflow (scheduler + webserver)
 	@printf "\033[0;34mStarting Apache Airflow...\033[0m\n"
-	@set -a && . ./.env && set +a && \
+	@set -a && . ./.env && \
 	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
 	export AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" && \
 	export AIRFLOW__CORE__LOAD_EXAMPLES="false" && \
-	export AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" && \
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
-	export AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" && \
+	export AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS="$$AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS" && \
+	export AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE="$$AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE" && \
+	export PYTHONPATH="$(AIRFLOW_HOME)/../:$(AIRFLOW_HOME)/../dags:$(AIRFLOW_HOME)/../src:$$PYTHONPATH" && \
+	printf "\033[0;33mDebug: LOAD_EXAMPLES = $$AIRFLOW__CORE__LOAD_EXAMPLES\033[0m\n" && \
+	printf "\033[0;33mDebug: AUTH_USERS = $$AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS\033[0m\n" && \
 	printf "\033[0;33mStarting Airflow scheduler...\033[0m\n" && \
 	nohup $(PYTHON) -m airflow scheduler > airflow/airflow-scheduler.out 2> airflow/airflow-scheduler.err & \
 	echo $$! > airflow/scheduler.pid && \
-	printf "\033[0;33mStarting Airflow webserver...\033[0m\n" && \
-	nohup $(PYTHON) -m airflow webserver --port 8080 > airflow/airflow-webserver.out 2> airflow/airflow-webserver.err & \
-	echo $$! > airflow/webserver.pid && \
+	printf "\033[0;33mStarting Airflow API server...\033[0m\n" && \
+	nohup $(PYTHON) -m airflow api-server --port 8080 > airflow/airflow-api-server.out 2> airflow/airflow-api-server.err & \
+	echo $$! > airflow/api-server.pid && \
 	sleep 3 && \
 	printf "\033[0;32m✓ Airflow started\033[0m\n" && \
 	printf "\033[0;36mWeb UI: http://localhost:8080\033[0m\n" && \
+	printf "\033[0;36mPasswords in: airflow/simple_auth_manager_passwords.json\033[0m\n" && \
 	printf "\033[0;36mLogs: airflow/airflow-*.out\033[0m\n"
 
 airflow-stop: ## 🌊 Stop all Airflow processes
@@ -49,6 +53,11 @@ airflow-stop: ## 🌊 Stop all Airflow processes
 		kill $$(cat airflow/webserver.pid) 2>/dev/null || true; \
 		rm -f airflow/webserver.pid; \
 	fi
+	@if [ -f airflow/api-server.pid ]; then \
+		printf "\033[0;33mStopping Airflow API server...\033[0m\n"; \
+		kill $$(cat airflow/api-server.pid) 2>/dev/null || true; \
+		rm -f airflow/api-server.pid; \
+	fi
 	@if [ -f airflow/standalone.pid ]; then \
 		printf "\033[0;33mStopping Airflow standalone...\033[0m\n"; \
 		kill $$(cat airflow/standalone.pid) 2>/dev/null || true; \
@@ -56,7 +65,29 @@ airflow-stop: ## 🌊 Stop all Airflow processes
 	fi
 	@pkill -f "airflow scheduler" 2>/dev/null || true
 	@pkill -f "airflow webserver" 2>/dev/null || true
+	@pkill -f "airflow api-server" 2>/dev/null || true
+	@pkill -f "airflow api_server" 2>/dev/null || true
+	@pkill -f "airflow worker" 2>/dev/null || true
 	@pkill -f "airflow standalone" 2>/dev/null || true
+	@pkill -f "python.*airflow" 2>/dev/null || true
+	@printf "\033[0;33mWaiting 3 seconds for graceful shutdown...\033[0m\n"
+	@sleep 3
+	@if pgrep -f "airflow" >/dev/null 2>&1; then \
+		printf "\033[0;33mForce killing remaining Airflow processes...\033[0m\n"; \
+		pkill -9 -f "airflow scheduler" 2>/dev/null || true; \
+		pkill -9 -f "airflow webserver" 2>/dev/null || true; \
+		pkill -9 -f "airflow api-server" 2>/dev/null || true; \
+		pkill -9 -f "airflow api_server" 2>/dev/null || true; \
+		pkill -9 -f "airflow worker" 2>/dev/null || true; \
+		pkill -9 -f "airflow standalone" 2>/dev/null || true; \
+		pkill -9 -f "python.*airflow" 2>/dev/null || true; \
+		sleep 2; \
+	fi
+	@if pgrep -f "airflow" >/dev/null 2>&1; then \
+		printf "\033[0;31m⚠ Warning: Some Airflow processes may still be running\033[0m\n"; \
+		printf "\033[0;33mRemaining processes:\033[0m\n"; \
+		pgrep -f "airflow" | head -5 || true; \
+	fi
 	@printf "\033[0;32m✓ Airflow stopped\033[0m\n"
 
 airflow-restart: airflow-stop airflow-start ## 🌊 Restart Airflow services
@@ -71,8 +102,10 @@ airflow-status: ## 🌊 Validate Airflow process status
 	fi
 	@if [ -f airflow/webserver.pid ] && kill -0 $$(cat airflow/webserver.pid) 2>/dev/null; then \
 		printf "\033[0;32m✓ Webserver running (PID: $$(cat airflow/webserver.pid))\033[0m\n"; \
+	elif [ -f airflow/api-server.pid ] && kill -0 $$(cat airflow/api-server.pid) 2>/dev/null; then \
+		printf "\033[0;32m✓ API Server running (PID: $$(cat airflow/api-server.pid))\033[0m\n"; \
 	else \
-		printf "\033[0;33m⚠ Webserver not running\033[0m\n"; \
+		printf "\033[0;33m⚠ Webserver/API Server not running\033[0m\n"; \
 	fi
 	@if pgrep -f "airflow" >/dev/null; then \
 		printf "\033[0;32mActive Airflow processes:\033[0m\n"; \
@@ -87,18 +120,16 @@ airflow-status: ## 🌊 Validate Airflow process status
 
 .PHONY: airflow-init airflow-reset airflow-config _setup_airflow_dirs _init_airflow_db
 
-airflow-init: _load_env _setup_airflow_dirs _init_airflow_db ## 🌊 Initialize Airflow database and admin user
-	@printf "\033[0;34mInitializing Apache Airflow...\033[0m\n"
+airflow-init: _load_env _setup_airflow_dirs _init_airflow_db ## 🌊 Initialize Airflow database (Simple auth manager auto-creates users)
+	@printf "\033[0;34mInitializing Apache Airflow with Simple Auth Manager...\033[0m\n"
 	@set -a && . ./.env && set +a && \
 	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
 	export AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" && \
 	export AIRFLOW__CORE__LOAD_EXAMPLES="false" && \
-	export AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" && \
+	export AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS="$$AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS" && \
+	export AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE="$$AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE" && \
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
-	export AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" && \
-	export AIRFLOW__WEBSERVER__SECRET_KEY="$$AIRFLOW__API_AUTH__JWT_SECRET" && \
-	printf "\\033[0;33mCreating Airflow admin user...\\033[0m\\n" && \
-	$(PYTHON) scripts/create_airflow_admin.py && \
+	printf "\\033[0;33mSimple Auth Manager will auto-create users: $$AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS\\033[0m\\n" && \
 	printf "\\033[0;32m✓ Airflow initialization completed\\033[0m\\n"
 
 airflow-reset: _load_env ## 🌊 Reset Airflow configuration and database (DESTRUCTIVE)
@@ -136,10 +167,22 @@ _init_airflow_db: _load_env ## Internal: Initialize Airflow database
 	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
 	export AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" && \
 	export AIRFLOW__CORE__LOAD_EXAMPLES="false" && \
-	export AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" && \
+	export AIRFLOW__CORE__AUTH_MANAGER="airflow.api_fastapi.auth.managers.simple.simple_auth_manager.SimpleAuthManager" && \
+	export AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS="$$AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS" && \
+	export AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE="$$AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE" && \
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
 	export AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" && \
-	$(PYTHON) -m airflow db migrate
+	export PYTHONPATH="$$PYTHONPATH" && \
+	env AIRFLOW_HOME="$(AIRFLOW_HOME)" \
+		AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" \
+		AIRFLOW__CORE__LOAD_EXAMPLES="false" \
+		AIRFLOW__CORE__AUTH_MANAGER="airflow.api_fastapi.auth.managers.simple.simple_auth_manager.SimpleAuthManager" \
+		AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS="$$AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS" \
+		AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE="$$AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE" \
+		AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" \
+		AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" \
+		PYTHONPATH="$$PYTHONPATH" \
+		$(PYTHON) -m airflow db migrate
 
 # ============================================================================
 # DAG MANAGEMENT AND OPERATIONS

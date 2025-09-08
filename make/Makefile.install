@@ -167,10 +167,10 @@ install: _load_env _setup_python_environment ## 📦 Install production dependen
 	@$(ECHO_CMD) "\033[0;32m✓ Production dependencies installed\033[0m\n"
 
 install-test: _load_env _setup_python_environment ## 🧪 Install testing dependencies
-	@$(ECHO_CMD) "\033[0;34mInstalling testing dependencies...\033[0m\n"
-	@$(ECHO_CMD) "\033[0;33mInstalling test packages...\033[0m\n"
+	@printf "\033[0;34mInstalling testing dependencies...\033[0m\n"
+	@printf "\033[0;33mInstalling test packages...\033[0m\n"
 	@$(PIP) install -e ".[test]" --quiet
-	@$(ECHO_CMD) "\033[0;32m✓ Testing dependencies installed\033[0m\n"
+	@printf "\033[0;32m✓ Testing dependencies installed\033[0m\n"
 
 install-all: _load_env _setup_python_environment ## 📦 Install all dependencies (runtime + test)
 	@$(ECHO_CMD) "\033[0;34mInstalling all dependencies...\033[0m\n"
