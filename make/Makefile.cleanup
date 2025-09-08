@@ -34,7 +34,7 @@ clean-build: ## 🧹 Remove build directories and artifacts
 	@printf "\033[0;33mCleaning build artifacts...\033[0m\n"
 	@for dir in $(BUILD_DIRS); do \
 		if [ -d "$$dir" ] || [ -f "$$dir" ]; then \
-			echo -e "\033[0;36m  Removing: $$dir\033[0m\n"; \
+			printf "\033[0;36m  Removing: $$dir\033[0m\n"; \
 			rm -rf $$dir; \
 		fi; \
 	done
@@ -48,7 +48,7 @@ clean-cache: ## 🧹 Remove Python and tool cache directories
 	@printf "\033[0;33mCleaning cache directories...\033[0m\n"
 	@for dir in $(CACHE_DIRS); do \
 		if [ -d "$$dir" ]; then \
-			echo -e "\033[0;36m  Removing: $$dir\033[0m\n"; \
+			printf "\033[0;36m  Removing: $$dir\033[0m\n"; \
 			rm -rf $$dir; \
 		fi; \
 	done
@@ -60,7 +60,7 @@ clean-coverage: ## 🧪 Remove coverage reports and data
 	@printf "\033[0;33mCleaning coverage data...\033[0m\n"
 	@for file in $(COVERAGE_FILES); do \
 		if [ -f "$$file" ] || [ -d "$$file" ]; then \
-			echo -e "\033[0;36m  Removing: $$file\033[0m\n"; \
+			printf "\033[0;36m  Removing: $$file\033[0m\n"; \
 			rm -rf $$file; \
 		fi; \
 	done
@@ -72,7 +72,7 @@ clean-logs: ## 🧹 Remove log files and directories
 	@for pattern in $(LOG_FILES); do \
 		for file in $$pattern; do \
 			if [ -f "$$file" ] || [ -d "$$file" ]; then \
-				echo -e "\033[0;36m  Removing: $$file\033[0m\n"; \
+				printf "\033[0;36m  Removing: $$file\033[0m\n"; \
 				rm -rf "$$file"; \
 			fi; \
 		done 2>/dev/null || true; \
@@ -86,18 +86,18 @@ clean-env: ## 🧹 Remove virtual environment (DESTRUCTIVE)
 	@printf "\033[0;33mPress Ctrl+C to cancel, or Enter to continue...\033[0m\n"
 	@read -p ""
 	@if [ -d "$(VENV_PATH)" ]; then \
-		echo -e "\033[0;33mRemoving virtual environment...\033[0m\n"; \
+		printf "\033[0;33mRemoving virtual environment...\033[0m\n"; \
 		rm -rf $(VENV_PATH); \
-		echo -e "\033[0;32m✓ Virtual environment removed\033[0m\n"; \
+		printf "\033[0;32m✓ Virtual environment removed\033[0m\n"; \
 	else \
-		echo -e "\033[0;33m⚠ Virtual environment not found\033[0m\n"; \
+		printf "\033[0;33m⚠ Virtual environment not found\033[0m\n"; \
 	fi
 
 clean-temp: ## 🧹 Remove temporary directories and files
 	@printf "\033[0;33mCleaning temporary files...\033[0m\n"
 	@for dir in $(TEMP_DIRS); do \
 		if [ -d "$$dir" ]; then \
-			echo -e "\033[0;36m  Removing: $$dir\033[0m\n"; \
+			printf "\033[0;36m  Removing: $$dir\033[0m\n"; \
 			rm -rf $$dir; \
 		fi; \
 	done
@@ -120,7 +120,7 @@ clean-db: ## 🗄️ Remove database data and logs (DESTRUCTIVE)
 	@rm -f data/*.db 2>/dev/null || true
 	@rm -f *.db 2>/dev/null || true
 	@rm -f backup_*.sql 2>/dev/null || true
-	@$(MAKE) db-clean-logs 2>/dev/null || echo -e "\033[0;33mDatabase log cleanup not available\033[0m\n"
+	@$(MAKE) db-clean-logs 2>/dev/null || printf "\033[0;33mDatabase log cleanup not available\033[0m\n"
 	@printf "\033[0;32m✓ Database data cleaned\033[0m\n"
 
 clean-airflow: ## 🌊 Remove Airflow data and logs (DESTRUCTIVE)
@@ -128,7 +128,7 @@ clean-airflow: ## 🌊 Remove Airflow data and logs (DESTRUCTIVE)
 	@printf "\033[0;33mPress Ctrl+C to cancel, or Enter to continue...\033[0m\n"
 	@read -p ""
 	@printf "\033[0;33mStopping Airflow services...\033[0m\n"
-	@$(MAKE) airflow-stop 2>/dev/null || echo -e "\033[0;33mAirflow services not running\033[0m\n"
+	@$(MAKE) airflow-stop 2>/dev/null || printf "\033[0;33mAirflow services not running\033[0m\n"
 	@printf "\033[0;33mCleaning Airflow data...\033[0m\n"
 	@rm -rf airflow/logs/* 2>/dev/null || true
 	@rm -f airflow/*.db 2>/dev/null || true
@@ -154,14 +154,14 @@ clean-git: ## 🧹 Clean Git repository (remove untracked files)
 	@printf "\033[0;33mCleaning Git repository...\033[0m\n"
 ifeq ($(HAS_GIT),yes)
 	@printf "\033[0;36mShowing untracked files:\033[0m\n"
-	@$(GIT_CMD) status --porcelain | grep "^??" || echo -e "\033[0;32mNo untracked files\033[0m\n"
+	@$(GIT_CMD) status --porcelain | grep "^??" || printf "\033[0;32mNo untracked files\033[0m\n"
 	@printf "\033[0;33mRemove untracked files? (y/N):\033[0m\n"
 	@read -p "" confirm && \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
 		$(GIT_CMD) clean -fd; \
-		echo -e "\033[0;32m✓ Untracked files removed\033[0m\n"; \
+		printf "\033[0;32m✓ Untracked files removed\033[0m\n"; \
 	else \
-		echo -e "\033[0;33mSkipped cleaning untracked files\033[0m\n"; \
+		printf "\033[0;33mSkipped cleaning untracked files\033[0m\n"; \
 	fi
 else
 	@printf "\033[0;33m⚠ Git not available\033[0m\n"
@@ -184,15 +184,15 @@ clean-all: ## 🧹 Complete cleanup (DESTRUCTIVE - removes everything)
 	@printf "\033[0;31mType 'DELETE' to confirm, or Ctrl+C to cancel:\033[0m\n"
 	@read -p "" confirm && \
 	if [ "$$confirm" = "DELETE" ]; then \
-		echo -e "\033[0;33mPerforming complete cleanup...\033[0m\n"; \
+		printf "\033[0;33mPerforming complete cleanup...\033[0m\n"; \
 		$(MAKE) clean; \
 		$(MAKE) clean-env; \
 		$(MAKE) clean-db; \
 		$(MAKE) clean-airflow; \
 		$(MAKE) clean-docker; \
-		echo -e "\033[0;32m✓ Complete cleanup finished\033[0m\n"; \
+		printf "\033[0;32m✓ Complete cleanup finished\033[0m\n"; \
 	else \
-		echo -e "\033[0;33mCleanup cancelled\033[0m\n"; \
+		printf "\033[0;33mCleanup cancelled\033[0m\n"; \
 	fi
 
 clean-reset: clean-all ## 🧹 Complete cleanup and prepare for fresh setup
@@ -250,7 +250,7 @@ clean-info: ## 🧹 Display cleanup targets and current disk usage
 clean-size: ## 🧹 Display disk space that would be freed by cleanup
 	@printf "\033[0;36mDisk Space Analysis:\033[0m\n"
 	@total_size=0; \
-	echo -e "\033[0;33mSpace to be freed:\033[0m\n"; \
+	printf "\033[0;33mSpace to be freed:\033[0m\n"; \
 	for dir in $(BUILD_DIRS) $(CACHE_DIRS); do \
 		if [ -d "$$dir" ]; then \
 			size=$$(du -sk "$$dir" 2>/dev/null | cut -f1 || echo "0"); \
@@ -268,7 +268,7 @@ clean-size: ## 🧹 Display disk space that would be freed by cleanup
 			echo -e "  $(VENV_PATH): $${venv_mb}MB (virtual environment)"; \
 		fi; \
 	fi; \
-	echo -e "\033[0;32mTotal reclaimable space: $${total_size}MB\033[0m\n"
+	printf "\033[0;32mTotal reclaimable space: $${total_size}MB\033[0m\n"
 
 clean-preview: ## 🧹 Preview what would be cleaned without actually cleaning
 	@printf "\033[0;36mCleanup Preview (no files will be removed):\033[0m\n"
@@ -382,7 +382,7 @@ clean-status: ## 🧹 Display current cleanup status and recommendations
 		fi; \
 	done; \
 	pyc_count=$$(find . -name "*.pyc" -type f 2>/dev/null | wc -l); \
-	echo -e "\033[0;33mCurrent State:\033[0m\n"; \
+	printf "\033[0;33mCurrent State:\033[0m\n"; \
 	echo -e "  Artifact directories: $$artifact_count"; \
 	echo -e "  Python cache files: $$pyc_count"; \
 	if [ -d "$(VENV_PATH)" ]; then \
@@ -390,7 +390,7 @@ clean-status: ## 🧹 Display current cleanup status and recommendations
 	else \
 		echo -e "  Virtual environment: ❌ Missing"; \
 	fi; \
-	echo -e "\033[0;33mRecommendations:\033[0m\n"; \
+	printf "\033[0;33mRecommendations:\033[0m\n"; \
 	if [ $$artifact_count -gt 0 ] || [ $$pyc_count -gt 10 ]; then \
 		echo -e "  \033[0;36mRun 'make clean-safe' to clean build artifacts\033[0m\n"; \
 	else \

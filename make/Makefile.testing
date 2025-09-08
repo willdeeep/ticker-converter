@@ -48,17 +48,17 @@ test-integration: _load_env ## 🧪 Execute integration tests only
 	@$(PYTHON) -m pytest $(TEST_DIR)/integration $(PYTEST_ARGS) 2>/dev/null || \
 	$(PYTHON) -m pytest $(TEST_DIR) -k "integration" $(PYTEST_ARGS) 2>/dev/null || \
 	$(PYTHON) -m pytest $(TEST_DIR) -m "integration" $(PYTEST_ARGS) 2>/dev/null || \
-	echo -e "\033[0;33m⚠ No integration tests found or specific marker not defined\033[0m\n"
+	printf "\033[0;33m⚠ No integration tests found or specific marker not defined\033[0m\n"
 	@printf "\033[0;32m✓ Integration tests completed\033[0m\n"
 
 test-fast: _load_env ## 🧪 Execute tests in parallel (fast mode)
 	@printf "\033[0;34mRunning tests in parallel mode...\033[0m\n"
 	@$(MAKE) _check_test_deps
 	@if $(PYTHON) -c "import pytest_xdist" 2>/dev/null; then \
-		echo -e "\033[0;33mExecuting tests with parallel execution...\033[0m\n"; \
+		printf "\033[0;33mExecuting tests with parallel execution...\033[0m\n"; \
 		$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS) $(PYTEST_PARALLEL_ARGS); \
 	else \
-		echo -e "\033[0;33mpytest-xdist not available, running sequential tests...\033[0m\n"; \
+		printf "\033[0;33mpytest-xdist not available, running sequential tests...\033[0m\n"; \
 		$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS); \
 	fi
 	@printf "\033[0;32m✓ Fast test execution completed\033[0m\n"
@@ -92,16 +92,16 @@ coverage: _load_env ## 🧪 📊 Flexible coverage command (run 'make coverage h
 		echo -e "$(HEADER_COLOR)╔══════════════════════════════════════════════════════════════════╗\033[0m\n"; \
 		echo -e "$(HEADER_COLOR)║                     COVERAGE COMMAND OPTIONS                    ║\033[0m\n"; \
 		echo -e "$(HEADER_COLOR)╚══════════════════════════════════════════════════════════════════╝\033[0m\n"; \
-		echo -e "\033[0;36mUsage: make coverage [option]\033[0m\n"; \
+		printf "\033[0;36mUsage: make coverage [option]\033[0m\n"; \
 		echo ""; \
-		echo -e "\033[0;33mOptions:\033[0m\n"; \
+		printf "\033[0;33mOptions:\033[0m\n"; \
 		echo -e "  report    Generate terminal coverage report"; \
 		echo -e "  html      Generate HTML coverage report"; \
 		echo -e "  xml       Generate XML coverage report"; \
 		echo -e "  open      Generate and open HTML report in browser"; \
 		echo -e "  all       Generate all report formats"; \
 		echo ""; \
-		echo -e "\033[0;32mExamples:\033[0m\n"; \
+		printf "\033[0;32mExamples:\033[0m\n"; \
 		echo -e "  make coverage report    # Terminal report only"; \
 		echo -e "  make coverage html      # HTML report only"; \
 		echo -e "  make coverage all       # All formats"; \
@@ -116,7 +116,7 @@ coverage: _load_env ## 🧪 📊 Flexible coverage command (run 'make coverage h
 	elif [ "$(filter all,$(MAKECMDGOALS))" ]; then \
 		$(MAKE) coverage-all-formats; \
 	else \
-		echo -e "\033[0;34mGenerating standard coverage report...\033[0m\n"; \
+		printf "\033[0;34mGenerating standard coverage report...\033[0m\n"; \
 		$(MAKE) coverage-report-only; \
 	fi
 
@@ -124,33 +124,33 @@ coverage: _load_env ## 🧪 📊 Flexible coverage command (run 'make coverage h
 coverage-report-only: _load_env ## Internal: Generate terminal coverage report
 	@$(MAKE) _check_coverage_deps
 	@if [ -f $(COVERAGE_FILE) ]; then \
-		echo -e "\033[0;33mGenerating terminal coverage report...\033[0m\n"; \
+		printf "\033[0;33mGenerating terminal coverage report...\033[0m\n"; \
 		$(PYTHON) -m coverage report; \
-		echo -e "\033[0;32m✓ Terminal coverage report generated\033[0m\n"; \
+		printf "\033[0;32m✓ Terminal coverage report generated\033[0m\n"; \
 	else \
-		echo -e "\033[0;31m❌ No coverage data found. Run 'make test-coverage' first.\033[0m\n"; \
+		printf "\033[0;31m❌ No coverage data found. Run 'make test-coverage' first.\033[0m\n"; \
 		exit 1; \
 	fi
 
 coverage-html-only: _load_env ## Internal: Generate HTML coverage report
 	@$(MAKE) _check_coverage_deps
 	@if [ -f $(COVERAGE_FILE) ]; then \
-		echo -e "\033[0;33mGenerating HTML coverage report...\033[0m\n"; \
+		printf "\033[0;33mGenerating HTML coverage report...\033[0m\n"; \
 		$(PYTHON) -m coverage html; \
-		echo -e "\033[0;32m✓ HTML coverage report generated in $(COVERAGE_DIR)/\033[0m\n"; \
+		printf "\033[0;32m✓ HTML coverage report generated in $(COVERAGE_DIR)/\033[0m\n"; \
 	else \
-		echo -e "\033[0;31m❌ No coverage data found. Run 'make test-coverage' first.\033[0m\n"; \
+		printf "\033[0;31m❌ No coverage data found. Run 'make test-coverage' first.\033[0m\n"; \
 		exit 1; \
 	fi
 
 coverage-xml-only: _load_env ## Internal: Generate XML coverage report
 	@$(MAKE) _check_coverage_deps
 	@if [ -f $(COVERAGE_FILE) ]; then \
-		echo -e "\033[0;33mGenerating XML coverage report...\033[0m\n"; \
+		printf "\033[0;33mGenerating XML coverage report...\033[0m\n"; \
 		$(PYTHON) -m coverage xml; \
-		echo -e "\033[0;32m✓ XML coverage report generated\033[0m\n"; \
+		printf "\033[0;32m✓ XML coverage report generated\033[0m\n"; \
 	else \
-		echo -e "\033[0;31m❌ No coverage data found. Run 'make test-coverage' first.\033[0m\n"; \
+		printf "\033[0;31m❌ No coverage data found. Run 'make test-coverage' first.\033[0m\n"; \
 		exit 1; \
 	fi
 
@@ -162,11 +162,11 @@ coverage-open-only: coverage-html-only ## Internal: Generate and open HTML cover
 		elif command -v xdg-open >/dev/null 2>&1; then \
 			xdg-open "$(COVERAGE_DIR)/index.html"; \
 		else \
-			echo -e "\033[0;33m⚠ Cannot open browser automatically. Open: $(COVERAGE_DIR)/index.html\033[0m\n"; \
+			printf "\033[0;33m⚠ Cannot open browser automatically. Open: $(COVERAGE_DIR)/index.html\033[0m\n"; \
 		fi; \
-		echo -e "\033[0;32m✓ HTML coverage report opened\033[0m\n"; \
+		printf "\033[0;32m✓ HTML coverage report opened\033[0m\n"; \
 	else \
-		echo -e "\033[0;31m❌ HTML report not found\033[0m\n"; \
+		printf "\033[0;31m❌ HTML report not found\033[0m\n"; \
 		exit 1; \
 	fi
 
@@ -195,10 +195,10 @@ coverage-open: coverage-open-only ## ⚠️ DEPRECATED: Use 'make coverage open'
 		elif command -v start >/dev/null 2>&1; then \
 			start $(COVERAGE_DIR)/index.html; \
 		else \
-			echo -e "\033[0;33mPlease manually open: $(COVERAGE_DIR)/index.html\033[0m\n"; \
+			printf "\033[0;33mPlease manually open: $(COVERAGE_DIR)/index.html\033[0m\n"; \
 		fi; \
 	else \
-		echo -e "\033[0;31m❌ HTML coverage report not found\033[0m\n"; \
+		printf "\033[0;31m❌ HTML coverage report not found\033[0m\n"; \
 		exit 1; \
 	fi
 
@@ -212,11 +212,11 @@ test-watch: _load_env ## 🧪 Execute tests in watch mode (continuous)
 	@printf "\033[0;34mStarting test watch mode...\033[0m\n"
 	@$(MAKE) _check_test_deps
 	@if $(PYTHON) -c "import pytest_watch" 2>/dev/null; then \
-		echo -e "\033[0;33mRunning tests in watch mode (press Ctrl+C to stop)...\033[0m\n"; \
+		printf "\033[0;33mRunning tests in watch mode (press Ctrl+C to stop)...\033[0m\n"; \
 		$(PYTHON) -m pytest_watch $(TEST_DIR) -- $(PYTEST_ARGS); \
 	else \
-		echo -e "\033[0;33mpytest-watch not available. Install with: pip install pytest-watch\033[0m\n"; \
-		echo -e "\033[0;36mAlternative: Run 'make install-test' to get all development tools\033[0m\n"; \
+		printf "\033[0;33mpytest-watch not available. Install with: pip install pytest-watch\033[0m\n"; \
+		printf "\033[0;36mAlternative: Run 'make install-test' to get all development tools\033[0m\n"; \
 		exit 1; \
 	fi
 
@@ -224,11 +224,11 @@ test-profile: _load_env ## 🧪 Execute performance profiling on tests
 	@printf "\033[0;34mRunning test performance profiling...\033[0m\n"
 	@$(MAKE) _check_test_deps
 	@if $(PYTHON) -c "import pytest_profiling" 2>/dev/null; then \
-		echo -e "\033[0;33mExecuting tests with performance profiling...\033[0m\n"; \
+		printf "\033[0;33mExecuting tests with performance profiling...\033[0m\n"; \
 		$(PYTHON) -m pytest $(TEST_DIR) --profile $(PYTEST_ARGS); \
 	else \
-		echo -e "\033[0;33mpytest-profiling not available. Install with: pip install pytest-profiling\033[0m\n"; \
-		echo -e "\033[0;36mRunning basic timing analysis...\033[0m\n"; \
+		printf "\033[0;33mpytest-profiling not available. Install with: pip install pytest-profiling\033[0m\n"; \
+		printf "\033[0;36mRunning basic timing analysis...\033[0m\n"; \
 		time $(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS); \
 	fi
 	@printf "\033[0;32m✓ Test profiling completed\033[0m\n"
@@ -237,13 +237,13 @@ test-benchmark: _load_env ## 🧪 Execute benchmark tests
 	@printf "\033[0;34mRunning benchmark tests...\033[0m\n"
 	@$(MAKE) _check_test_deps
 	@if $(PYTHON) -c "import pytest_benchmark" 2>/dev/null; then \
-		echo -e "\033[0;33mExecuting benchmark tests...\033[0m\n"; \
+		printf "\033[0;33mExecuting benchmark tests...\033[0m\n"; \
 		$(PYTHON) -m pytest $(TEST_DIR) --benchmark-only $(PYTEST_ARGS); \
 	else \
-		echo -e "\033[0;33mpytest-benchmark not available. Install with: pip install pytest-benchmark\033[0m\n"; \
-		echo -e "\033[0;36mRunning tests with benchmark marker...\033[0m\n"; \
+		printf "\033[0;33mpytest-benchmark not available. Install with: pip install pytest-benchmark\033[0m\n"; \
+		printf "\033[0;36mRunning tests with benchmark marker...\033[0m\n"; \
 		$(PYTHON) -m pytest $(TEST_DIR) -m "benchmark" $(PYTEST_ARGS) 2>/dev/null || \
-		echo -e "\033[0;33mNo benchmark tests found\033[0m\n"; \
+		printf "\033[0;33mNo benchmark tests found\033[0m\n"; \
 	fi
 	@printf "\033[0;32m✓ Benchmark testing completed\033[0m\n"
 
@@ -257,7 +257,7 @@ test-by-name: _load_env ## 🧪 Execute tests matching a name pattern (interacti
 	@printf "\033[0;36mTest filtering by name\033[0m\n"
 	@printf "\033[0;33mEnter test name pattern (e.g., test_database, TestClass, etc.):\033[0m\n"
 	@read -p "Pattern: " pattern && \
-	echo -e "\033[0;33mRunning tests matching pattern: $$pattern\033[0m\n" && \
+	printf "\033[0;33mRunning tests matching pattern: $$pattern\033[0m\n" && \
 	$(PYTHON) -m pytest $(TEST_DIR) -k "$$pattern" $(PYTEST_ARGS)
 
 test-by-marker: _load_env ## 🧪 Execute tests with specific marker (interactive)
@@ -266,17 +266,17 @@ test-by-marker: _load_env ## 🧪 Execute tests with specific marker (interactiv
 	@$(PYTHON) -m pytest --markers 2>/dev/null | grep "^@pytest.mark" || echo "  No custom markers found"
 	@printf "\033[0;33mEnter marker name (e.g., slow, unit, integration):\033[0m\n"
 	@read -p "Marker: " marker && \
-	echo -e "\033[0;33mRunning tests with marker: $$marker\033[0m\n" && \
+	printf "\033[0;33mRunning tests with marker: $$marker\033[0m\n" && \
 	$(PYTHON) -m pytest $(TEST_DIR) -m "$$marker" $(PYTEST_ARGS)
 
 test-failed: _load_env ## 🧪 Execute only failed tests from last run
 	@printf "\033[0;34mRunning only failed tests from last run...\033[0m\n"
 	@$(MAKE) _check_test_deps
 	@if [ -f .pytest_cache/v/cache/lastfailed ]; then \
-		echo -e "\033[0;33mRe-running failed tests...\033[0m\n"; \
+		printf "\033[0;33mRe-running failed tests...\033[0m\n"; \
 		$(PYTHON) -m pytest --lf $(PYTEST_ARGS); \
 	else \
-		echo -e "\033[0;33mNo failed tests found. Running full test suite...\033[0m\n"; \
+		printf "\033[0;33mNo failed tests found. Running full test suite...\033[0m\n"; \
 		$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS); \
 	fi
 	@printf "\033[0;32m✓ Failed test execution completed\033[0m\n"
@@ -287,18 +287,18 @@ test-changed: _load_env ## 🧪 Execute tests for changed files (requires git)
 	@if command -v git >/dev/null 2>&1; then \
 		changed_files=$$(git diff --name-only HEAD~1 | grep -E "\.(py)$$" | tr '\n' ' '); \
 		if [ -n "$$changed_files" ]; then \
-			echo -e "\033[0;33mChanged files: $$changed_files\033[0m\n"; \
-			echo -e "\033[0;33mRunning tests for changed files...\033[0m\n"; \
+			printf "\033[0;33mChanged files: $$changed_files\033[0m\n"; \
+			printf "\033[0;33mRunning tests for changed files...\033[0m\n"; \
 			$(PYTHON) -m pytest --co -q $$changed_files 2>/dev/null && \
 			$(PYTHON) -m pytest $$changed_files $(PYTEST_ARGS) || \
-			echo -e "\033[0;33mNo tests found for changed files, running full suite...\033[0m\n" && \
+			printf "\033[0;33mNo tests found for changed files, running full suite...\033[0m\n" && \
 			$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS); \
 		else \
-			echo -e "\033[0;33mNo Python files changed, running full test suite...\033[0m\n"; \
+			printf "\033[0;33mNo Python files changed, running full test suite...\033[0m\n"; \
 			$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS); \
 		fi; \
 	else \
-		echo -e "\033[0;33mGit not available, running full test suite...\033[0m\n"; \
+		printf "\033[0;33mGit not available, running full test suite...\033[0m\n"; \
 		$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS); \
 	fi
 
@@ -310,7 +310,7 @@ test-changed: _load_env ## 🧪 Execute tests for changed files (requires git)
 
 _check_test_deps: ## Internal: Check test dependencies
 	@$(PYTHON) -c "import pytest" 2>/dev/null || \
-	(echo -e "\033[0;31m❌ pytest not available. Run 'make install-test' first.\033[0m\n" && exit 1)
+	(printf "\033[0;31m❌ pytest not available. Run 'make install-test' first.\033[0m\n" && exit 1)
 
 test-deps-info: ## 🧪 Display test dependency information
 	@printf "\033[0;36mTest Dependencies Information:\033[0m\n"
@@ -431,25 +431,25 @@ test-doctor: _load_env ## 🧪 Diagnose test setup issues
 	@printf "\033[0;36mTest Doctor - Diagnosing Issues...\033[0m\n"
 	@printf "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n"
 	@printf "\033[0;33m1. Checking test dependencies...\033[0m\n"
-	@$(MAKE) _check_test_deps 2>/dev/null && echo -e "\033[0;32m✓ Test dependencies available\033[0m\n" || \
-	echo -e "\033[0;31mIssue: Missing test dependencies\033[0m\n" && echo -e "\033[0;36mFix: Run 'make install-test'\033[0m\n"
+	@$(MAKE) _check_test_deps 2>/dev/null && printf "\033[0;32m✓ Test dependencies available\033[0m\n" || \
+	printf "\033[0;31mIssue: Missing test dependencies\033[0m\n" && printf "\033[0;36mFix: Run 'make install-test'\033[0m\n"
 	@echo ""
 	@printf "\033[0;33m2. Checking test directory structure...\033[0m\n"
 	@if [ -d "$(TEST_DIR)" ]; then \
-		echo -e "\033[0;32m✓ Test directory exists\033[0m\n"; \
+		printf "\033[0;32m✓ Test directory exists\033[0m\n"; \
 		test_count=$$(find $(TEST_DIR) -name "test_*.py" -o -name "*_test.py" 2>/dev/null | wc -l); \
-		echo -e "\033[0;36mFound $$test_count test files\033[0m\n"; \
+		printf "\033[0;36mFound $$test_count test files\033[0m\n"; \
 	else \
-		echo -e "\033[0;31mIssue: Test directory missing\033[0m\n"; \
-		echo -e "\033[0;36mFix: Create $(TEST_DIR) directory and add test files\033[0m\n"; \
+		printf "\033[0;31mIssue: Test directory missing\033[0m\n"; \
+		printf "\033[0;36mFix: Create $(TEST_DIR) directory and add test files\033[0m\n"; \
 	fi
 	@echo ""
 	@printf "\033[0;33m3. Checking source directory...\033[0m\n"
 	@if [ -d "$(SRC_DIR)" ]; then \
-		echo -e "\033[0;32m✓ Source directory exists\033[0m\n"; \
+		printf "\033[0;32m✓ Source directory exists\033[0m\n"; \
 	else \
-		echo -e "\033[0;33mWarning: Source directory not found\033[0m\n"; \
-		echo -e "\033[0;36mNote: Adjust SRC_DIR in Makefile if needed\033[0m\n"; \
+		printf "\033[0;33mWarning: Source directory not found\033[0m\n"; \
+		printf "\033[0;36mNote: Adjust SRC_DIR in Makefile if needed\033[0m\n"; \
 	fi
 	@printf "\033[0;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n"
 
@@ -459,7 +459,7 @@ test-env-check: _load_env ## 🧪 Validate test environment setup
 	@$(PYTHON) --version
 	@printf "\033[0;33mModule Import Check:\033[0m\n"
 	@$(PYTHON) -c "import $(PACKAGE_NAME); print('✓ Package can be imported')" 2>/dev/null || \
-	echo -e "\033[0;33m⚠ Package import failed - ensure package is installed\033[0m\n"
+	printf "\033[0;33m⚠ Package import failed - ensure package is installed\033[0m\n"
 	@printf "\033[0;33mTest Discovery:\033[0m\n"
 	@$(PYTHON) -m pytest --collect-only $(TEST_DIR) -q 2>/dev/null | head -5 || \
-	echo -e "\033[0;33m⚠ Test discovery failed\033[0m\n"
+	printf "\033[0;33m⚠ Test discovery failed\033[0m\n"

@@ -26,31 +26,37 @@ airflow-start: _load_env _check_airflow_deps airflow-init ## 🌊 Start Airflow 
 	export AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" && \
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
 	export AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" && \
-	echo -e "\033[0;33mStarting Airflow scheduler...\033[0m\n" && \
+	printf "\033[0;33mStarting Airflow scheduler...\033[0m\n" && \
 	nohup $(PYTHON) -m airflow scheduler > airflow/airflow-scheduler.out 2> airflow/airflow-scheduler.err & \
 	echo $$! > airflow/scheduler.pid && \
-	echo -e "\033[0;33mStarting Airflow API server...\033[0m\n" && \
-	nohup $(PYTHON) -m airflow api-server --port 8080 > airflow/airflow-webserver.out 2> airflow/airflow-webserver.err & \
+	printf "\033[0;33mStarting Airflow webserver...\033[0m\n" && \
+	nohup $(PYTHON) -m airflow webserver --port 8080 > airflow/airflow-webserver.out 2> airflow/airflow-webserver.err & \
 	echo $$! > airflow/webserver.pid && \
 	sleep 3 && \
-	echo -e "\033[0;32m✓ Airflow started\033[0m\n" && \
-	echo -e "\033[0;36mAPI Server: http://localhost:8080\033[0m\n" && \
-	echo -e "\033[0;36mLogs: airflow/airflow-*.out\033[0m\n"
+	printf "\033[0;32m✓ Airflow started\033[0m\n" && \
+	printf "\033[0;36mWeb UI: http://localhost:8080\033[0m\n" && \
+	printf "\033[0;36mLogs: airflow/airflow-*.out\033[0m\n"
 
 airflow-stop: ## 🌊 Stop all Airflow processes
 	@printf "\033[0;34mStopping Apache Airflow...\033[0m\n"
 	@if [ -f airflow/scheduler.pid ]; then \
-		echo -e "\033[0;33mStopping Airflow scheduler...\033[0m\n"; \
+		printf "\033[0;33mStopping Airflow scheduler...\033[0m\n"; \
 		kill $$(cat airflow/scheduler.pid) 2>/dev/null || true; \
 		rm -f airflow/scheduler.pid; \
 	fi
 	@if [ -f airflow/webserver.pid ]; then \
-		echo -e "\033[0;33mStopping Airflow webserver...\033[0m\n"; \
+		printf "\033[0;33mStopping Airflow webserver...\033[0m\n"; \
 		kill $$(cat airflow/webserver.pid) 2>/dev/null || true; \
 		rm -f airflow/webserver.pid; \
 	fi
+	@if [ -f airflow/standalone.pid ]; then \
+		printf "\033[0;33mStopping Airflow standalone...\033[0m\n"; \
+		kill $$(cat airflow/standalone.pid) 2>/dev/null || true; \
+		rm -f airflow/standalone.pid; \
+	fi
 	@pkill -f "airflow scheduler" 2>/dev/null || true
 	@pkill -f "airflow webserver" 2>/dev/null || true
+	@pkill -f "airflow standalone" 2>/dev/null || true
 	@printf "\033[0;32m✓ Airflow stopped\033[0m\n"
 
 airflow-restart: airflow-stop airflow-start ## 🌊 Restart Airflow services
@@ -59,20 +65,20 @@ airflow-restart: airflow-stop airflow-start ## 🌊 Restart Airflow services
 airflow-status: ## 🌊 Validate Airflow process status
 	@printf "\033[0;36mAirflow process status:\033[0m\n"
 	@if [ -f airflow/scheduler.pid ] && kill -0 $$(cat airflow/scheduler.pid) 2>/dev/null; then \
-		echo -e "\033[0;32m✓ Scheduler running (PID: $$(cat airflow/scheduler.pid))\033[0m\n"; \
+		printf "\033[0;32m✓ Scheduler running (PID: $$(cat airflow/scheduler.pid))\033[0m\n"; \
 	else \
-		echo -e "\033[0;33m⚠ Scheduler not running\033[0m\n"; \
+		printf "\033[0;33m⚠ Scheduler not running\033[0m\n"; \
 	fi
 	@if [ -f airflow/webserver.pid ] && kill -0 $$(cat airflow/webserver.pid) 2>/dev/null; then \
-		echo -e "\033[0;32m✓ Webserver running (PID: $$(cat airflow/webserver.pid))\033[0m\n"; \
+		printf "\033[0;32m✓ Webserver running (PID: $$(cat airflow/webserver.pid))\033[0m\n"; \
 	else \
-		echo -e "\033[0;33m⚠ Webserver not running\033[0m\n"; \
+		printf "\033[0;33m⚠ Webserver not running\033[0m\n"; \
 	fi
 	@if pgrep -f "airflow" >/dev/null; then \
-		echo -e "\033[0;32mActive Airflow processes:\033[0m\n"; \
+		printf "\033[0;32mActive Airflow processes:\033[0m\n"; \
 		pgrep -f "airflow" -l; \
 	else \
-		echo -e "\033[0;33m⚠ No Airflow processes found\033[0m\n"; \
+		printf "\033[0;33m⚠ No Airflow processes found\033[0m\n"; \
 	fi
 
 # ============================================================================
@@ -90,16 +96,10 @@ airflow-init: _load_env _setup_airflow_dirs _init_airflow_db ## 🌊 Initialize 
 	export AIRFLOW__CORE__AUTH_MANAGER="airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager" && \
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
 	export AIRFLOW__API_AUTH__JWT_SECRET="$$AIRFLOW__API_AUTH__JWT_SECRET" && \
-	echo -e "\033[0;33mCreating Airflow admin user...\033[0m\n" && \
-	$(PYTHON) -m airflow users create \
-		--username "$$AIRFLOW_ADMIN_USERNAME" \
-		--firstname "$$AIRFLOW_ADMIN_FIRSTNAME" \
-		--lastname "$$AIRFLOW_ADMIN_LASTNAME" \
-		--role Admin \
-		--email "$$AIRFLOW_ADMIN_EMAIL" \
-		--password "$$AIRFLOW_ADMIN_PASSWORD" \
-		2>/dev/null || echo -e "\033[0;33m⚠ Admin user already exists or creation failed\033[0m\n" && \
-	echo -e "\033[0;32m✓ Airflow initialization completed\033[0m\n"
+	export AIRFLOW__WEBSERVER__SECRET_KEY="$$AIRFLOW__API_AUTH__JWT_SECRET" && \
+	printf "\\033[0;33mCreating Airflow admin user...\\033[0m\\n" && \
+	$(PYTHON) scripts/create_airflow_admin.py && \
+	printf "\\033[0;32m✓ Airflow initialization completed\\033[0m\\n"
 
 airflow-reset: _load_env ## 🌊 Reset Airflow configuration and database (DESTRUCTIVE)
 	@printf "\033[0;31mWARNING: This will reset all Airflow data!\033[0m\n"
@@ -114,16 +114,16 @@ airflow-reset: _load_env ## 🌊 Reset Airflow configuration and database (DESTR
 airflow-config: _load_env ## 🌊 Display Airflow configuration
 	@printf "\033[0;36mAirflow Configuration:\033[0m\n"
 	@set -a && . ./.env && set +a && \
-	echo -e "\033[0;33mEnvironment Variables:\033[0m\n" && \
-	echo -e "  AIRFLOW_HOME: $(AIRFLOW_HOME)" && \
-	echo -e "  AIRFLOW__CORE__DAGS_FOLDER: $(AIRFLOW_DAGS_FOLDER)" && \
-	echo -e "  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: $$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
-	echo -e "  AIRFLOW_ADMIN_USERNAME: $$AIRFLOW_ADMIN_USERNAME" && \
-	echo -e "\033[0;33mAdmin Configuration:\033[0m\n" && \
-	echo -e "  Username: $$AIRFLOW_ADMIN_USERNAME" && \
-	echo -e "  Email: $$AIRFLOW_ADMIN_EMAIL" && \
-	echo -e "  First Name: $$AIRFLOW_ADMIN_FIRSTNAME" && \
-	echo -e "  Last Name: $$AIRFLOW_ADMIN_LASTNAME"
+	printf "\\033[0;33mEnvironment Variables:\\033[0m\\n" && \
+	printf "  AIRFLOW_HOME: $(AIRFLOW_HOME)\\n" && \
+	printf "  AIRFLOW__CORE__DAGS_FOLDER: $(AIRFLOW_DAGS_FOLDER)\\n" && \
+	printf "  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: $$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN\\n" && \
+	printf "  AIRFLOW_ADMIN_USERNAME: $$AIRFLOW_ADMIN_USERNAME\\n" && \
+	printf "\\033[0;33mAdmin Configuration:\\033[0m\\n" && \
+	printf "  Username: $$AIRFLOW_ADMIN_USERNAME\\n" && \
+	printf "  Email: $$AIRFLOW_ADMIN_EMAIL\\n" && \
+	printf "  First Name: $$AIRFLOW_ADMIN_FIRSTNAME\\n" && \
+	printf "  Last Name: $$AIRFLOW_ADMIN_LASTNAME\\n"
 
 _setup_airflow_dirs: ## Internal: Create Airflow directory structure
 	@printf "\033[0;33mSetting up Airflow directories...\033[0m\n"
@@ -160,7 +160,7 @@ airflow-dag-test: _load_env ## 🧪 Execute tests DAG execution (interactive)
 	@$(MAKE) airflow-dag-list
 	@printf "\033[0;33mEnter DAG ID to test:\033[0m\n"
 	@read -p "DAG ID: " dag_id && \
-	echo -e "\033[0;33mEnter execution date (YYYY-MM-DD) or press Enter for today:\033[0m\n" && \
+	printf "\033[0;33mEnter execution date (YYYY-MM-DD) or press Enter for today:\033[0m\n" && \
 	read -p "Date: " exec_date && \
 	exec_date=$${exec_date:-$$(date +%Y-%m-%d)} && \
 	set -a && . ./.env && set +a && \
@@ -179,7 +179,7 @@ airflow-dag-trigger: _load_env ## 🌊 Manually trigger DAG run (interactive)
 	export AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" && \
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
 	$(PYTHON) -m airflow dags trigger $$dag_id && \
-	echo -e "\033[0;32m✓ DAG $$dag_id triggered\033[0m\n"
+	printf "\033[0;32m✓ DAG $$dag_id triggered\033[0m\n"
 
 airflow-dag-info: _load_env ## 🌊 Display DAG information (interactive)
 	@printf "\033[0;36mDAG Information\033[0m\n"
@@ -210,27 +210,27 @@ airflow-shell: _load_env ## 🌊 Open and display Airflow shell for debugging
 airflow-logs: ## 🌊 View Airflow logs
 	@printf "\033[0;36mAirflow logs:\033[0m\n"
 	@printf "\033[0;33mRecent scheduler logs:\033[0m\n"
-	@tail -n 20 airflow/airflow-scheduler.out 2>/dev/null || echo -e "\033[0;33mNo scheduler logs found\033[0m\n"
+	@tail -n 20 airflow/airflow-scheduler.out 2>/dev/null || printf "\033[0;33mNo scheduler logs found\033[0m\n"
 	@printf "\033[0;33mRecent webserver logs:\033[0m\n"
-	@tail -n 20 airflow/airflow-webserver.out 2>/dev/null || echo -e "\033[0;33mNo webserver logs found\033[0m\n"
+	@tail -n 20 airflow/airflow-webserver.out 2>/dev/null || printf "\033[0;33mNo webserver logs found\033[0m\n"
 	@printf "\033[0;33mRecent error logs:\033[0m\n"
-	@tail -n 10 airflow/airflow-scheduler.err 2>/dev/null || echo -e "\033[0;33mNo scheduler errors\033[0m\n"
-	@tail -n 10 airflow/airflow-webserver.err 2>/dev/null || echo -e "\033[0;33mNo webserver errors\033[0m\n"
+	@tail -n 10 airflow/airflow-scheduler.err 2>/dev/null || printf "\033[0;33mNo scheduler errors\033[0m\n"
+	@tail -n 10 airflow/airflow-webserver.err 2>/dev/null || printf "\033[0;33mNo webserver errors\033[0m\n"
 
 airflow-debug: _load_env ## 🌊 Debug and troubleshoot Airflow configuration and setup
 	@printf "\033[0;36mAirflow Debug Information:\033[0m\n"
 	@set -a && . ./.env && set +a && \
-	echo -e "\033[0;33mEnvironment Configuration:\033[0m\n" && \
+	printf "\033[0;33mEnvironment Configuration:\033[0m\n" && \
 	echo -e "  AIRFLOW_HOME: $(AIRFLOW_HOME)" && \
 	echo -e "  AIRFLOW__CORE__DAGS_FOLDER: $(AIRFLOW_DAGS_FOLDER)" && \
 	echo -e "  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: $$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
-	echo -e "\033[0;33mDirectory Structure:\033[0m\n" && \
+	printf "\033[0;33mDirectory Structure:\033[0m\n" && \
 	ls -la airflow/ 2>/dev/null || echo -e "  Airflow directory not found" && \
-	echo -e "\033[0;33mDAGs Directory:\033[0m\n" && \
+	printf "\033[0;33mDAGs Directory:\033[0m\n" && \
 	ls -la dags/ 2>/dev/null || echo -e "  DAGs directory not found" && \
-	echo -e "\033[0;33mProcess Status:\033[0m\n" && \
+	printf "\033[0;33mProcess Status:\033[0m\n" && \
 	$(MAKE) airflow-status && \
-	echo -e "\033[0;33mAirflow Version:\033[0m\n" && \
+	printf "\033[0;33mAirflow Version:\033[0m\n" && \
 	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
 	$(PYTHON) -c "import airflow; print(f'Airflow version: {airflow.__version__}')" 2>/dev/null || \
 	echo -e "  Airflow not available"
@@ -238,8 +238,8 @@ airflow-debug: _load_env ## 🌊 Debug and troubleshoot Airflow configuration an
 airflow-webui: ## 🌊 Open and display Airflow web interface in browser
 	@printf "\033[0;36mOpening Airflow web interface...\033[0m\n"
 	@if $(MAKE) airflow-status | grep -q "Webserver running"; then \
-		echo -e "\033[0;32mAirflow webserver is running\033[0m\n"; \
-		echo -e "\033[0;36mOpening http://localhost:8080 in browser...\033[0m\n"; \
+		printf "\033[0;32mAirflow webserver is running\033[0m\n"; \
+		printf "\033[0;36mOpening http://localhost:8080 in browser...\033[0m\n"; \
 		if command -v open >/dev/null 2>&1; then \
 			open http://localhost:8080; \
 		elif command -v xdg-open >/dev/null 2>&1; then \
@@ -247,11 +247,11 @@ airflow-webui: ## 🌊 Open and display Airflow web interface in browser
 		elif command -v start >/dev/null 2>&1; then \
 			start http://localhost:8080; \
 		else \
-			echo -e "\033[0;33mPlease manually open: http://localhost:8080\033[0m\n"; \
+			printf "\033[0;33mPlease manually open: http://localhost:8080\033[0m\n"; \
 		fi; \
 	else \
-		echo -e "\033[0;31mAirflow webserver is not running\033[0m\n"; \
-		echo -e "\033[0;33mStart with: make airflow-start\033[0m\n"; \
+		printf "\033[0;31mAirflow webserver is not running\033[0m\n"; \
+		printf "\033[0;33mStart with: make airflow-start\033[0m\n"; \
 	fi
 
 # ============================================================================
@@ -266,7 +266,7 @@ airflow-test-connection: _load_env ## 🧪 Execute tests Airflow database connec
 	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
 	$(PYTHON) -c "from airflow import settings; settings.engine.execute('SELECT 1'); print('✓ Airflow database connection successful')" 2>/dev/null || \
-	echo -e "\033[0;31m❌ Airflow database connection failed\033[0m\n"
+	printf "\033[0;31m❌ Airflow database connection failed\033[0m\n"
 
 airflow-validate-dags: _load_env ## 🌊 Validate all DAGs for syntax errors
 	@printf "\033[0;36mValidating DAG syntax...\033[0m\n"
@@ -277,14 +277,14 @@ airflow-validate-dags: _load_env ## 🌊 Validate all DAGs for syntax errors
 	if [ -d "dags" ]; then \
 		for dag_file in dags/*.py; do \
 			if [ -f "$$dag_file" ]; then \
-				echo -e "\033[0;33mValidating: $$(basename $$dag_file)\033[0m\n"; \
+				printf "\033[0;33mValidating: $$(basename $$dag_file)\033[0m\n"; \
 				$(PYTHON) -m py_compile "$$dag_file" && \
-				echo -e "\033[0;32m  ✓ Syntax OK\033[0m\n" || \
-				echo -e "\033[0;31m  ❌ Syntax Error\033[0m\n"; \
+				printf "\033[0;32m  ✓ Syntax OK\033[0m\n" || \
+				printf "\033[0;31m  ❌ Syntax Error\033[0m\n"; \
 			fi; \
 		done; \
 	else \
-		echo -e "\033[0;33mNo dags directory found\033[0m\n"; \
+		printf "\033[0;33mNo dags directory found\033[0m\n"; \
 	fi
 
 airflow-test-task: _load_env ## 🧪 Execute tests specific task execution (interactive)
@@ -292,9 +292,9 @@ airflow-test-task: _load_env ## 🧪 Execute tests specific task execution (inte
 	@$(MAKE) airflow-dag-list
 	@printf "\033[0;33mEnter DAG ID:\033[0m\n"
 	@read -p "DAG ID: " dag_id && \
-	echo -e "\033[0;33mEnter Task ID:\033[0m\n" && \
+	printf "\033[0;33mEnter Task ID:\033[0m\n" && \
 	read -p "Task ID: " task_id && \
-	echo -e "\033[0;33mEnter execution date (YYYY-MM-DD) or press Enter for today:\033[0m\n" && \
+	printf "\033[0;33mEnter execution date (YYYY-MM-DD) or press Enter for today:\033[0m\n" && \
 	read -p "Date: " exec_date && \
 	exec_date=$${exec_date:-$$(date +%Y-%m-%d)} && \
 	set -a && . ./.env && set +a && \
