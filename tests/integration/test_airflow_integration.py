@@ -20,12 +20,17 @@ pytestmark = pytest.mark.integration
 scripts_dir = Path(__file__).parent.parent.parent / "scripts"
 sys.path.insert(0, str(scripts_dir))
 
-# Try to load Airflow configuration, but don't fail if environment is incomplete
+# Try to load Airflow configuration, but do not fail if environment is incomplete
 airflow_config = None
 airflow_script = None
 
 try:
-    import airflow as airflow_script
+    # Import the airflow script from scripts directory by name
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("airflow_script", scripts_dir / "airflow.py")
+    airflow_script = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(airflow_script)
 
     # Try to load environment variables, but catch any validation errors
     env_loader = airflow_script.EnvironmentLoader()
@@ -35,9 +40,10 @@ try:
         # Environment not properly configured - tests will be skipped
         airflow_config = None
         print(f"Airflow environment not configured for testing: {e}")
-except ImportError:
+except (ImportError, AttributeError) as e:
     # Fallback if airflow script is not available
     airflow_config = None
+    print(f"Could not load airflow script: {e}")
 
 
 class TestAirflowConfiguration:

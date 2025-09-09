@@ -413,7 +413,7 @@ def airflow_setup():
             capture_output=True,
             text=True,
             timeout=60,
-            check=False,  # Don't fail if already initialized
+            check=False,  # Do not fail if already initialized
         )
 
         return True

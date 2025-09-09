@@ -2,51 +2,45 @@
 # This file defines additional SQL quality checks for our data pipeline
 
 # File patterns to check
-SQL_FILE_PATTERNS = [
-    "dags/sql/**/*.sql",
-    "sql/**/*.sql",
-    "tests/sql/**/*.sql"
-]
+sql_file_patterns:
+  - "dags/sql/**/*.sql"
+  - "sql/**/*.sql"
+  - "tests/sql/**/*.sql"
 
 # SQL Quality Rules
-QUALITY_RULES = {
-    "naming_conventions": {
-        "tables": "snake_case",
-        "columns": "snake_case",
-        "views": "snake_case",
-        "functions": "snake_case"
-    },
-    "forbidden_patterns": [
-        "SELECT *",  # Discourage SELECT * in production queries
-        "DELETE FROM .* WHERE",  # Require explicit transaction control
-        "TRUNCATE",  # Require explicit approval for data deletion
-        "DROP TABLE",  # Require explicit approval for schema changes
-    ],
-    "required_patterns": {
-        "ddl_files": [
-            "-- Purpose:",  # All DDL files must have purpose comment
-            "-- Dependencies:",  # All DDL files must document dependencies
-        ],
-        "etl_files": [
-            "-- Data Quality:",  # ETL files must document quality checks
-            "-- Expected Rows:",  # ETL files must document expected volume
-        ]
-    }
-}
+quality_rules:
+  naming_conventions:
+    tables: "snake_case"
+    columns: "snake_case"
+    views: "snake_case"
+    functions: "snake_case"
+  forbidden_patterns:
+    - "SELECT *"  # Discourage SELECT * in production queries
+    - "DELETE FROM .* WHERE"  # Require explicit transaction control
+    - "TRUNCATE"  # Require explicit approval for data deletion
+    - "DROP TABLE"  # Require explicit approval for schema changes
+  required_patterns:
+    ddl_files:
+      - "-- Purpose:"  # All DDL files must have purpose comment
+      - "-- Dependencies:"  # All DDL files must document dependencies
+    etl_files:
+      - "-- Data Quality:"  # ETL files must document quality checks
+      - "-- Expected Rows:"  # ETL files must document expected volume
 
 # Performance Guidelines
-PERFORMANCE_RULES = {
-    "max_query_length": 50,  # Maximum lines per query
-    "require_indexes": True,  # All JOIN columns should have indexes
-    "limit_subqueries": 3,   # Maximum nested subquery depth
-}
+performance_rules:
+  max_query_length: 50  # Maximum lines per query
+  require_indexes: true  # All JOIN columns should have indexes
+  limit_subqueries: 3   # Maximum nested subquery depth
 
 # Data Governance Rules
-GOVERNANCE_RULES = {
-    "require_documentation": True,
-    "require_owner": True,
-    "require_version": True,
-    "sensitive_data_patterns": [
-        "ssn", "social_security", "credit_card", "password", "secret"
-    ]
-}
+governance_rules:
+  require_documentation: true
+  require_owner: true
+  require_version: true
+  sensitive_data_patterns:
+    - "ssn"
+    - "social_security"
+    - "credit_card"
+    - "password"
+    - "secret"

@@ -42,7 +42,7 @@ def decide_collect(assess: dict[str, Any]) -> str:
 ### Smart Dependency Management
 - **trigger_rule="none_failed_min_one_success"**: Join point after branching
 - **trigger_rule="none_failed"**: Final task coordination
-- Modern pendulum datetime handling
+- Outdated pendulum datetime handling removed as it is only advised for Airflow 2.x and we are using Airflow 3.x
 
 ### Helper Module Integration
 Both DAGs follow a clean architecture pattern:

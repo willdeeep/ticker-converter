@@ -4,3 +4,6 @@ dags/sql/backfill/validate_historical_data.sql
 
 # Ignore ETL files with complex templating
 dags/sql/etl/*_template.sql
+
+# Ignore files with PostgreSQL-specific syntax that sqlfluff can't parse
+dags/sql/etl/cleanup_old_data.sql

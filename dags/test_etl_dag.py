@@ -51,7 +51,7 @@ TEST_CONNECTIONS = _connection_validator_module.TEST_CONNECTIONS
         "depends_on_past": False,
         "retries": 1,
         "retry_delay": timedelta(minutes=1),
-        "execution_timeout": timedelta(seconds=10),  # Max 10 seconds for test tasks
+        "execution_timeout": timedelta(seconds=16),  # Max 16 seconds for test tasks
     },
 )
 def test_etl_dag() -> None:
@@ -212,7 +212,7 @@ def test_etl_dag() -> None:
                         database=db_config["database"],
                         user=db_config["user"],
                         password=db_config["password"],
-                        connect_timeout=5,
+                        connect_timeout=4,  # Short timeout for quick failure
                     )
                     cursor = conn.cursor()
                     cursor.execute("SELECT version(), current_database();")

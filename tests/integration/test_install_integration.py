@@ -61,7 +61,7 @@ class TestEnvironmentConfiguration:
 
     def test_env_variables_not_hardcoded_defaults(self) -> None:
         """Test that environment variables are not using obvious hardcoded defaults."""
-        # Check that sensitive variables don't have placeholder values
+        # Check that sensitive variables do not have placeholder values
         sensitive_checks = {
             "ALPHA_VANTAGE_API_KEY": [
                 "your_api_key_here",

@@ -170,7 +170,7 @@ cat <<EOF | gh issue comment 123 --body-file -
 ### Code Examples
 \`\`\`python
 def example():
-    return "This won't break the command"
+    return "This will not break the command"
 \`\`\`
 
 **Bold text**, _italic text_, and other markdown formatting work safely.

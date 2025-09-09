@@ -105,7 +105,7 @@ export AIRFLOW_HOME="./airflow"
 ### Independence and Isolation
 
 - **Self-Contained Tests**: Each test file runs independently
-- **No Test Dependencies**: Tests don't depend on execution order
+- **No Test Dependencies**: Tests do not depend on execution order
 - **Environment Flexibility**: Tests adapt to available services
 - **Graceful Skipping**: Tests skip when services unavailable
 
@@ -163,7 +163,7 @@ Integration tests are designed to complement the main CI/CD pipeline:
     POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
     POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
     POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-  continue-on-error: true  # Don't fail build on integration test failures
+  continue-on-error: true  # Do not fail build on integration test failures
 ```
 
 ### Local Development Workflow

@@ -47,10 +47,10 @@ jobs:
     - name: Run comprehensive CI/CD validation pipeline
       run: |
         source .venv/bin/activate
-        
+
         # Create .env file for testing from example template
         cp .env.example .env
-        
+
         # Override with CI-appropriate values
         sed -i 's/your_alpha_vantage_api_key_here/test_api_key/' .env
         sed -i 's/localhost/localhost/' .env

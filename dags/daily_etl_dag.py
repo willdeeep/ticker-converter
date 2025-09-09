@@ -10,13 +10,12 @@ from __future__ import annotations
 
 import importlib.util
 import sys
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from airflow import DAG
 from airflow.decorators import task
-from airflow.models import DAG
-from pendulum import datetime as pdatetime
 
 # Get the current file's directory (dags directory)
 _dag_file_path = Path(__file__).resolve()
@@ -61,7 +60,7 @@ DEFAULT_ARGS = {
 with DAG(  # type: ignore[arg-type]
     dag_id="daily_etl_pipeline",
     default_args=DEFAULT_ARGS,
-    start_date=pdatetime(2025, 1, 1, tz="UTC"),
+    start_date=datetime(2025, 1, 1),
     schedule="@daily",
     catchup=False,
     max_active_runs=1,

@@ -247,7 +247,7 @@ class CurrencyDataFetcher(BaseDataFetcher):
             records = self.prepare_for_sql_insert(df)
             self.logger.info("Prepared %s historical FX records", len(records))
 
-        # If we don't have recent data, also fetch current rate
+        # If we do not have recent data, also fetch current rate
         if not records or len(records) < 2:
             current_rate = self.fetch_current_exchange_rate()
             if current_rate:

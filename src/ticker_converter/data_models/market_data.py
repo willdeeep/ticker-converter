@@ -595,7 +595,7 @@ class CurrencyRate(BaseModel):
             "KRW",
         }
         if v not in valid_currencies:
-            # Log warning but don't fail - allows for new/exotic currencies
+            # Log warning but do not fail - allows for new/exotic currencies
             pass  # In production: logger.warning("Unknown currency code: %s", v)
 
         return v
@@ -634,7 +634,7 @@ class CurrencyRate(BaseModel):
             # Check for reasonable spread (should be < 10% for major pairs)
             spread_pct = ((self.ask_rate - self.bid_rate) / self.rate) * 100
             if spread_pct > 10:
-                # Warning for wide spreads, but don't fail
+                # Warning for wide spreads, but do not fail
                 pass  # Log warning in production
 
         return self
