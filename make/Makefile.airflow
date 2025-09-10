@@ -34,12 +34,16 @@ airflow-start: _load_env _check_airflow_deps airflow-init ## 🌊 Start Airflow 
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_MAX_OVERFLOW=10 && \
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_PRE_PING=True && \
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_RECYCLE=3600 && \
+	export AIRFLOW__SCHEDULER__TASK_QUEUED_TIMEOUT=300.0 && \
+	export AIRFLOW__SCHEDULER__TASK_QUEUED_TIMEOUT_CHECK_INTERVAL=60.0 && \
+	export AIRFLOW__SCHEDULER__TASK_INSTANCE_HEARTBEAT_TIMEOUT=300 && \
 	export PYTHONPATH="$(AIRFLOW_HOME)/../:$(AIRFLOW_HOME)/../dags:$(AIRFLOW_HOME)/../src:$$PYTHONPATH" && \
 	printf "\033[0;33mDebug: LOAD_EXAMPLES = $$AIRFLOW__CORE__LOAD_EXAMPLES\033[0m\n" && \
 	printf "\033[0;33mDebug: AUTH_USERS = $$AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS\033[0m\n" && \
 	printf "\033[0;33mDebug: POSTGRES_CONN = $$AIRFLOW_CONN_POSTGRES_DEFAULT\033[0m\n" && \
 	printf "\033[0;32mDebug: CONNECTION POOL CONFIG - SIZE=$$AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_SIZE, OVERFLOW=$$AIRFLOW__DATABASE__SQL_ALCHEMY_MAX_OVERFLOW\033[0m\n" && \
 	printf "\033[0;32mDebug: EXECUTION LIMITS - PARALLELISM=$$AIRFLOW__CORE__PARALLELISM, MAX_RUNS=$$AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG\033[0m\n" && \
+	printf "\033[0;36mDebug: QUEUE TIMEOUTS - TASK_QUEUED=$$AIRFLOW__SCHEDULER__TASK_QUEUED_TIMEOUT, CHECK_INTERVAL=$$AIRFLOW__SCHEDULER__TASK_QUEUED_TIMEOUT_CHECK_INTERVAL\033[0m\n" && \
 	printf "\033[0;33mStarting Airflow scheduler...\033[0m\n" && \
 	nohup env \
 		AIRFLOW_HOME="$$AIRFLOW_HOME" \
@@ -56,6 +60,9 @@ airflow-start: _load_env _check_airflow_deps airflow-init ## 🌊 Start Airflow 
 		AIRFLOW__DATABASE__SQL_ALCHEMY_MAX_OVERFLOW="$$AIRFLOW__DATABASE__SQL_ALCHEMY_MAX_OVERFLOW" \
 		AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_PRE_PING="$$AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_PRE_PING" \
 		AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_RECYCLE="$$AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_RECYCLE" \
+		AIRFLOW__SCHEDULER__TASK_QUEUED_TIMEOUT="$$AIRFLOW__SCHEDULER__TASK_QUEUED_TIMEOUT" \
+		AIRFLOW__SCHEDULER__TASK_QUEUED_TIMEOUT_CHECK_INTERVAL="$$AIRFLOW__SCHEDULER__TASK_QUEUED_TIMEOUT_CHECK_INTERVAL" \
+		AIRFLOW__SCHEDULER__TASK_INSTANCE_HEARTBEAT_TIMEOUT="$$AIRFLOW__SCHEDULER__TASK_INSTANCE_HEARTBEAT_TIMEOUT" \
 		PYTHONPATH="$$PYTHONPATH" \
 		$(PYTHON) -m airflow scheduler > airflow/airflow-scheduler.out 2> airflow/airflow-scheduler.err & \
 	echo $$! > airflow/scheduler.pid && \
@@ -383,6 +390,22 @@ airflow-monitor-connections: _load_env ## 📊 Monitor database connections and 
 	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
 	export PYTHONPATH="$(AIRFLOW_HOME)/../:$(AIRFLOW_HOME)/../dags:$(AIRFLOW_HOME)/../src:$$PYTHONPATH" && \
 	$(PYTHON) -m airflow dags list-runs daily_etl_pipeline --limit 3 2>/dev/null || printf "\033[0;31mAirflow CLI unavailable\033[0m\n"
+
+airflow-queue-status: _load_env ## 📊 Monitor task queue status and timeouts (QUEUE TIMEOUT ANALYSIS)
+	@printf "\033[0;34m=== TASK QUEUE ANALYSIS ===\033[0m\n"
+	@set -a && . ./.env && set +a && \
+	export AIRFLOW_HOME="$(AIRFLOW_HOME)" && \
+	export AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" && \
+	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
+	export PYTHONPATH="$(AIRFLOW_HOME)/../:$(AIRFLOW_HOME)/../dags:$(AIRFLOW_HOME)/../src:$$PYTHONPATH" && \
+	printf "\033[0;33mLatest DAG run states:\033[0m\n" && \
+	$(PYTHON) -m airflow tasks states-for-dag-run daily_etl_pipeline latest 2>/dev/null || echo "No recent daily_etl_pipeline run" && \
+	$(PYTHON) -m airflow tasks states-for-dag-run test_etl_dag latest 2>/dev/null || echo "No recent test_etl_dag run" && \
+	printf "\033[0;33m\nQueue timeout configuration:\033[0m\n" && \
+	$(PYTHON) -m airflow config get-value scheduler task_queued_timeout 2>/dev/null && \
+	$(PYTHON) -m airflow config get-value scheduler task_queued_timeout_check_interval 2>/dev/null && \
+	printf "\033[0;33m\nTask instance heartbeat:\033[0m\n" && \
+	$(PYTHON) -m airflow config get-value scheduler task_instance_heartbeat_timeout 2>/dev/null
 
 airflow-emergency-clear: _load_env ## 🚨 Clear all running/failed tasks (EMERGENCY USE ONLY)
 	@printf "\033[0;31m⚠️  EMERGENCY: Clearing all hanging tasks\033[0m\n"
