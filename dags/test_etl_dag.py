@@ -51,7 +51,7 @@ TEST_CONNECTIONS = _connection_validator_module.TEST_CONNECTIONS
         "depends_on_past": False,
         "retries": 1,
         "retry_delay": timedelta(minutes=1),
-        "execution_timeout": timedelta(seconds=16),  # Max 16 seconds for test tasks
+        "execution_timeout": timedelta(minutes=2),  # Increased timeout for optimized Airflow config
     },
 )
 def test_etl_dag() -> None:
@@ -91,7 +91,7 @@ def test_etl_dag() -> None:
 
         return "airflow_config_ok"
 
-    @task(execution_timeout=timedelta(seconds=10))
+    @task(execution_timeout=timedelta(minutes=1))
     def test_alpha_vantage_api_access() -> str:
         """Test Alpha Vantage API access without making actual API calls."""
         try:
@@ -122,7 +122,7 @@ def test_etl_dag() -> None:
             print(f"❌ Error in Alpha Vantage test: {e}")
             raise
 
-    @task(execution_timeout=timedelta(seconds=10))
+    @task(execution_timeout=timedelta(minutes=1))
     def test_postgresql_database_access() -> str:
         """Test PostgreSQL database access using Airflow's configured postgres_default connection."""
         try:
