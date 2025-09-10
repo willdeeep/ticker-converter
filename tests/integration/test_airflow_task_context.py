@@ -14,13 +14,70 @@ import pytest
 
 
 from airflow.exceptions import AirflowException
-from airflow.models import DagBag, TaskInstance
+from airflow.models import DagBag, TaskInstance, DagRun
 from airflow.models.dag import DAG
 from airflow.providers.standard.operators.python import PythonOperator  # Airflow 3.x compatibility
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.utils.types import DagRunType
 
 # Mark all tests in this file as integration tests
 pytestmark = pytest.mark.integration
+
+
+from airflow.utils.types import DagRunType
+from airflow.utils.state import DagRunState, TaskInstanceState
+from airflow.utils.session import provide_session
+
+from .airflow_test_helpers import create_test_task_instance, create_test_dagrun_with_db_session
+
+
+def create_test_dagrun(dag, logical_date):
+    """Helper to create DagRun for Airflow 3.x compatibility."""
+    from airflow import settings
+    from sqlalchemy.orm import sessionmaker
+    
+    run_id = f"test_run_{logical_date.strftime('%Y%m%d_%H%M%S_%f')}"
+    
+    # Create session
+    Session = sessionmaker(bind=settings.engine)
+    session = Session()
+    
+    try:
+        # Check if DagRun already exists
+        existing_run = session.query(DagRun).filter(
+            DagRun.dag_id == dag.dag_id,
+            DagRun.run_id == run_id
+        ).first()
+        
+        if existing_run:
+            # Refresh and return the existing run
+            session.refresh(existing_run)
+            return existing_run.run_id
+        
+        # Create new DagRun
+        dagrun = DagRun(
+            dag_id=dag.dag_id,
+            run_id=run_id,
+            logical_date=logical_date,
+            run_type=DagRunType.MANUAL,
+            state=DagRunState.RUNNING,
+            conf={},
+            start_date=logical_date
+        )
+        
+        session.add(dagrun)
+        session.commit()
+        
+        # Return just the run_id since that's what TaskInstance needs
+        created_run_id = dagrun.run_id
+        session.close()
+        
+        return created_run_id
+        
+    except Exception as e:
+        session.rollback()
+        session.close()
+        raise e
 
 
 class TestAirflowTaskContextIntegration:
@@ -57,7 +114,7 @@ class TestAirflowTaskContextIntegration:
         task = PythonOperator(task_id="test_postgres_task", python_callable=test_postgres_task, dag=dag)
 
         # Create and run task instance with timeout monitoring
-        ti = TaskInstance(task=task, execution_date=datetime.now(timezone.utc))
+        ti = create_test_task_instance(task)
 
         start_time = time.time()
 
@@ -137,7 +194,7 @@ class TestAirflowTaskContextIntegration:
                 task_id=task_id, python_callable=create_postgres_task(task_id, operation_type), dag=dag
             )
 
-            ti = TaskInstance(task=task, execution_date=datetime.now(timezone.utc))
+            ti = create_test_task_instance(task)
 
             start_time = time.time()
 
@@ -204,44 +261,30 @@ class TestAirflowTaskContextIntegration:
             ("task_3", 0.3),
         ]
 
-        threads = []
+        # Run tasks sequentially to test hook isolation without threading issues
+        all_results = []
 
         for task_id, delay in task_configs:
             dag = DAG(f"test_isolation_{task_id}", start_date=datetime(2023, 1, 1), schedule=None)
 
             task = PythonOperator(task_id=task_id, python_callable=create_isolated_task(task_id, delay), dag=dag)
 
-            ti = TaskInstance(task=task, execution_date=datetime.now(timezone.utc))
+            ti = create_test_task_instance(task)
 
-            def run_isolated_task(task_instance, tid=task_id):
-                """Run task in isolation."""
-                try:
-                    start_time = time.time()
-                    result = task_instance.run()
-                    elapsed = time.time() - start_time
+            # Run task directly (no threading to avoid signal issues)
+            try:
+                start_time = time.time()
+                result = ti.run()
+                elapsed = time.time() - start_time
 
-                    return {"success": True, "result": result, "task_id": tid, "elapsed": elapsed}
-                except Exception as e:
-                    return {"success": False, "error": str(e), "task_id": tid}
+                task_result = {"success": True, "result": result, "task_id": task_id, "elapsed": elapsed}
+                all_results.append(task_result)
 
-            result_container = []
-            thread = threading.Thread(target=lambda ti=ti: result_container.append(run_isolated_task(ti)))
-            threads.append((thread, result_container, task_id))
-            thread.start()
+            except Exception as e:
+                pytest.fail(f"Task {task_id} failed: {str(e)}")
 
-        # Wait for all tasks to complete
-        all_results = []
-        for thread, result_container, task_id in threads:
-            thread.join(timeout=25)
-
-            if thread.is_alive():
-                pytest.fail(f"Isolated task {task_id} hung")
-
-            assert len(result_container) == 1, f"Task {task_id} should complete"
-            result = result_container[0]
-
-            assert result["success"], f"Task {task_id} should succeed: {result.get('error')}"
-            all_results.append(result)
+            # Add delay to ensure tasks run at different times
+            time.sleep(0.1)
 
         # Verify task isolation
         assert len(task_results) == 3, "All tasks should have recorded results"
@@ -378,7 +421,7 @@ class TestAirflowConnectionContextSwitching:
         consumer_task = PythonOperator(task_id="postgres_consumer", python_callable=postgres_consumer_task, dag=dag)
 
         # Test producer task
-        producer_ti = TaskInstance(task=producer_task, execution_date=datetime.now(timezone.utc))
+        producer_ti = create_test_task_instance(producer_task)
 
         start_time = time.time()
 
@@ -404,7 +447,7 @@ class TestAirflowConnectionContextSwitching:
         assert producer_result["success"], f"Producer should succeed: {producer_result.get('error')}"
 
         # Test consumer task
-        consumer_ti = TaskInstance(task=consumer_task, execution_date=datetime.now(timezone.utc))
+        consumer_ti = create_test_task_instance(consumer_task)
 
         start_time = time.time()
 

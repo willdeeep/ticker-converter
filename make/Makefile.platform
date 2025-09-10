@@ -126,6 +126,13 @@ HAS_YUM := $(shell command -v yum >/dev/null 2>&1 && echo "yes" || echo "no")
 HAS_DNF := $(shell command -v dnf >/dev/null 2>&1 && echo "yes" || echo "no")
 HAS_CHOCO := $(shell command -v choco >/dev/null 2>&1 && echo "yes" || echo "no")
 
+# Package manager command paths
+BREW_CMD := $(shell command -v brew 2>/dev/null || echo "brew")
+APT_CMD := $(shell command -v apt 2>/dev/null || echo "apt")
+YUM_CMD := $(shell command -v yum 2>/dev/null || echo "yum")
+DNF_CMD := $(shell command -v dnf 2>/dev/null || echo "dnf")
+CHOCO_CMD := $(shell command -v choco 2>/dev/null || echo "choco")
+
 # Python environment tools
 HAS_PYENV := $(shell command -v pyenv >/dev/null 2>&1 && echo "yes" || echo "no")
 HAS_VENV := $(shell $(PYTHON_CMD) -m venv --help >/dev/null 2>&1 && echo "yes" || echo "no")
@@ -269,10 +276,20 @@ export PLATFORM_FAMILY
 export PLATFORM_ARCH
 export PYTHON_CMD
 export PIP_CMD
+export BREW_CMD
+export APT_CMD
+export YUM_CMD
+export DNF_CMD
+export CHOCO_CMD
 export PACKAGE_MANAGER
 export SERVICE_MANAGER
 export HAS_PYTHON
 export HAS_PYENV
+export HAS_BREW
+export HAS_APT
+export HAS_YUM
+export HAS_DNF
+export HAS_CHOCO
 
 # ============================================================================
 # PUBLIC PLATFORM TARGETS

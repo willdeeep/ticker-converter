@@ -22,6 +22,9 @@ from airflow.providers.standard.operators.python import PythonOperator
 
 from airflow import DAG
 
+# Import the helper function for Airflow 3.x compatibility
+from tests.integration.airflow_test_helpers import create_test_task_instance, run_task_with_timeout
+
 # Mark all tests in this file as integration tests
 pytestmark = pytest.mark.integration
 
@@ -99,18 +102,8 @@ class TestAirflowTaskExecutionContext:
             from airflow.utils.state import DagRunState
             from airflow.utils.types import DagRunType
 
-            # Create proper DAG run for Airflow 3.x
-            now = timezone.utcnow()
-            dag_run = DagRun(
-                dag_id=dag.dag_id,
-                run_id=f"test_run_python_op_{now.isoformat()}",
-                state=DagRunState.RUNNING,
-                start_date=now,
-                run_type=DagRunType.MANUAL,
-            )
-
-            ti = TaskInstance(task=task, run_id=dag_run.run_id)
-            ti.dag_run = dag_run
+            # Use helper function for proper Airflow 3.x TaskInstance creation
+            ti = create_test_task_instance(task)
             return ti.run()
 
         with ThreadPoolExecutor(max_workers=1) as executor:
@@ -203,23 +196,8 @@ class TestAirflowTaskExecutionContext:
 
         # Execute with timeout
         def run_validation_task():
-            from airflow.models import DagRun, TaskInstance
-            from airflow.utils import timezone
-            from airflow.utils.state import DagRunState
-            from airflow.utils.types import DagRunType
-
-            # Create proper DAG run for Airflow 3.x
-            now = timezone.utcnow()
-            dag_run = DagRun(
-                dag_id=dag.dag_id,
-                run_id=f"test_run_validation_{now.isoformat()}",
-                state=DagRunState.RUNNING,
-                start_date=now,
-                run_type=DagRunType.MANUAL,
-            )
-
-            ti = TaskInstance(task=task, run_id=dag_run.run_id)
-            ti.dag_run = dag_run
+            # Use helper function for proper Airflow 3.x TaskInstance creation
+            ti = create_test_task_instance(task)
             return ti.run()
 
         with ThreadPoolExecutor(max_workers=1) as executor:
@@ -274,25 +252,10 @@ class TestAirflowTaskExecutionContext:
 
         # Execute tasks concurrently
         def run_concurrent_tasks():
-            from airflow.models import DagRun, TaskInstance
-            from airflow.utils import timezone
-            from airflow.utils.state import DagRunState
-            from airflow.utils.types import DagRunType
-
             results = []
-            for i, task in enumerate(tasks):
-                # Create unique DAG run for each task
-                now = timezone.utcnow()
-                dag_run = DagRun(
-                    dag_id=dag.dag_id,
-                    run_id=f"test_run_concurrent_{i}_{now.isoformat()}",
-                    state=DagRunState.RUNNING,
-                    start_date=now,
-                    run_type=DagRunType.MANUAL,
-                )
-
-                ti = TaskInstance(task=task, run_id=dag_run.run_id)
-                ti.dag_run = dag_run
+            for task in tasks:
+                # Use helper function for proper Airflow 3.x TaskInstance creation
+                ti = create_test_task_instance(task)
                 result = ti.run()
                 results.append(result)
 
@@ -343,48 +306,27 @@ class TestAirflowTaskExecutionContext:
             retry_delay=timedelta(seconds=1),
         )
 
-        # Execute with retry logic
-        def run_retry_task():
-            from airflow.models import DagRun, TaskInstance
-            from airflow.utils import timezone
-            from airflow.utils.state import DagRunState
-            from airflow.utils.types import DagRunType
+        # Execute with retry logic using helper to avoid signal handling issues
+        # Use helper function for proper Airflow 3.x TaskInstance creation
+        ti = create_test_task_instance(task)
 
-            # Create proper DAG run for Airflow 3.x
-            now = timezone.utcnow()
-            dag_run = DagRun(
-                dag_id=dag.dag_id,
-                run_id=f"test_run_retry_{now.isoformat()}",
-                state=DagRunState.RUNNING,
-                start_date=now,
-                run_type=DagRunType.MANUAL,
-            )
+        # First attempt (should fail)
+        try:
+            run_task_with_timeout(ti, timeout_seconds=60)
+            pytest.fail("First attempt should fail")
+        except AirflowException:
+            pass  # Expected failure
 
-            ti = TaskInstance(task=task, run_id=dag_run.run_id)
-            ti.dag_run = dag_run
+        # Reset task instance for retry
+        ti.state = None  # Reset state to allow retry
+        ti.try_number = ti.try_number + 1  # Increment try number
 
-            # First attempt (should fail)
-            try:
-                ti.run()
-                pytest.fail("First attempt should fail")
-            except AirflowException:
-                pass  # Expected
-
-            # Second attempt (should succeed)
-            result = ti.run()
-            return result
-
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(run_retry_task)
-
-            try:
-                # 60 second timeout for retry scenario
-                result = future.result(timeout=60)
-
-                assert True, "Retry task scenario completed successfully"
-
-            except ConcurrentTimeoutError:
-                pytest.fail("Task retry scenario with PostgreSQL timed out - indicates hanging on retry")
+        # Second attempt (should succeed after retry logic)
+        try:
+            result = run_task_with_timeout(ti, timeout_seconds=60)
+            assert True, "Retry task scenario completed successfully"
+        except TimeoutError:
+            pytest.fail("Task retry scenario with PostgreSQL timed out - indicates hanging on retry")
 
 
 class TestAirflowDagExecution:
@@ -447,27 +389,12 @@ class TestAirflowDagExecution:
 
         # Execute DAG simulation
         def run_etl_dag():
-            from airflow.models import DagRun, TaskInstance
-            from airflow.utils import timezone
-            from airflow.utils.state import DagRunState
-            from airflow.utils.types import DagRunType
-
             results = {}
-
-            # Create proper DAG run for Airflow 3.x
-            now = timezone.utcnow()
-            dag_run = DagRun(
-                dag_id=dag.dag_id,
-                run_id=f"test_run_etl_{now.isoformat()}",
-                state=DagRunState.RUNNING,
-                start_date=now,
-                run_type=DagRunType.MANUAL,
-            )
 
             # Execute tasks in sequence
             for task in [assess_task, validate_task, load_task]:
-                ti = TaskInstance(task=task, run_id=dag_run.run_id)
-                ti.dag_run = dag_run
+                # Use helper function for proper Airflow 3.x TaskInstance creation
+                ti = create_test_task_instance(task)
                 result = ti.run()
                 results[task.task_id] = result
 
@@ -540,53 +467,27 @@ class TestAirflowDagExecution:
 
         task = PythonOperator(task_id="context_postgres_task", python_callable=context_aware_postgres_task, dag=dag)
 
-        # Execute with full context
-        def run_context_task():
-            from airflow.models import DagRun, TaskInstance
-            from airflow.utils import timezone
-            from airflow.utils.state import DagRunState
-            from airflow.utils.types import DagRunType
+        # Execute with full context using helper to avoid signal handling issues
+        # Use helper function for proper Airflow 3.x TaskInstance creation
+        ti = create_test_task_instance(task)
 
-            # Create proper DAG run for Airflow 3.x
-            now = timezone.utcnow()
-            dag_run = DagRun(
-                dag_id=dag.dag_id,
-                run_id=f"test_run_context_{now.isoformat()}",
-                state=DagRunState.RUNNING,
-                start_date=now,
-                run_type=DagRunType.MANUAL,
+        try:
+            # 30 second timeout for context test
+            run_task_with_timeout(ti, timeout_seconds=30)
+
+            # In Airflow 3.x, get the return value from XCom
+            result = ti.xcom_pull(task_ids=ti.task_id, key="return_value")
+
+            assert result is not None, "Task result should not be None"
+            assert "task_context" in result, "Should contain task context"
+            assert "postgres_operations" in result, "Should contain PostgreSQL results"
+
+            # Verify PostgreSQL operations completed
+            postgres_ops = result["postgres_operations"]
+            assert len(postgres_ops) == 3, "Should execute 3 PostgreSQL queries"
+            assert all(op["success"] for op in postgres_ops), "All PostgreSQL operations should succeed"
+
+        except TimeoutError:
+            pytest.fail(
+                "Context-aware PostgreSQL task timed out - indicates context interference with DB operations"
             )
-
-            ti = TaskInstance(task=task, run_id=dag_run.run_id)
-            ti.dag_run = dag_run
-
-            # Set up full context
-            context = {
-                "dag": dag,
-                "task_instance": ti,
-                "execution_date": now,
-                "run_id": dag_run.run_id,
-            }
-
-            result = ti.run()
-            return result
-
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(run_context_task)
-
-            try:
-                # 30 second timeout for context test
-                result = future.result(timeout=30)
-
-                assert "task_context" in result, "Should contain task context"
-                assert "postgres_operations" in result, "Should contain PostgreSQL results"
-
-                # Verify PostgreSQL operations completed
-                postgres_ops = result["postgres_operations"]
-                assert len(postgres_ops) == 3, "Should execute 3 PostgreSQL queries"
-                assert all(op["success"] for op in postgres_ops), "All PostgreSQL operations should succeed"
-
-            except ConcurrentTimeoutError:
-                pytest.fail(
-                    "Context-aware PostgreSQL task timed out - indicates context interference with DB operations"
-                )

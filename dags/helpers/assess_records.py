@@ -46,48 +46,33 @@ def assess_latest_records() -> dict:
         # Use PostgreSQL hook with proper timeout and connection management
         hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
 
-        # Database queries to check table counts
-        queries = [
-            (
-                "stock_dimension",
-                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'stock_dimension' AND table_schema = 'public';",
-            ),
-            (
-                "currency_dimension",
-                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'currency_dimension' AND table_schema = 'public';",
-            ),
-            (
-                "fact_stock",
-                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'fact_stock' AND table_schema = 'public';",
-            ),
-        ]
+        # Database queries to check table counts using hook methods (not raw connections)
+        tables_to_check = ["stock_dimension", "currency_dimension", "fact_stock"]
 
-        # Execute queries with proper connection management
-        with hook.get_conn() as conn:
-            with conn.cursor() as cursor:
-                for table_name, query in queries:
-                    print(f"🔍 Checking {table_name} table...")
-                    cursor.execute(query)
-                    result = cursor.fetchone()
-                    table_exists = result[0] if result else 0
+        for table_name in tables_to_check:
+            print(f"🔍 Checking {table_name} table...")
+            
+            # Check if table exists using hook.get_first with simple query format
+            table_exists_query = f"SELECT COUNT(*) FROM information_schema.tables WHERE table_name = '{table_name}' AND table_schema = 'public'"
+            result = hook.get_first(table_exists_query)
+            table_exists = result[0] if result else 0
 
-                    if table_exists > 0:
-                        # Table exists, get row count
-                        count_query = f"SELECT COUNT(*) FROM {table_name};"
-                        cursor.execute(count_query)
-                        count_result = cursor.fetchone()
-                        row_count = count_result[0] if count_result else 0
+            if table_exists > 0:
+                # Table exists, get row count using hook.get_first
+                count_query = f"SELECT COUNT(*) FROM {table_name}"
+                count_result = hook.get_first(count_query)
+                row_count = count_result[0] if count_result else 0
 
-                        if table_name == "stock_dimension":
-                            stock_count = row_count
-                        elif table_name == "currency_dimension":
-                            currency_count = row_count
-                        elif table_name == "fact_stock":
-                            fact_stock_count = row_count
+                if table_name == "stock_dimension":
+                    stock_count = row_count
+                elif table_name == "currency_dimension":
+                    currency_count = row_count
+                elif table_name == "fact_stock":
+                    fact_stock_count = row_count
 
-                        print(f"✅ {table_name}: {row_count} records")
-                    else:
-                        print(f"⚠️ {table_name}: table not found")
+                print(f"✅ {table_name}: {row_count} records")
+            else:
+                print(f"⚠️ {table_name}: table not found")
 
         print("✅ Database assessment completed successfully")
 

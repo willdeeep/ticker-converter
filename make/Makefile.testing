@@ -28,26 +28,44 @@ test: _load_env ## 🧪 Execute full test suite
 	@printf "\033[0;34mRunning full test suite...\033[0m\n"
 	@$(MAKE) _check_test_deps
 	@printf "\033[0;33mExecuting tests with pytest...\033[0m\n"
-	@$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS)
+	@set -a && . ./.env && set +a && $(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS)
 	@printf "\033[0;32m✓ Test suite completed\033[0m\n"
 
 test-unit: _load_env ## 🧪 Execute unit tests only
 	@printf "\033[0;34mRunning unit tests...\033[0m\n"
 	@$(MAKE) _check_test_deps
 	@printf "\033[0;33mExecuting unit tests...\033[0m\n"
-	@$(PYTHON) -m pytest $(TEST_DIR)/unit $(PYTEST_ARGS) 2>/dev/null || \
-	$(PYTHON) -m pytest $(TEST_DIR) -k "unit" $(PYTEST_ARGS) 2>/dev/null || \
-	$(PYTHON) -m pytest $(TEST_DIR) -m "unit" $(PYTEST_ARGS) 2>/dev/null || \
-	$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS)
+	@set -a && . ./.env && set +a && $(PYTHON) -m pytest $(TEST_DIR)/unit $(PYTEST_ARGS) 2>/dev/null || \
+	set -a && . ./.env && set +a && $(PYTHON) -m pytest $(TEST_DIR) -k "unit" $(PYTEST_ARGS) 2>/dev/null || \
+	set -a && . ./.env && set +a && $(PYTHON) -m pytest $(TEST_DIR) -m "unit" $(PYTEST_ARGS) 2>/dev/null || \
+	set -a && . ./.env && set +a && $(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS)
 	@printf "\033[0;32m✓ Unit tests completed\033[0m\n"
 
 test-integration: _load_env ## 🧪 Execute integration tests only
 	@printf "\033[0;34mRunning integration tests...\033[0m\n"
 	@$(MAKE) _check_test_deps
 	@printf "\033[0;33mExecuting integration tests...\033[0m\n"
-	@$(PYTHON) -m pytest $(TEST_DIR)/integration $(PYTEST_ARGS) 2>/dev/null || \
-	$(PYTHON) -m pytest $(TEST_DIR) -k "integration" $(PYTEST_ARGS) 2>/dev/null || \
-	$(PYTHON) -m pytest $(TEST_DIR) -m "integration" $(PYTEST_ARGS) 2>/dev/null || \
+	@set -a && . ./.env && \
+	export AIRFLOW_HOME="$$(pwd)/airflow" && \
+	export AIRFLOW__CORE__DAGS_FOLDER="$$(pwd)/dags" && \
+	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
+	export AIRFLOW_CONN_POSTGRES_DEFAULT="$$AIRFLOW_CONN_POSTGRES_DEFAULT" && \
+	export PYTHONPATH="$$(pwd):$$(pwd)/dags:$$(pwd)/src:$$PYTHONPATH" && \
+	set +a && $(PYTHON) -m pytest $(TEST_DIR)/integration $(PYTEST_ARGS) 2>/dev/null || \
+	set -a && . ./.env && \
+	export AIRFLOW_HOME="$$(pwd)/airflow" && \
+	export AIRFLOW__CORE__DAGS_FOLDER="$$(pwd)/dags" && \
+	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
+	export AIRFLOW_CONN_POSTGRES_DEFAULT="$$AIRFLOW_CONN_POSTGRES_DEFAULT" && \
+	export PYTHONPATH="$$(pwd):$$(pwd)/dags:$$(pwd)/src:$$PYTHONPATH" && \
+	set +a && $(PYTHON) -m pytest $(TEST_DIR) -k "integration" $(PYTEST_ARGS) 2>/dev/null || \
+	set -a && . ./.env && \
+	export AIRFLOW_HOME="$$(pwd)/airflow" && \
+	export AIRFLOW__CORE__DAGS_FOLDER="$$(pwd)/dags" && \
+	export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN="$$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" && \
+	export AIRFLOW_CONN_POSTGRES_DEFAULT="$$AIRFLOW_CONN_POSTGRES_DEFAULT" && \
+	export PYTHONPATH="$$(pwd):$$(pwd)/dags:$$(pwd)/src:$$PYTHONPATH" && \
+	set +a && $(PYTHON) -m pytest $(TEST_DIR) -m "integration" $(PYTEST_ARGS) 2>/dev/null || \
 	printf "\033[0;33m⚠ No integration tests found or specific marker not defined\033[0m\n"
 	@printf "\033[0;32m✓ Integration tests completed\033[0m\n"
 
@@ -80,7 +98,7 @@ test-coverage: _load_env ## 🧪 Execute tests with coverage reporting
 	@$(MAKE) _check_test_deps
 	@$(MAKE) _check_coverage_deps
 	@printf "\033[0;33mExecuting tests with coverage collection...\033[0m\n"
-	@$(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS) $(PYTEST_COVERAGE_ARGS)
+	@set -a && . ./.env && set +a && $(PYTHON) -m pytest $(TEST_DIR) $(PYTEST_ARGS) $(PYTEST_COVERAGE_ARGS)
 	@printf "\033[0;32m✓ Test coverage analysis completed\033[0m\n"
 
 # ============================================================================

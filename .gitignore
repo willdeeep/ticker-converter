@@ -7,6 +7,7 @@
 dags/raw_data/*/*
 my_docs/
 my_scripts/
+data/*
 
 # Python
 __pycache__/

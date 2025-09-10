@@ -66,15 +66,8 @@ test = [
     "bandit>=1.7.0",
     "safety>=2.3.0",
 
-    # Type stubs for mypy
+    # Type stubs for mypy (only what's actually needed)
     "types-psutil>=5.9.0",
-    "types-requests>=2.31.0",
-    "types-setuptools>=68.0.0",
-    "types-python-dotenv>=1.0.0",
-    "types-pydantic>=2.0.0",
-    "types-fastapi>=0.104.0",
-    "types-uvicorn>=0.24.0",
-    "types-werkzeug>=1.0.0",
 
     # Development tools
     "pre-commit>=3.4.0",

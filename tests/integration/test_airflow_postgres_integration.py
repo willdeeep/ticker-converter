@@ -14,6 +14,8 @@ from airflow.exceptions import AirflowException
 from airflow.hooks.base import BaseHook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
+from .airflow_test_helpers import create_test_task_instance
+
 # Mark all tests in this file as integration tests
 pytestmark = pytest.mark.integration
 
@@ -140,8 +142,8 @@ class TestAirflowTaskLevelIntegration:
 
         task = PythonOperator(task_id="test_postgres_task", python_callable=test_postgres_task, dag=dag)
 
-        # Create task instance and run it
-        ti = TaskInstance(task=task, execution_date=datetime.now())
+        # Create TaskInstance with properly persisted DagRun for Airflow 3.x
+        ti = create_test_task_instance(task)
 
         try:
             result = ti.run()
@@ -207,8 +209,8 @@ class TestAirflowTaskLevelIntegration:
             assert elapsed < 30, f"Should complete within 30s, took {elapsed:.2f}s"
 
             # Check that postgres_default was validated
-            assert "connections" in result, "Should have connections in result"
-            assert "postgres_default" in result["connections"], "Should validate postgres_default connection"
+            assert "validation_results" in result, "Should have validation_results in result"
+            assert "postgres_default" in result["validation_results"], "Should validate postgres_default connection"
 
         except Exception as e:
             pytest.fail(f"Connection validation failed: {e}")
